@@ -83,7 +83,7 @@ import warnings
 # define a portable string instance tester going forward that includes
 # unicode strings in Python 2.x and portable to Python 3
 try:
-    str  # attempt to evaluate basestring
+    str  # attempt to evaluate string
     def isstr(s):
         return isinstance(s, str)
 except NameError:

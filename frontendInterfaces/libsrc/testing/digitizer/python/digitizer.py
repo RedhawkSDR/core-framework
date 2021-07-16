@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 #
 # AUTO-GENERATED
@@ -37,57 +37,6 @@ class digitizer_i(digitizer_base):
         self._delegatedAllocations = {}
         self.rdcs.append(self.addChild(RDC))
         self.rdcs.append(self.addChild(RDC))
-
-    def allocate(self, capacities):
-        result = []
-
-        if len(capacities) == 0:
-            return []
-
-        allocation_id = str(uuid.uuid1())
-        props = capacities
-
-        # copy the const properties to something that is modifiable
-        local_props = []
-        local_props = props
-
-        for cap in local_props:
-            if cap.id == "FRONTEND::coherent_feeds":
-                pass
-
-            if cap.id == "FRONTEND::tuner_allocation":
-                tuner_alloc = cap.value._v
-
-        # Verify that the device is in a valid state
-        if (not self.isUnLocked() or self.isDisabled() or self.isError()):
-            invalidState = ''
-            if self.isLocked():
-                invalidState = "LOCKED"
-            elif self.isDisabled():
-                invalidState = "DISABLED"
-            elif self.isError():
-                invalidState = "ERROR"
-            else:
-                invalidState = "SHUTTING_DOWN"
-            raise CF.Device.InvalidState(invalidState)
-
-        for rdc in self.rdcs:
-            result = rdc.allocate(local_props)
-            if len(result) > 0:
-                self._delegatedAllocations[allocation_id] = result
-                return result
-
-        return result
-
-    def deallocate(self, alloc_id):
-        if self._delegatedAllocations.get(alloc_id) != None:
-            for alloc in self._delegatedAllocations[alloc_id]:
-                dev = alloc.device_ref
-                dev.deallocate(alloc_id)
-            self._delegatedAllocations.pop(alloc_id)
-            return
-        invalidProps = []
-        raise CF.Device.InvalidCapacity("Capacities do not match allocated ones in the child devices", invalidProps)
 
     def process(self):
         """
@@ -435,7 +384,7 @@ class digitizer_i(digitizer_base):
         modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
         Make sure to set the 'enabled' member of fts to indicate that tuner as enabled
         ************************************************************'''
-        print "deviceEnable(): Enable the given tuner  *********"
+        print("deviceEnable(): Enable the given tuner  *********")
         fts.enabled = True
         return
 
@@ -445,7 +394,7 @@ class digitizer_i(digitizer_base):
         modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
         Make sure to reset the 'enabled' member of fts to indicate that tuner as disabled
         ************************************************************'''
-        print "deviceDisable(): Disable the given tuner  *********"
+        print("deviceDisable(): Disable the given tuner  *********")
         fts.enabled = False
         return
 
@@ -467,7 +416,7 @@ class digitizer_i(digitizer_base):
         
         return True if the tuning succeeded, and False if it failed
         ************************************************************'''
-        print "deviceSetTuning(): Evaluate whether or not a tuner is added  *********"
+        print("deviceSetTuning(): Evaluate whether or not a tuner is added  *********")
         return True
 
     def deviceSetTuning(self,request, fts, tuner_id):
@@ -488,7 +437,7 @@ class digitizer_i(digitizer_base):
         
         return True if the tuning succeeded, and False if it failed
         ************************************************************'''
-        print "deviceSetTuning(): Evaluate whether or not a tuner is added  *********"
+        print("deviceSetTuning(): Evaluate whether or not a tuner is added  *********")
         return True
 
     def deviceDeleteTuning(self, fts, tuner_id):
@@ -497,7 +446,7 @@ class digitizer_i(digitizer_base):
         modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
         return True if the tune deletion succeeded, and False if it failed
         ************************************************************'''
-        print "deviceDeleteTuning(): Deallocate an allocated tuner  *********"
+        print("deviceDeleteTuning(): Deallocate an allocated tuner  *********")
         return True
   
 if __name__ == '__main__':

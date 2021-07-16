@@ -361,8 +361,8 @@ def struct_fields(value):
     # just look at the class dictionary to find the fields.
     fields = getattr(clazz, '__fields', None)
     if fields is None:
-        fields = [p for p in clazz.__dict__.values() if isinstance(p, simple_property)]
-        fields += [p for p in clazz.__dict__.values() if isinstance(p, simpleseq_property)]
+        fields = [p for p in list(clazz.__dict__.values()) if isinstance(p, simple_property)]
+        fields += [p for p in list(clazz.__dict__.values()) if isinstance(p, simpleseq_property)]
     members = inspect.getmembers(value)
     for member in members:
         if isinstance(member[1], simple_property) or isinstance(member[1], simpleseq_property):

@@ -4,4 +4,7 @@ redhawk_SCRIPTS_auto = digitizer.py
 redhawk_DATA_auto += RDC/RDC_base.py
 redhawk_DATA_auto += RDC/RDC.py
 redhawk_DATA_auto += RDC/__init__.py
+redhawk_DATA_auto += SRDC/SRDC_base.py
+redhawk_DATA_auto += SRDC/SRDC.py
+redhawk_DATA_auto += SRDC/__init__.py
 

@@ -350,7 +350,7 @@ class LineBase(PlotBase):
         # Start all associated ports.
         self._linesLock.acquire()
         try:
-            for trace in self._lines.values():
+            for trace in list(self._lines.values()):
                 trace['port'].startPort()
         finally:
             self._linesLock.release()
@@ -360,7 +360,7 @@ class LineBase(PlotBase):
         # Stop all associated port.
         self._linesLock.acquire()
         try:
-            for trace in self._lines.values():
+            for trace in list(self._lines.values()):
                 trace['port'].stopPort()
         finally:
             self._linesLock.release()

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # AUTO-GENERATED CODE.  DO NOT MODIFY!
 #
@@ -16,7 +16,7 @@ from ossie.properties import simpleseq_property
 from ossie.properties import struct_property
 from ossie.properties import structseq_property
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 from ossie.resource import usesport, providesport, PortCallError
 from ossie.cf import ExtendedCF
 from ossie.cf import ExtendedCF__POA
@@ -67,7 +67,7 @@ class SRDC_base(CF__POA.Device, FrontendTunerDevice, digital_tuner_delegation, r
         def releaseObject(self):
             try:
                 self.stop()
-            except Exception:
+            except Exception as e:
                 self._baseLog.exception("Error stopping")
 
         ######################################################################
@@ -205,128 +205,128 @@ class SRDC_base(CF__POA.Device, FrontendTunerDevice, digital_tuner_delegation, r
         class device_characteristics_struct(object):
             ch_name = simple_property(
                                       id_="device_characteristics::ch_name",
-                                      
+
                                       name="ch_name",
                                       type_="string")
-        
+
             tuner_type = simple_property(
                                          id_="device_characteristics::tuner_type",
-                                         
+
                                          name="tuner_type",
                                          type_="string")
-        
+
             chan_num = simple_property(
                                        id_="device_characteristics::chan_num",
-                                       
+
                                        name="chan_num",
                                        type_="short")
-        
+
             antenna = simple_property(
                                       id_="device_characteristics::antenna",
-                                      
+
                                       name="antenna",
                                       type_="string")
-        
+
             bandwidth_current = simple_property(
                                                 id_="device_characteristics::bandwidth_current",
-                                                
+
                                                 name="bandwidth_current",
                                                 type_="double")
-        
+
             bandwidth_min = simple_property(
                                             id_="device_characteristics::bandwidth_min",
-                                            
+
                                             name="bandwidth_min",
                                             type_="double")
-        
+
             bandwidth_max = simple_property(
                                             id_="device_characteristics::bandwidth_max",
-                                            
+
                                             name="bandwidth_max",
                                             type_="double")
-        
+
             rate_current = simple_property(
                                            id_="device_characteristics::rate_current",
-                                           
+
                                            name="rate_current",
                                            type_="double")
-        
+
             rate_min = simple_property(
                                        id_="device_characteristics::rate_min",
-                                       
+
                                        name="rate_min",
                                        type_="double")
-        
+
             rate_max = simple_property(
                                        id_="device_characteristics::rate_max",
-                                       
+
                                        name="rate_max",
                                        type_="double")
-        
+
             freq_current = simple_property(
                                            id_="device_characteristics::freq_current",
-                                           
+
                                            name="freq_current",
                                            type_="double")
-        
+
             freq_min = simple_property(
                                        id_="device_characteristics::freq_min",
-                                       
+
                                        name="freq_min",
                                        type_="double")
-        
+
             freq_max = simple_property(
                                        id_="device_characteristics::freq_max",
-                                       
+
                                        name="freq_max",
                                        type_="double")
-        
+
             gain_current = simple_property(
                                            id_="device_characteristics::gain_current",
-                                           
+
                                            name="gain_current",
                                            type_="double")
-        
+
             gain_min = simple_property(
                                        id_="device_characteristics::gain_min",
-                                       
+
                                        name="gain_min",
                                        type_="double")
-        
+
             gain_max = simple_property(
                                        id_="device_characteristics::gain_max",
-                                       
+
                                        name="gain_max",
                                        type_="double")
-        
+
             clock_min = simple_property(
                                         id_="device_characteristics::clock_min",
-                                        
+
                                         name="clock_min",
                                         type_="double")
-        
+
             clock_max = simple_property(
                                         id_="device_characteristics::clock_max",
-                                        
+
                                         name="clock_max",
                                         type_="double")
-        
+
             available_antennas = simpleseq_property(
                                                     id_="device_characteristics::available_antennas",
-                                                    
+
                                                     name="available_antennas",
                                                     type_="string",
                                                     defvalue=[]
                                                     )
-        
+
             def __init__(self, **kw):
                 """Construct an initialized instance of this struct definition"""
-                for classattr in type(self).__dict__.itervalues():
+                for classattr in type(self).__dict__.values():
                     if isinstance(classattr, (simple_property, simpleseq_property)):
                         classattr.initialize(self)
-                for k,v in kw.items():
+                for k,v in list(kw.items()):
                     setattr(self,k,v)
-        
+
             def __str__(self):
                 """Return a string representation of this structure"""
                 d = {}
@@ -350,17 +350,18 @@ class SRDC_base(CF__POA.Device, FrontendTunerDevice, digital_tuner_delegation, r
                 d["clock_max"] = self.clock_max
                 d["available_antennas"] = self.available_antennas
                 return str(d)
-        
+
             @classmethod
             def getId(cls):
                 return "device_characteristics"
-        
+
             @classmethod
             def isStruct(cls):
                 return True
-        
+
             def getMembers(self):
                 return [("ch_name",self.ch_name),("tuner_type",self.tuner_type),("chan_num",self.chan_num),("antenna",self.antenna),("bandwidth_current",self.bandwidth_current),("bandwidth_min",self.bandwidth_min),("bandwidth_max",self.bandwidth_max),("rate_current",self.rate_current),("rate_min",self.rate_min),("rate_max",self.rate_max),("freq_current",self.freq_current),("freq_min",self.freq_min),("freq_max",self.freq_max),("gain_current",self.gain_current),("gain_min",self.gain_min),("gain_max",self.gain_max),("clock_min",self.clock_min),("clock_max",self.clock_max),("available_antennas",self.available_antennas)]
+
 
         device_characteristics = struct_property(id_="device_characteristics",
                                                  name="device_characteristics",
@@ -373,21 +374,21 @@ class SRDC_base(CF__POA.Device, FrontendTunerDevice, digital_tuner_delegation, r
         class frontend_tuner_status_struct_struct(frontend.default_frontend_tuner_status_struct_struct):
             bandwidth_tolerance = simple_property(
                                                   id_="FRONTEND::tuner_status::bandwidth_tolerance",
-                                                  
+
                                                   name="bandwidth_tolerance",
                                                   type_="double")
-        
+
             sample_rate_tolerance = simple_property(
                                                     id_="FRONTEND::tuner_status::sample_rate_tolerance",
-                                                    
+
                                                     name="sample_rate_tolerance",
                                                     type_="double")
-        
+
             def __init__(self, allocation_id_csv="", bandwidth=0.0, center_frequency=0.0, enabled=False, group_id="", rf_flow_id="", sample_rate=0.0, tuner_type="", bandwidth_tolerance=0.0, sample_rate_tolerance=0.0):
                 frontend.default_frontend_tuner_status_struct_struct.__init__(self, allocation_id_csv=allocation_id_csv, bandwidth=bandwidth, center_frequency=center_frequency, enabled=enabled, group_id=group_id, rf_flow_id=rf_flow_id, sample_rate=sample_rate, tuner_type=tuner_type)
                 self.bandwidth_tolerance = bandwidth_tolerance
                 self.sample_rate_tolerance = sample_rate_tolerance
-        
+
             def __str__(self):
                 """Return a string representation of this structure"""
                 d = {}
@@ -402,17 +403,18 @@ class SRDC_base(CF__POA.Device, FrontendTunerDevice, digital_tuner_delegation, r
                 d["bandwidth_tolerance"] = self.bandwidth_tolerance
                 d["sample_rate_tolerance"] = self.sample_rate_tolerance
                 return str(d)
-        
+
             @classmethod
             def getId(cls):
                 return "FRONTEND::tuner_status_struct"
-        
+
             @classmethod
             def isStruct(cls):
                 return True
-        
+
             def getMembers(self):
                 return frontend.default_frontend_tuner_status_struct_struct.getMembers(self) + [("bandwidth_tolerance",self.bandwidth_tolerance),("sample_rate_tolerance",self.sample_rate_tolerance)]
+
 
         frontend_tuner_status = structseq_property(id_="FRONTEND::tuner_status",
                                                    name="frontend_tuner_status",
@@ -434,7 +436,7 @@ class PortCFDeviceStatusOut_i(SRDC_base.PortCFDeviceStatusOut):
         self.port_lock = threading.Lock()
 
     def getConnectionIds(self):
-        return self.outConnections.keys()
+        return list(self.outConnections.keys())
 
     def _evaluateRequestBasedOnConnections(self, __connection_id__, returnValue, inOut, out):
         if not __connection_id__ and len(self.outConnections) > 1:
@@ -449,7 +451,7 @@ class PortCFDeviceStatusOut_i(SRDC_base.PortCFDeviceStatusOut):
                     raise PortCallError("The requested connection id ("+__connection_id__+") does not exist.", self.getConnectionIds())
         if __connection_id__ and len(self.outConnections) > 0:
             foundConnection = False
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if __connection_id__ == connId:
                     foundConnection = True
                     break
@@ -474,7 +476,7 @@ class PortCFDeviceStatusOut_i(SRDC_base.PortCFDeviceStatusOut):
     def _get_connections(self):
         self.port_lock.acquire()
         try:
-            return [ExtendedCF.UsesConnection(name, port) for name, port in self.outConnections.iteritems()]
+            return [ExtendedCF.UsesConnection(name, port) for name, port in list(self.outConnections.items())]
         finally:
             self.port_lock.release()
 
@@ -484,13 +486,13 @@ class PortCFDeviceStatusOut_i(SRDC_base.PortCFDeviceStatusOut):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, False, False, False)
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
                     try:
                         port.statusChanged(status)
-                    except Exception:
+                    except Exception as e:
                         self.parent._baseLog.exception("The call to statusChanged failed on port %s connection %s instance %s", self.name, connId, port)
                         raise
         finally:
@@ -513,14 +515,14 @@ class PortCFDeviceStatusOut_i(SRDC_base.PortCFDeviceStatusOut):
         def assignListener(self,listen_alloc_id, allocation_id):
             # find control allocation_id
             existing_alloc_id = allocation_id
-            if self.listeners.has_key(existing_alloc_id):
+            if existing_alloc_id in self.listeners:
                 existing_alloc_id = self.listeners[existing_alloc_id]
             self.listeners[listen_alloc_id] = existing_alloc_id
 
 
 
         def removeListener(self,listen_alloc_id):
-            if self.listeners.has_key(listen_alloc_id):
+            if listen_alloc_id in self.listeners:
                 del self.listeners[listen_alloc_id]
 
 

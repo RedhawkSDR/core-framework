@@ -193,9 +193,9 @@ class Generator(object):
             isChild = False
             childName = None
             if isinstance(_template, dict):
-                template = _template[_template.keys()[0]]
+                template = _template[list(_template.keys())[0]]
                 isChild = True
-                childName = _template.keys()[0]
+                childName = list(_template.keys())[0]
             else:
                 template = _template
             # Mark the current template as seen so it will not be deleted,

@@ -31,7 +31,7 @@ from ossie.resource import Resource, start_component
 #{% endif %}
 import logging
 
-from ${baseClass} import *
+from .${baseClass} import *
 
 
 class ${className}(${baseClass}):

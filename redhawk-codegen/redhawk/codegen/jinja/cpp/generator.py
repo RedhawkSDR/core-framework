@@ -31,7 +31,7 @@ class CppCodeGenerator(CodeGenerator):
             if ext in ('.h', '.cpp'):
                 yield template.filename
         for _template in self.templatesChildren(component):
-            child = _template.keys()[0]
+            child = list(_template.keys())[0]
             template = _template.values()[0]
             filename, ext = os.path.splitext(template.filename)
             if ext in ('.h', '.cpp'):
@@ -39,7 +39,7 @@ class CppCodeGenerator(CodeGenerator):
 
     def templatesChildren(self, component):
         templates = []
-        if not component.has_key('children'):
+        if not component.get('children'):
             return templates
 
         for child_key in component['children']:

@@ -7,11 +7,11 @@ AC_PROG_INSTALL
 AC_CORBA_ORB
 OSSIE_CHECK_OSSIE
 OSSIE_SDRROOT_AS_PREFIX
-AM_PATH_PYTHON([2.6])
+AM_PATH_PYTHON([3.6])
 
 PKG_CHECK_MODULES([OSSIE], [ossie >= 3.0])
 AC_CHECK_PYMODULE(ossie, [], [AC_MSG_ERROR([the python ossie module is required])])
-PKG_CHECK_MODULES([OMNIORB], [omniORB4 >= 4.1.0])
+PKG_CHECK_MODULES([OMNIORB], [omniORB4 >= 4.2.3])
 AC_CHECK_PYMODULE(omniORB, [], [AC_MSG_ERROR([the python omniORB module is required])])
 
 PKG_CHECK_MODULES(frontend, frontend >= 3.0) 

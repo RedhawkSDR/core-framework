@@ -30,7 +30,7 @@ class JavaCodeGenerator(CodeGenerator):
             if template.filename.endswith('.java'):
                 yield template.filename
         for _template in self.templatesChildren(component):
-            child = _template.keys()[0]
+            child = list(_template.keys())[0]
             template = _template.values()[0]
             filename, ext = os.path.splitext(template.filename)
             if ext in ('.java'):
@@ -44,7 +44,7 @@ class JavaCodeGenerator(CodeGenerator):
 
     def templatesChildren(self, component):
         templates = []
-        if not component.has_key('children'):
+        if not component.get('children'):
             return templates
 
         pkgpath = os.path.join('src', *component['package'].split('.')) #os.path.join(pkgpath, userfile)

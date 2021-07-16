@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 #
 # AUTO-GENERATED
@@ -7,7 +7,7 @@
 from ossie.device import start_device
 import logging
 
-from RDC_base import *
+from .RDC_base import *
 
 class RDC_i(RDC_base):
     """<DESCRIPTION GOES HERE>"""
@@ -32,14 +32,7 @@ class RDC_i(RDC_base):
         type. The string for the request must match the string in the tuner status.
         """
         # TODO add customization here.
-        self.addChannels(1, "RDC")
-
-    def allocate(self, alloc_props):
-        retval = super(RDC_i, self).allocate(alloc_props)
-        if len(retval) > 0:
-            retval[0].data_ports = [CF.Device.PortDescription(self.port_dataShort_out._this(), 'dataShort_out', 'IDL:BULKIO/dataShort:1.0')]
-            retval[0].control_ports = [CF.Device.PortDescription(self.port_DigitalTuner_in._this(), 'DigitalTuner_in', 'IDL:FRONTEND/DigitalTuner:1.0')]
-        return retval
+        self.addChannels(1, "ABOT")
 
     def process(self):
         """
@@ -211,13 +204,6 @@ class RDC_i(RDC_base):
 
         # TODO fill in your code here
         self._baseLog.debug("process() example log message")
-        if self.frontend_tuner_status[0].enabled:
-            outputStream = self.port_dataShort_out.getStream('sample_data')
-            if not outputStream:
-                sri = frontend.sri.create('sample_data', self.frontend_tuner_status[0], self._id)
-                outputStream = self.port_dataShort_out.createStream(sri)
-            data = range(1000)
-            outputStream.write(data, bulkio.timestamp.now())
         return NOOP
 
     '''
@@ -366,8 +352,7 @@ class RDC_i(RDC_base):
         modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
         Make sure to set the 'enabled' member of fts to indicate that tuner as enabled
         ************************************************************'''
-        print "deviceEnable(): Enable the given tuner  *********"
-        self.start()
+        print("deviceEnable(): Enable the given tuner  *********")
         fts.enabled = True
         return
 
@@ -377,11 +362,8 @@ class RDC_i(RDC_base):
         modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
         Make sure to reset the 'enabled' member of fts to indicate that tuner as disabled
         ************************************************************'''
-        print "deviceDisable(): Disable the given tuner  *********"
+        print("deviceDisable(): Disable the given tuner  *********")
         fts.enabled = False
-        outputStream = self.port_dataShort_out.getStream('sample_data')
-        if outputStream:
-            outputStream.close()
         return
 
 
@@ -400,7 +382,7 @@ class RDC_i(RDC_base):
         
         return True if the tuning succeeded, and False if it failed
         ************************************************************'''
-        print "deviceSetTuning(): Evaluate whether or not a tuner is added  *********"
+        print("deviceSetTuning(): Evaluate whether or not a tuner is added  *********")
         return True
 
     def deviceDeleteTuning(self, fts, tuner_id):
@@ -409,7 +391,7 @@ class RDC_i(RDC_base):
         modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
         return True if the tune deletion succeeded, and False if it failed
         ************************************************************'''
-        print "deviceDeleteTuning(): Deallocate an allocated tuner  *********"
+        print("deviceDeleteTuning(): Deallocate an allocated tuner  *********")
         return True
   
 

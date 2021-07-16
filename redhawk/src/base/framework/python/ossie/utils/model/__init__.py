@@ -234,7 +234,7 @@ class PortSupplier(object):
 
         if ports:
             table = TablePrinter('Port Name', 'Port Interface')
-            for port in ports.values():
+            for port in list(ports.values()):
                 table.append(port['Port Name'], port['Port Interface'])
             table.write(f=destfile)
         else:

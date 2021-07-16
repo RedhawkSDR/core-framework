@@ -1,2 +1,2 @@
-from RDC import *
+from .RDC import *
 

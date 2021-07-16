@@ -179,7 +179,7 @@ class Sandbox(object):
             return weakobj.objectref(self._eventChannels[name])
 
     def getEventChannels(self):
-        return [weakobj.objectref(c) for c in self._eventChannels.values()]
+        return [weakobj.objectref(c) for c in list(self._eventChannels.values())]
     
     def _removeEventChannel(self, name):
         del self._eventChannels[name]

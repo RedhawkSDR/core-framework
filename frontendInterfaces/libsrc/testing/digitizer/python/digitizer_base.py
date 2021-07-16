@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # AUTO-GENERATED CODE.  DO NOT MODIFY!
 #
@@ -17,7 +17,7 @@ from ossie.properties import simpleseq_property
 from ossie.properties import struct_property
 from ossie.properties import structseq_property
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 from ossie.resource import usesport, providesport, PortCallError
 import bulkio
 import frontend
@@ -27,6 +27,7 @@ BOOLEAN_VALUE_HERE=False
 from omniORB import any as _any
 from ossie.dynamiccomponent import DynamicComponent
 import RDC
+import SRDC
 
 class enums:
     # Enumerated values for device_reference_source_global
@@ -36,17 +37,21 @@ class enums:
         MIMO = "MIMO"
         GPSDO = "GPSDO"
 
+
     # Enumerated values for FRONTEND::scanner_allocation
     class frontend_scanner_allocation:
         # Enumerated values for FRONTEND::scanner_allocation::mode
         class mode:
             SPAN_SCAN = "SPAN_SCAN"
             DISCRETE_SCAN = "DISCRETE_SCAN"
-    
+
+
         # Enumerated values for FRONTEND::scanner_allocation::control_mode
         class control_mode:
             TIME_BASED = "TIME_BASED"
             SAMPLE_BASED = "SAMPLE_BASED"
+
+
 
 class digitizer_base(CF__POA.AggregatePlainDevice, FrontendScannerDevice, AggregateDevice, digital_scanning_tuner_delegation, rfinfo_delegation, ThreadedComponent, DynamicComponent):
         # These values can be altered in the __init__ of your derived class
@@ -92,7 +97,7 @@ class digitizer_base(CF__POA.AggregatePlainDevice, FrontendScannerDevice, Aggreg
         def releaseObject(self):
             try:
                 self.stop()
-            except Exception:
+            except Exception as e:
                 self._baseLog.exception("Error stopping")
             FrontendScannerDevice.releaseObject(self)
 
@@ -172,128 +177,128 @@ class digitizer_base(CF__POA.AggregatePlainDevice, FrontendScannerDevice, Aggreg
         class device_characteristics_struct(object):
             ch_name = simple_property(
                                       id_="device_characteristics::ch_name",
-                                      
+
                                       name="ch_name",
                                       type_="string")
-        
+
             tuner_type = simple_property(
                                          id_="device_characteristics::tuner_type",
-                                         
+
                                          name="tuner_type",
                                          type_="string")
-        
+
             chan_num = simple_property(
                                        id_="device_characteristics::chan_num",
-                                       
+
                                        name="chan_num",
                                        type_="short")
-        
+
             antenna = simple_property(
                                       id_="device_characteristics::antenna",
-                                      
+
                                       name="antenna",
                                       type_="string")
-        
+
             bandwidth_current = simple_property(
                                                 id_="device_characteristics::bandwidth_current",
-                                                
+
                                                 name="bandwidth_current",
                                                 type_="double")
-        
+
             bandwidth_min = simple_property(
                                             id_="device_characteristics::bandwidth_min",
-                                            
+
                                             name="bandwidth_min",
                                             type_="double")
-        
+
             bandwidth_max = simple_property(
                                             id_="device_characteristics::bandwidth_max",
-                                            
+
                                             name="bandwidth_max",
                                             type_="double")
-        
+
             rate_current = simple_property(
                                            id_="device_characteristics::rate_current",
-                                           
+
                                            name="rate_current",
                                            type_="double")
-        
+
             rate_min = simple_property(
                                        id_="device_characteristics::rate_min",
-                                       
+
                                        name="rate_min",
                                        type_="double")
-        
+
             rate_max = simple_property(
                                        id_="device_characteristics::rate_max",
-                                       
+
                                        name="rate_max",
                                        type_="double")
-        
+
             freq_current = simple_property(
                                            id_="device_characteristics::freq_current",
-                                           
+
                                            name="freq_current",
                                            type_="double")
-        
+
             freq_min = simple_property(
                                        id_="device_characteristics::freq_min",
-                                       
+
                                        name="freq_min",
                                        type_="double")
-        
+
             freq_max = simple_property(
                                        id_="device_characteristics::freq_max",
-                                       
+
                                        name="freq_max",
                                        type_="double")
-        
+
             gain_current = simple_property(
                                            id_="device_characteristics::gain_current",
-                                           
+
                                            name="gain_current",
                                            type_="double")
-        
+
             gain_min = simple_property(
                                        id_="device_characteristics::gain_min",
-                                       
+
                                        name="gain_min",
                                        type_="double")
-        
+
             gain_max = simple_property(
                                        id_="device_characteristics::gain_max",
-                                       
+
                                        name="gain_max",
                                        type_="double")
-        
+
             clock_min = simple_property(
                                         id_="device_characteristics::clock_min",
-                                        
+
                                         name="clock_min",
                                         type_="double")
-        
+
             clock_max = simple_property(
                                         id_="device_characteristics::clock_max",
-                                        
+
                                         name="clock_max",
                                         type_="double")
-        
+
             available_antennas = simpleseq_property(
                                                     id_="device_characteristics::available_antennas",
-                                                    
+
                                                     name="available_antennas",
                                                     type_="string",
                                                     defvalue=[]
                                                     )
-        
+
             def __init__(self, **kw):
                 """Construct an initialized instance of this struct definition"""
-                for classattr in type(self).__dict__.itervalues():
+                for classattr in type(self).__dict__.values():
                     if isinstance(classattr, (simple_property, simpleseq_property)):
                         classattr.initialize(self)
-                for k,v in kw.items():
+                for k,v in list(kw.items()):
                     setattr(self,k,v)
-        
+
             def __str__(self):
                 """Return a string representation of this structure"""
                 d = {}
@@ -317,17 +322,18 @@ class digitizer_base(CF__POA.AggregatePlainDevice, FrontendScannerDevice, Aggreg
                 d["clock_max"] = self.clock_max
                 d["available_antennas"] = self.available_antennas
                 return str(d)
-        
+
             @classmethod
             def getId(cls):
                 return "device_characteristics"
-        
+
             @classmethod
             def isStruct(cls):
                 return True
-        
+
             def getMembers(self):
                 return [("ch_name",self.ch_name),("tuner_type",self.tuner_type),("chan_num",self.chan_num),("antenna",self.antenna),("bandwidth_current",self.bandwidth_current),("bandwidth_min",self.bandwidth_min),("bandwidth_max",self.bandwidth_max),("rate_current",self.rate_current),("rate_min",self.rate_min),("rate_max",self.rate_max),("freq_current",self.freq_current),("freq_min",self.freq_min),("freq_max",self.freq_max),("gain_current",self.gain_current),("gain_min",self.gain_min),("gain_max",self.gain_max),("clock_min",self.clock_min),("clock_max",self.clock_max),("available_antennas",self.available_antennas)]
+
 
         device_characteristics = struct_property(id_="device_characteristics",
                                                  name="device_characteristics",
@@ -340,35 +346,35 @@ class digitizer_base(CF__POA.AggregatePlainDevice, FrontendScannerDevice, Aggreg
         class frontend_tuner_status_struct_struct(frontend.default_frontend_tuner_status_struct_struct):
             scan_mode_enabled = simple_property(
                                                 id_="FRONTEND::tuner_status::scan_mode_enabled",
-                                                
+
                                                 name="scan_mode_enabled",
                                                 type_="boolean")
-        
+
             supports_scan = simple_property(
                                             id_="FRONTEND::tuner_status::supports_scan",
-                                            
+
                                             name="supports_scan",
                                             type_="boolean")
-        
+
             bandwidth_tolerance = simple_property(
                                                   id_="FRONTEND::tuner_status::bandwidth_tolerance",
-                                                  
+
                                                   name="bandwidth_tolerance",
                                                   type_="double")
-        
+
             sample_rate_tolerance = simple_property(
                                                     id_="FRONTEND::tuner_status::sample_rate_tolerance",
-                                                    
+
                                                     name="sample_rate_tolerance",
                                                     type_="double")
-        
+
             def __init__(self, allocation_id_csv="", bandwidth=0.0, center_frequency=0.0, enabled=False, group_id="", rf_flow_id="", sample_rate=0.0, scan_mode_enabled=False, supports_scan=False, tuner_type="", bandwidth_tolerance=0.0, sample_rate_tolerance=0.0):
                 frontend.default_frontend_tuner_status_struct_struct.__init__(self, allocation_id_csv=allocation_id_csv, bandwidth=bandwidth, center_frequency=center_frequency, enabled=enabled, group_id=group_id, rf_flow_id=rf_flow_id, sample_rate=sample_rate, tuner_type=tuner_type)
                 self.scan_mode_enabled = scan_mode_enabled
                 self.supports_scan = supports_scan
                 self.bandwidth_tolerance = bandwidth_tolerance
                 self.sample_rate_tolerance = sample_rate_tolerance
-        
+
             def __str__(self):
                 """Return a string representation of this structure"""
                 d = {}
@@ -385,17 +391,18 @@ class digitizer_base(CF__POA.AggregatePlainDevice, FrontendScannerDevice, Aggreg
                 d["bandwidth_tolerance"] = self.bandwidth_tolerance
                 d["sample_rate_tolerance"] = self.sample_rate_tolerance
                 return str(d)
-        
+
             @classmethod
             def getId(cls):
                 return "FRONTEND::tuner_status_struct"
-        
+
             @classmethod
             def isStruct(cls):
                 return True
-        
+
             def getMembers(self):
                 return frontend.default_frontend_tuner_status_struct_struct.getMembers(self) + [("scan_mode_enabled",self.scan_mode_enabled),("supports_scan",self.supports_scan),("bandwidth_tolerance",self.bandwidth_tolerance),("sample_rate_tolerance",self.sample_rate_tolerance)]
+
 
 
         # Rebind tuner status property with custom struct definition
@@ -415,14 +422,14 @@ class digitizer_base(CF__POA.AggregatePlainDevice, FrontendScannerDevice, Aggreg
         def assignListener(self,listen_alloc_id, allocation_id):
             # find control allocation_id
             existing_alloc_id = allocation_id
-            if self.listeners.has_key(existing_alloc_id):
+            if existing_alloc_id in self.listeners:
                 existing_alloc_id = self.listeners[existing_alloc_id]
             self.listeners[listen_alloc_id] = existing_alloc_id
 
 
 
         def removeListener(self,listen_alloc_id):
-            if self.listeners.has_key(listen_alloc_id):
+            if listen_alloc_id in self.listeners:
                 del self.listeners[listen_alloc_id]
 
 

@@ -35,7 +35,11 @@ from ossie.resource import start_component
 #{% endif %}
 import logging
 
+#{% if component.isChild %}
+from .${baseClass} import *
+#{% else %}
 from ${baseClass} import *
+#{% endif %}
 
 class ${className}(${baseClass}):
 #{% if component.description %}

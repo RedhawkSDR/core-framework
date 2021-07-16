@@ -3,7 +3,7 @@ ACLOCAL_AMFLAGS = -I m4 -I${OSSIEHOME}/share/aclocal/ossie
 AUTOMAKE_OPTIONS = subdir-objects
 
 xmldir = $(prefix)/dev/devices/digitizer/
-dist_xml_DATA = ../digitizer.prf.xml ../digitizer.scd.xml ../RDC.scd.xml ../digitizer.spd.xml ../RDC.prf.xml ../RDC.spd.xml
+dist_xml_DATA = ../digitizer.spd.xml ../digitizer.scd.xml ../digitizer.prf.xml ../RDC.spd.xml ../RDC.prf.xml ../RDC.scd.xml ../SRDC.spd.xml ../SRDC.prf.xml ../SRDC.scd.xml
 devdir = $(prefix)/dev/devices/digitizer/python/
 
 distclean-local:

@@ -509,7 +509,7 @@ class LocalSandbox(Sandbox):
         return clazz(execparams, initProps, initialize, configProps, debugger, window, timeout, shared, stdout)
 
     def _refreshChildDevices(self):
-        for comp in self.__components.values():
+        for comp in list(self.__components.values()):
             if hasattr(comp, 'devices'):
                 for dev in comp.devices:
                     found_device = False
@@ -551,7 +551,7 @@ class LocalSandbox(Sandbox):
         return self.__components.get(name, None)
 
     def getComponentByRefid(self, refid):
-        for component in self.__components.values():
+        for component in list(self.__components.values()):
             if refid == component._refid:
                 return component
         return None

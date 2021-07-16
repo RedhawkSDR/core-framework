@@ -1,2 +1,2 @@
-from SRDC import *
+from .SRDC import *
 

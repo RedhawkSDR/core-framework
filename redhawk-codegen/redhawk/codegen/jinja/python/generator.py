@@ -29,7 +29,7 @@ class PythonCodeGenerator(CodeGenerator):
 
     def templatesChildren(self, component):
         templates = []
-        if not component.has_key('children'):
+        if not component.get('children'):
             return templates
 
         for child_key in component['children']:

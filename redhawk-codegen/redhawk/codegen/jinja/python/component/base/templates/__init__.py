@@ -1,3 +1,3 @@
 #% set componentName = component.name
-from ${componentName} import *
+from .${componentName} import *
 

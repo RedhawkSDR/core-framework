@@ -410,7 +410,7 @@ class Resource(object):
     def start(self):
         self._resourceLog.trace("start()")
         # Check all ports for a startPort() method, and call it if one exists
-        for portdef in self.__ports.values():
+        for portdef in list(self.__ports.values()):
             port = portdef.__get__(self)
             if hasattr(port, 'startPort'):
                 port.startPort()
@@ -419,7 +419,7 @@ class Resource(object):
     def stop(self):
         self._resourceLog.trace("stop()")
         # Check all ports for a stopPort() method, and call it if one exists
-        for portdef in self.__ports.values():
+        for portdef in list(self.__ports.values()):
             port = portdef.__get__(self)
             if hasattr(port, 'stopPort'):
                 port.stopPort()
