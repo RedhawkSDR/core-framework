@@ -1,12 +1,12 @@
 58aa6f2187fefb2624b3ee99a33e3482  digitizer_base.py
-1a210defc2d9ecf9c10b6a453edaad9a  digitizer.py
+7369fb838db139f3542d714114f38a79  digitizer.py
 1a096b19645a6b5d30802a8acb96e958  configure.ac
 886ea305447a4d898f9035ae8f0b07c4  Makefile.am
 2384f49e2fd96e59f49e2c4da18fcd6b  Makefile.am.ide
 8bfcd22353c3a57fee561ad86ee2a56b  reconf
-e95dd28c5a54b218f216444c7f687915  RDC/RDC.py
+5669f84ebdd5bc799013a1d465575c30  RDC/RDC.py
 8cd924a18b97cd84ccfb64b775b22952  RDC/__init__.py
 1fbd0bf785dd06c2e3f34129e26e7080  RDC/RDC_base.py
-36880b4cfd9012e1036eceb6b122fd39  SRDC/SRDC.py
+b9c47f3314c55b4ae7b09d32596ea68c  SRDC/SRDC.py
 c8bc195e3f3f389c1ba8a6e1e27a411a  SRDC/__init__.py
 f7d0f8b30a0a573a0282838b26014f05  SRDC/SRDC_base.py

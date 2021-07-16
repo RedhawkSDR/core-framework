@@ -76,6 +76,17 @@ class ${className}(${baseClass}):
         pass
 #{% endif %}
 
+#{% if component.hastunerstatusstructure %}
+    def allocate(self, alloc_props):
+        retval = super(${className}, self).allocate(alloc_props)
+        #
+        # if len(retval) > 0, add data and control ports. For example:
+        # retval[0].data_ports = [CF.Device.PortDescription(self.port_dataShort_out._this(), 'dataShort_out', 'IDL:BULKIO/dataShort:1.0')]
+        # retval[0].control_ports = [CF.Device.PortDescription(self.port_DigitalTuner_in._this(), 'DigitalTuner_in', 'IDL:FRONTEND/DigitalTuner:1.0')]
+        #
+        return retval
+#{% endif %}
+
 #{% block updateUsageState %}
 #{% if component is device %} 
     def updateUsageState(self):

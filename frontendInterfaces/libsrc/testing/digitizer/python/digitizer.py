@@ -38,6 +38,15 @@ class digitizer_i(digitizer_base):
         self.rdcs.append(self.addChild(RDC))
         self.rdcs.append(self.addChild(RDC))
 
+    def allocate(self, alloc_props):
+        retval = super(digitizer_i, self).allocate(alloc_props)
+        #
+        # if len(retval) > 0, add data and control ports. For example:
+        # retval[0].data_ports = [CF.Device.PortDescription(self.port_dataShort_out._this(), 'dataShort_out', 'IDL:BULKIO/dataShort:1.0')]
+        # retval[0].control_ports = [CF.Device.PortDescription(self.port_DigitalTuner_in._this(), 'DigitalTuner_in', 'IDL:FRONTEND/DigitalTuner:1.0')]
+        #
+        return retval
+
     def process(self):
         """
         Basic functionality:

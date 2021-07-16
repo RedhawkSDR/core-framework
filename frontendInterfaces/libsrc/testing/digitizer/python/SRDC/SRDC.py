@@ -34,6 +34,15 @@ class SRDC_i(SRDC_base):
         # TODO add customization here.
         self.addChannels(1, "ABOT")
 
+    def allocate(self, alloc_props):
+        retval = super(SRDC_i, self).allocate(alloc_props)
+        #
+        # if len(retval) > 0, add data and control ports. For example:
+        # retval[0].data_ports = [CF.Device.PortDescription(self.port_dataShort_out._this(), 'dataShort_out', 'IDL:BULKIO/dataShort:1.0')]
+        # retval[0].control_ports = [CF.Device.PortDescription(self.port_DigitalTuner_in._this(), 'DigitalTuner_in', 'IDL:FRONTEND/DigitalTuner:1.0')]
+        #
+        return retval
+
     def process(self):
         """
         Basic functionality:
