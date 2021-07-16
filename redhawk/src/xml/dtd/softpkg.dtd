@@ -24,8 +24,9 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	, description?
 	, propertyfile?
 	, descriptor?
-	, implementation+
+	, implementation?
 	, usesdevice*
+	, child*
 	)>
 <!ATTLIST softpkg
 	id		ID	#REQUIRED
@@ -199,3 +200,15 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 	)>
 		
 <!ELEMENT value (#PCDATA)>
+
+<!ELEMENT child
+	( childSoftwarePackageFile
+	)>
+
+<!ATTLIST child
+	name	CDATA	#REQUIRED>
+
+
+<!ELEMENT childSoftwarePackageFile
+	( localfile,
+	)>
