@@ -1080,7 +1080,6 @@ rx_analog_digital: &rx_analog_digital
 #    scanning off
 #    frontend tuner status
 #    Ports:
-#      dataShort_out
 #      DigitalTuner_in
 #      RFInfo_in
 #
@@ -1133,7 +1132,6 @@ tx_analog: &tx_analog
 #    specific tuner type TDC, TX_ARRAY
 #    frontend tuner status
 #    Ports:
-#      dataShort_in
 #      DigitalTransmit_in
 #      RFInfo_in
 #
@@ -1326,10 +1324,13 @@ DEVICES:
      sca_type: AGGREGATE_PLAIN_DEVICE
 {% else %}
      <<: *simple_parent
+     data_outputs:
+     data_inputs:
 {% endif %}
      properties:
      messages:
-     ports:
+     message_inputs:
+     message_outputs:
      dependencies:
      children:
 {%   for child_name in fei3_spec.PARENT_CHILDREN %}
@@ -1356,6 +1357,8 @@ DEVICES:
      properties:
      additional_tuner_status:
      messages:
+     message_inputs:
+     message_outputs:
      dependencies:
      children:
 {% endfor %}
@@ -1368,6 +1371,8 @@ DEVICES:
      properties:
      additional_tuner_status:
      messages:
+     message_inputs:
+     message_outputs:
      dependencies:
      children:
 {% endfor %}
@@ -1380,6 +1385,8 @@ DEVICES:
      properties:
      additional_tuner_status:
      messages:
+     message_inputs:
+     message_outputs:
      dependencies:
      children:
 {% endfor %}
@@ -1393,6 +1400,8 @@ DEVICES:
      additional_tuner_status:
      data_outputs:
      messages:
+     message_inputs:
+     message_outputs:
      dependencies:
      children:
 {% endfor %}
@@ -1407,6 +1416,8 @@ DEVICES:
      data_inputs:
      data_outputs:
      messages:
+     message_inputs:
+     message_outputs:
      dependencies:
      children:
 {% endfor %}
@@ -1420,6 +1431,8 @@ DEVICES:
      additional_tuner_status:
      data_outputs:
      messages:
+     message_inputs:
+     message_outputs:
      dependencies:
      children:
 {% endfor %}
@@ -1435,6 +1448,8 @@ DEVICES:
      data_inputs:
      data_outputs:
      messages:
+     message_inputs:
+     message_outputs:
      dependencies:
      children:
 {% endfor %}
@@ -1450,6 +1465,8 @@ DEVICES:
      data_inputs:
      data_outputs:
      messages:
+     message_inputs:
+     message_outputs:
      dependencies:
      children:
 {% endfor %}
@@ -1462,6 +1479,8 @@ DEVICES:
      properties:
      additional_tuner_status:
      messages:
+     message_inputs:
+     message_outputs:
      dependencies:
      children:
 {% endfor %}
@@ -1476,6 +1495,8 @@ DEVICES:
      additional_tuner_status:
      data_inputs:
      messages:
+     message_inputs:
+     message_outputs:
      dependencies:
      children:
 {% endfor %}
@@ -1489,6 +1510,8 @@ DEVICES:
      properties:
      additional_tuner_status:
      messages:
+     message_inputs:
+     message_outputs:
      dependencies:
      children:
 {% endfor %}
