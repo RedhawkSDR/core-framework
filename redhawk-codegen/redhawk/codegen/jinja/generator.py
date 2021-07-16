@@ -94,9 +94,7 @@ class Generator(object):
         pass
 
     def setupChildren(self):
-        for child in self.children:
-            childvalue = child.getElementsByTagName('childvalue')[0]
-            self.childTemplates.update({str(child.getAttribute('name')):{'generator':importTemplate(childvalue.getAttribute('template'))}})
+        pass
 
     def loader(self, component):
         raise NotImplementedError('CodeGenerator.loader')
@@ -340,6 +338,12 @@ class CodeGenerator(Generator):
         super(CodeGenerator,self).__init__(**opts)
         self.implId = implId
 
+    def setupChildren(self):
+        for child in self.children:
+            childvalue = child.getElementsByTagName('childvalue')[0]
+            self.childTemplates.update({str(child.getAttribute('name')):{'generator':importTemplate(childvalue.getAttribute('template'))}})
+
+
     def componentMapper(self):
         raise NotImplementedError('CodeGenerator.componentMapper')
 
@@ -373,7 +377,14 @@ class CodeGenerator(Generator):
             component.update(ports)
 
         for _child in softpkg.children():
-            self.childTemplates[_child['name']].update({'scd':_child['scd'], 'prf':_child['prf']})
+            cname=_child['name']
+            # if no wavedev file use parent generator class
+            if cname not in self.childTemplates:
+                generator=self.__module__
+                if self.__module__.endswith('generator'):
+                    generator=generator.replace('.generator','')
+                self.childTemplates.update( { cname : { 'generator' : importTemplate(generator) }} )
+            self.childTemplates[cname].update({'scd':_child['scd'], 'prf':_child['prf']})
 
         component['children'] = {}
 
