@@ -40,6 +40,19 @@
 /*{% endif %}*/
 /*{% endblock %}*/
 
+/*{% if 'FrontendTuner' in component.implements %}*/
+/*{%   block allocateBlock %}*/
+CF::Device::Allocations* ${className}::allocate (const CF::Properties& capacities) {
+    CF::Device::Allocations_var result = new CF::Device::Allocations();
+    result = ${baseClass}::allocate(capacities);
+    /*
+     * Add data and control ports to response if length is greater than 0
+     */
+    return result._retn();
+}
+/*{%   endblock %}*/
+/*{% endif %}*/
+
 /*{% block updateUsageState %}*/
 /*{%   for sc in component.superclasses if sc.name == "Device_impl" %}*/
 ${super()}

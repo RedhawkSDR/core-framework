@@ -46,6 +46,10 @@ class ${className} : public ${baseClass}
         ~${className}();
 
         void constructor();
+/*{% if component is device %}*/
+/*{%   block allocateBlock %}*/
+/*{%   endblock %}*/
+/*{% endif %}*/
 
         int serviceFunction();
 

@@ -18,6 +18,12 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  #*/
 //% extends "pull/resource.h"
+/*{% if component is device %}*/
+/*{%   block allocateBlock %}*/
+
+        CF::Device::Allocations* allocate (const CF::Properties& capacities);
+/*{%   endblock %}*/
+/*{% endif %}*/
 
 /*{% block updateUsageState %}*/
 /*{%   if not 'FrontendTuner' in component.implements %}*/

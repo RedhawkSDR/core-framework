@@ -90,6 +90,11 @@ void ${className}::constructor()
 }
 
 /*{% if component is device %}*/
+/*{%   block allocateBlock %}*/
+/*{%   endblock %}*/
+/*{% endif %}*/
+
+/*{% if component is device %}*/
 /*{%   block updateUsageState %}*/
 /**************************************************************************
 
