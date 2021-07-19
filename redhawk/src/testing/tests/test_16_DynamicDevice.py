@@ -127,7 +127,7 @@ class DynamicDeviceLaunchTest(scatest.CorbaTestCase):
         self.assertEqual(dev_count, 8)
 
         for dev in self._rhDom.devices:
-            print '++++++++++++++++++++', dev._get_identifier(),'*******', dev._get_label()
+            print('++++++++++++++++++++', dev._get_identifier(),'*******', dev._get_label())
 
 
 class DynamicCppDeviceLaunchTest(scatest.CorbaTestCase):
@@ -147,11 +147,11 @@ class DynamicCppDeviceLaunchTest(scatest.CorbaTestCase):
         redhawk.setTrackApps(False)
 
     def test_cpp_launch(self):
-        print self._rhDom.devices
-        print self._rhDom.devMgrs[0]._get_registeredDevices()
+        print(self._rhDom.devices)
+        print(self._rhDom.devMgrs[0]._get_registeredDevices())
 
         for dev in self._rhDom.devices:
-            print '++++++++++++++++++++', dev._get_identifier(),'*******', dev._get_label()
+            print('++++++++++++++++++++', dev._get_identifier(),'*******', dev._get_label())
 
         self.assertEquals(len(self._rhDom.devices), 8)
         devices = ['cpp_wb_receiver_1:supersimple_1:anothersimple_1', 
