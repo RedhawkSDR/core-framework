@@ -1068,7 +1068,7 @@ class Device(Resource):
 
     def _get_devices(self):
         if not hasattr(self.ref, "_get_devices"):
-            raise RuntimeError("This device does not support the aggregate device interface")
+            return []
         if self.ref:
             return self.ref._get_devices()
         else:
