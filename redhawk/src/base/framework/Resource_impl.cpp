@@ -303,7 +303,10 @@ Resource_impl* Resource_impl::create_component(Resource_impl::ctor_type ctor, co
 
     // Activate the component servant.
     RH_NL_TRACE(logname, "Activating component object");
-    PortableServer::ObjectId_var oid = ossie::corba::RootPOA()->activate_object(resource);
+    try {
+        PortableServer::ObjectId_var oid = ossie::corba::RootPOA()->activate_object(resource);
+    } catch (const PortableServer::POA::ServantAlreadyActive &) {
+    }
     CF::Resource_var resource_obj = resource->_this();
 
     // Get the application naming context and bind the component into it.
