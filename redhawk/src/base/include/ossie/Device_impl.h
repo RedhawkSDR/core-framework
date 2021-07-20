@@ -269,7 +269,10 @@ public:
             device = new T(devMgrIOR, identifier, label, profile, compositeDeviceIOR);
         } else {
             device = new T(devMgrIOR, identifier, label, profile);
-            PortableServer::ObjectId_var oid = ossie::corba::RootPOA()->activate_object(device);
+            try {
+                PortableServer::ObjectId_var oid = ossie::corba::RootPOA()->activate_object(device);
+            } catch (const PortableServer::POA::ServantAlreadyActive &) {
+            }
         }
         return device;
     }
