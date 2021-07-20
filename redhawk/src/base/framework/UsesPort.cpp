@@ -158,7 +158,7 @@ namespace redhawk {
                     CF::UpstreamTuple_var up_reg = new CF::UpstreamTuple();
                     up_reg->upstream = _parent;
                     up_reg->port = this->_this();
-                    _up->setUpstream(up_reg);
+                    _up->removeUpstream(up_reg);
                 }
             } catch (const std::exception& exc) {
                 if (transport->isAlive()) {
