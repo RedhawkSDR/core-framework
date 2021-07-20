@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # AUTO-GENERATED CODE.  DO NOT MODIFY!
 #
@@ -11,7 +11,7 @@ from ossie.device import AggregateDevice, Device
 from ossie.threadedcomponent import *
 from ossie.properties import simple_property
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 from ossie.resource import usesport, providesport, PortCallError
 import bulkio
 from omniORB import any as _any

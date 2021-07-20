@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import ossie.utils.testing
 from ossie.utils import sb
