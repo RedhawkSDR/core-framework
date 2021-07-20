@@ -387,7 +387,7 @@ public class ${classname} extends ${baseclass} {
      *
      */
     protected int serviceFunction() {
-        _baseLog.debug("serviceFunction() example log message");
+        _baseLog.trace("serviceFunction() example log message");
 
         return NOOP;
     }
