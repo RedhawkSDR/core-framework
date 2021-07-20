@@ -138,8 +138,11 @@ bool PropertyMap::operator==( const redhawk::PropertyMap &other ) const
         }
         // perform  equal match values
         std::string action("eq");
-        if (  !ossie::compare_anys(iter->getValue(), other_prop->getValue(), action)  ) {
-            return false;
+        CORBA::TypeCode_var typeA = iter->getValue().type();
+        if (typeA->kind() != 21) {
+            if (  !ossie::compare_anys(iter->getValue(), other_prop->getValue(), action)  ) {
+                return false;
+            }
         }
     }
 
