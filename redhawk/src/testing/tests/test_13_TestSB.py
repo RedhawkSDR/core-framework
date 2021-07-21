@@ -1121,7 +1121,7 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertEqual(comp.my_struct_name.struct_seq_long_name[1], 2147483647)
         self.assertEqual(comp.my_struct_name.struct_seq_ulong_name[1], 4294967295)
         self.assertEqual(comp.my_struct_name.struct_seq_longlong_name[1], 9223372036854775807)
-        #self.assertEquals(comp.my_struct_name.struct_seq_ulonglong_name[1], 18446744073709551615)
+        #self.assertEqual(comp.my_struct_name.struct_seq_ulonglong_name[1], 18446744073709551615)
 
         # Test lower range
         comp.my_struct_name.struct_octet_name = 0
@@ -1226,7 +1226,7 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertEqual(comp.seq_longlong_name[0], -9223372036854775808)
         self.assertEqual(comp.seq_longlong_name[1], 9223372036854775807)
         self.assertEqual(comp.seq_ulonglong_name[0], 0)
-        #self.assertEquals(comp.seq_ulonglong_name[1], 18446744073709551615)
+        #self.assertEqual(comp.seq_ulonglong_name[1], 18446744073709551615)
 
         # Test one beyond upper bound
         self.assertRaises(type_helpers.OutOfRangeException, comp.seq_octet.configureValue, [0, 256])
@@ -1302,7 +1302,7 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertEqual(comp.my_structseq_name[1].ss_ulong_name, 0)
         self.assertEqual(comp.my_structseq_name[0].ss_longlong_name, 9223372036854775807)
         self.assertEqual(comp.my_structseq_name[1].ss_longlong_name, -9223372036854775808)
-        #self.assertEquals(comp.my_structseq_name[0].ss_ulonglong_name, 18446744073709551615)
+        #self.assertEqual(comp.my_structseq_name[0].ss_ulonglong_name, 18446744073709551615)
         self.assertEqual(comp.my_structseq_name[1].ss_ulonglong_name, 0)
         self.assertEqual(comp.my_structseq_name[0].ss_seq_octet_name[1], 255)
         self.assertEqual(comp.my_structseq_name[1].ss_seq_octet_name[0], 0)
@@ -1316,7 +1316,7 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertEqual(comp.my_structseq_name[1].ss_seq_ulong_name[0], 0)
         self.assertEqual(comp.my_structseq_name[0].ss_seq_longlong_name[1], 9223372036854775807)
         self.assertEqual(comp.my_structseq_name[1].ss_seq_longlong_name[0], -9223372036854775808)
-        #self.assertEquals(comp.my_structseq_name[0].ss_seq_ulonglong_name[1], 18446744073709551615)
+        #self.assertEqual(comp.my_structseq_name[0].ss_seq_ulonglong_name[1], 18446744073709551615)
         self.assertEqual(comp.my_structseq_name[1].ss_seq_ulonglong_name[0], 0)
 
         # Test one beyond upper bound
@@ -2805,23 +2805,23 @@ class BulkioTest(unittest.TestCase):
 #        self.assertRaises(AssertionError, a.connect, no_connections)
 #
 #        # Good connections
-#        self.assertEquals(a.connect(b), True)
-#        self.assertEquals(a.connect(b, "long_in"), True)
-#        self.assertEquals(a.connect(b, None, "long_out"), True)
-#        self.assertEquals(len(sb.domainless._currentState['Component Connections'].keys()), 3)
+#        self.assertEqual(a.connect(b), True)
+#        self.assertEqual(a.connect(b, "long_in"), True)
+#        self.assertEqual(a.connect(b, None, "long_out"), True)
+#        self.assertEqual(len(sb.domainless._currentState['Component Connections'].keys()), 3)
 #
 #        # Disconnect
 #        a.disconnect(no_connections)
 #        a.disconnect(None)
-#        self.assertEquals(len(sb.domainless._currentStatep['Component Connections'].keys()), 3)
+#        self.assertEqual(len(sb.domainless._currentStatep['Component Connections'].keys()), 3)
 #        a.disconnect(b)
-#        self.assertEquals(len(sb.domainless._currentState['Component Connections'].keys()), 0)
+#        self.assertEqual(len(sb.domainless._currentState['Component Connections'].keys()), 0)
 #
 #        # Makes sure that connection keys are unique
-#        self.assertEquals(a.connect(b, "long_in", "long_out", "my_conn"), True)
-#        self.assertEquals(len(sb.domainless._currentState['Component Connections'].keys()), 1)
+#        self.assertEqual(a.connect(b, "long_in", "long_out", "my_conn"), True)
+#        self.assertEqual(len(sb.domainless._currentState['Component Connections'].keys()), 1)
 #        self.assertRaises(AssertionError, a.connect, b, "long_in", "long_out", "my_conn")
-#        self.assertEquals(len(sb.domainless._currentState['Component Connections'].keys()), 1)
+#        self.assertEqual(len(sb.domainless._currentState['Component Connections'].keys()), 1)
 #
 #        a.disconnect(b)
 #
@@ -2833,12 +2833,12 @@ class BulkioTest(unittest.TestCase):
 #        #self.assertRaises(AssertionError, a.connect, multiple_connections, "long_in", "short_out")
 #
 #        # Tests getComponents()
-#        self.assertEquals(sb.getComponent(None), None)
-#        self.assertEquals(sb.getComponent(""), None)
+#        self.assertEqual(sb.getComponent(None), None)
+#        self.assertEqual(sb.getComponent(""), None)
 #        for key in sb.domainless._currentState['Components Running'].keys():
 #            temp = sb.getComponent(key)
 #            self.assertNotEquals(temp, None)
-#            self.assertEquals(temp._componentName in names, True)
+#            self.assertEqual(temp._componentName in names, True)
 
 
 class MessagePortTest(scatest.CorbaTestCase):

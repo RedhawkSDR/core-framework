@@ -982,7 +982,7 @@ class PyPropertiesTest(scatest.CorbaTestCase):
                 self.assertTrue('struct_seq_long' not in valIds)
                 for v in val:
                     #if v.id == 'struct_octet':
-                    #    self.assertEquals(v.value.value(), 255)
+                    #    self.assertEqual(v.value.value(), 255)
                     if v.id == 'struct_short':
                         self.assertEqual(v.value.value(), 32767)
                     elif v.id == 'struct_ushort':
@@ -992,7 +992,7 @@ class PyPropertiesTest(scatest.CorbaTestCase):
                     elif v.id == 'struct_ulong':
                         self.assertEqual(v.value.value(), 4294967295)
                     #elif v.id == 'struct_longlong':
-                    #    self.assertEquals(v.value.value(), 9223372036854775807L)
+                    #    self.assertEqual(v.value.value(), 9223372036854775807L)
                     elif v.id == 'struct_ulonglong':
                         self.assertEqual(v.value.value(), 18446744073709551615)
                     elif v.id == 'struct_string':
@@ -1006,7 +1006,7 @@ class PyPropertiesTest(scatest.CorbaTestCase):
                     elif v.id == 'struct_seq_ushort':
                         self.assertEqual(v.value.value(), [0, 65535])
                     #elif v.id == 'struct_seq_long':
-                    #    self.assertEquals(v.value.value(), [0, 2147483647])
+                    #    self.assertEqual(v.value.value(), [0, 2147483647])
                     elif v.id == 'struct_seq_ulong':
                         self.assertEqual(v.value.value(), [0, 4294967295])
                     elif v.id == 'struct_seq_longlong':

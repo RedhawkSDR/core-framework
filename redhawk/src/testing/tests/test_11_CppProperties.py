@@ -264,7 +264,7 @@ class CppPropertiesTest(scatest.CorbaTestCase):
                     elif v.id == 'struct_seq_longlong':
                         self.assertEqual(v.value.value(), [0, 9223372036854775807])
 		    #elif v.id == 'struct_seq_ulonglong':
-		#	self.assertEquals(v.value.value(), [0, 9223372036854775807L])
+		#	self.assertEqual(v.value.value(), [0, 9223372036854775807L])
 
         # Configure only certain properties
         my_struct = CF.DataType(id='my_struct', value=any.to_any([
@@ -433,7 +433,7 @@ class CppPropertiesRangeTest(scatest.CorbaTestCase):
                     elif v.id == 'struct_seq_longlong':
                         self.assertEqual(v.value.value(), [0, 9223372036854775807])
 		    #elif v.id == 'struct_seq_ulonglong':
-		#	self.assertEquals(v.value.value(), [0, 9223372036854775807L])
+		#	self.assertEqual(v.value.value(), [0, 9223372036854775807L])
 
         # Test lower bounds
         my_struct = CF.DataType(id='my_struct', value=any.to_any([
@@ -491,7 +491,7 @@ class CppPropertiesRangeTest(scatest.CorbaTestCase):
                     elif v.id == 'struct_seq_longlong':
                         self.assertEqual(v.value.value(), [-9223372036854775808, 9223372036854775807])
 		    #elif v.id == 'struct_seq_ulonglong':
-		#	self.assertEquals(v.value.value(), [0, 9223372036854775807L])
+		#	self.assertEqual(v.value.value(), [0, 9223372036854775807L])
 
 
     def test_cppPropsRangeSeq(self):
@@ -624,7 +624,7 @@ class CppPropertiesRangeTest(scatest.CorbaTestCase):
                     elif v.id == 'ss_seq_longlong':
                         self.assertEqual(v.value.value(), [0, 9223372036854775807])
                     #elif v.id == 'ss_seq_ulonglong':
-                #       self.assertEquals(v.value.value(), [0, 9223372036854775807L])
+                #       self.assertEqual(v.value.value(), [0, 9223372036854775807L])
                 for v in lower.value():
                     if v.id == 'ss_octet':
                         self.assertEqual(v.value.value(), 0)
@@ -659,7 +659,7 @@ class CppPropertiesRangeTest(scatest.CorbaTestCase):
                     elif v.id == 'ss_seq_longlong':
                         self.assertEqual(v.value.value(), [-9223372036854775808, 9223372036854775807])
 		    #elif v.id == 'ss_seq_ulonglong':
-			#self.assertEquals(v.value.value(), [0, 9223372036854775807L])
+			#self.assertEqual(v.value.value(), [0, 9223372036854775807L])
 
     def checkPropValues(self, expected_short, expected_long, expected_struct_short, expected_struct_long):
         # Gets the property values

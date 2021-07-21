@@ -168,7 +168,7 @@ class JavaPropertiesTest(scatest.CorbaTestCase):
                     elif v.id == 'struct_seq_longlong':
                         self.assertEqual(v.value.value(), [0, 9223372036854775807])
 		    #elif v.id == 'struct_seq_ulonglong':
-		#	self.assertEquals(v.value.value(), [0, 9223372036854775807L])
+		#	self.assertEqual(v.value.value(), [0, 9223372036854775807L])
 
         # Configure only certain properties
         my_struct = CF.DataType(id='my_struct', value=any.to_any([

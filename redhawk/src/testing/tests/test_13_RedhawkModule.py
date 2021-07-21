@@ -443,7 +443,7 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         self.assertEqual(app.my_struct_name.struct_seq_long_name[1], 2147483647)
         self.assertEqual(app.my_struct_name.struct_seq_ulong_name[1], 4294967295)
         self.assertEqual(app.my_struct_name.struct_seq_longlong_name[1], 9223372036854775807)
-        #self.assertEquals(app.my_struct_name.struct_seq_ulonglong_name[1], 18446744073709551615)
+        #self.assertEqual(app.my_struct_name.struct_seq_ulonglong_name[1], 18446744073709551615)
 
         # Test lower range
         app.my_struct_name.struct_octet_name = 0
@@ -549,7 +549,7 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         self.assertEqual(app.seq_longlong_name[0], -9223372036854775808)
         self.assertEqual(app.seq_longlong_name[1], 9223372036854775807)
         self.assertEqual(app.seq_ulonglong_name[0], 0)
-        #self.assertEquals(app.seq_ulonglong_name[1], 18446744073709551615)
+        #self.assertEqual(app.seq_ulonglong_name[1], 18446744073709551615)
 
         # Test one beyond upper bound
         self.assertRaises(type_helpers.OutOfRangeException, app.seq_octet.configureValue, [0, 256])
@@ -639,7 +639,7 @@ class RedhawkModuleTest(scatest.CorbaTestCase):
         self.assertEqual(app.my_structseq_name[1].ss_seq_ulong_name[0], 0)
         self.assertEqual(app.my_structseq_name[0].ss_seq_longlong_name[1], 9223372036854775807)
         self.assertEqual(app.my_structseq_name[1].ss_seq_longlong_name[0], -9223372036854775808)
-        #self.assertEquals(app.my_structseq_name[0].ss_seq_ulonglong_name[1], 18446744073709551615)
+        #self.assertEqual(app.my_structseq_name[0].ss_seq_ulonglong_name[1], 18446744073709551615)
         self.assertEqual(app.my_structseq_name[1].ss_seq_ulonglong_name[0], 0)
 
         # Test one beyond upper bound

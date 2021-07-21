@@ -96,10 +96,10 @@ class SADPropertiesTest(scatest.CorbaTestCase):
             foo1=app.comps[1]
         self.assertNotEqual(foo10, None)
         self.assertNotEqual(foo1, None)
-        self.assertEquals(foo1.test_float, app.sometest)
+        self.assertEqual(foo1.test_float, app.sometest)
         app.sometest = foo10.test_float*10
-        self.assertEquals(foo1.test_float, foo10.test_float*10)
-        self.assertEquals(foo1.test_float, app.sometest)
+        self.assertEqual(foo1.test_float, foo10.test_float*10)
+        self.assertEqual(foo1.test_float, app.sometest)
 
     def test_DelegateExternalProps(self):
         dom=redhawk.attach(scatest.getTestDomainName())
@@ -117,11 +117,11 @@ class SADPropertiesTest(scatest.CorbaTestCase):
             foo1=app.comps[1]
         self.assertNotEqual(foo10, None)
         self.assertNotEqual(foo1, None)
-        self.assertEquals(foo1.test_float, app.sometest)
+        self.assertEqual(foo1.test_float, app.sometest)
         prop = CF.DataType(id='sometest', value=any.to_any(foo10.test_float*10))
         app.ref.configure([prop])
-        self.assertEquals(foo1.test_float, foo10.test_float*10)
-        self.assertEquals(foo1.test_float, app.sometest)
+        self.assertEqual(foo1.test_float, foo10.test_float*10)
+        self.assertEqual(foo1.test_float, app.sometest)
 
     def test_ExternalProps(self):
         self._createApp("")
