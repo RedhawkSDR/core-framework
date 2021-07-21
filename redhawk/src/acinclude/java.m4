@@ -55,7 +55,7 @@ dnl RH_PROG_JAVA
 AC_DEFUN([RH_PROG_JAVA],
 [
   AC_REQUIRE([RH_JAVA_HOME])
-  java_test_paths=$JAVA_HOME/jre/sh$PATH_SEPARATOR$JAVA_HOME/bin
+  java_test_paths=$JAVA_HOME/bin
   AC_PATH_PROG([JAVA], [java], [no], [$java_test_paths])
 ])
 
@@ -65,7 +65,7 @@ AC_DEFUN([RH_PROG_JAVAC],
 [
   AC_REQUIRE([RH_JAVA_HOME])
   AC_ARG_VAR([JAVACFLAGS], [Java compiler flags])
-  java_test_paths=$JAVA_HOME/jre/sh$PATH_SEPARATOR$JAVA_HOME/bin
+  java_test_paths=$JAVA_HOME/bin
   AC_PATH_PROG([JAVAC], [javac], [no], [$java_test_paths])
   if test -n "$1" -a "$JAVAC" != "no"; then
     AC_MSG_CHECKING([javac version $1 compliance])
