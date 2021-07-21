@@ -7,7 +7,7 @@
 from ossie.device import start_device
 import logging
 
-from supersimple_base import *
+from .supersimple_base import *
 import anothersimple
 
 class supersimple_i(supersimple_base):
@@ -23,27 +23,29 @@ class supersimple_i(supersimple_base):
 
         """
         # TODO add customization here.
-        print 'parent:', self._parentInstance
+        print('parent:', self._parentInstance)
         retval_another = self.addChild(anothersimple)
-        print 'supersimple parent children:', self._parentInstance._dynamicComponents
-        print 'supersimple children:', self._dynamicComponents
+        print('supersimple parent children:', self._parentInstance._dynamicComponents)
+        print('supersimple children:', self._dynamicComponents)
         stuff = dir(self._dynamicComponents[0])
         for i in stuff:
             if 'ame' in i:
-                print i
-        print self._dynamicComponents[0]._id
-        print self._dynamicComponents[0]._get_label()
-        print self._dynamicComponents[0]._name
+                print(i)
+        print(self._dynamicComponents[0]._id)
+        print(self._dynamicComponents[0]._get_label())
+        print(self._dynamicComponents[0]._name)
         retval_another.defg = 'qed'
-        print 'retval_another', retval_another.query([])
+        print('retval_another', retval_another.query([]))
         yet_retval_another = self.addChild(anothersimple)
-        print self._dynamicComponents[0]._id
-        print self._dynamicComponents[0]._get_label()
-        print self._dynamicComponents[0]._name
-        print self._dynamicComponents[1]._id
-        print self._dynamicComponents[1]._get_label()
-        print self._dynamicComponents[1]._name
+        print(self._dynamicComponents[0]._id)
+        print(self._dynamicComponents[0]._get_label())
+        print(self._dynamicComponents[0]._name)
+        print(self._dynamicComponents[1]._id)
+        print(self._dynamicComponents[1]._get_label())
+        print(self._dynamicComponents[1]._name)
 
+
+ 
     def updateUsageState(self):
         """
         This is called automatically after allocateCapacity or deallocateCapacity are called.
@@ -53,7 +55,6 @@ class supersimple_i(supersimple_base):
            self._usageState = CF.Device.BUSY   # in use, with no capacity remaining for allocation
         """
         return NOOP
-
 
     def process(self):
         """
@@ -126,7 +127,7 @@ class supersimple_i(supersimple_base):
             type MessageEvent, create the following code:
         
             msg_out = supersimple_i.MyMsg()
-            this.port_msg_output.sendMessage(msg_out)
+            self.port_msg_output.sendMessage(msg_out)
 
     Accessing the Application and Domain Manager:
     
@@ -134,9 +135,9 @@ class supersimple_i(supersimple_base):
         the Application are available to the Component.
         
         To access the Domain Manager:
-            dommgr = self.getDomainManager().getRef();
+            dommgr = self.getDomainManager().getRef()
         To access the Application:
-            app = self.getApplication().getRef();
+            app = self.getApplication().getRef()
         Properties:
         
             Properties are accessed directly as member variables. If the property name is baudRate,
@@ -186,7 +187,7 @@ class supersimple_i(supersimple_base):
             # This example assumes that the device has two ports:
             #   - A provides (input) port of type bulkio.InShortPort called dataShort_in
             #   - A uses (output) port of type bulkio.OutFloatPort called dataFloat_out
-            # The mapping between the port and the class if found in the device
+            # The mapping between the port and the class is found in the device
             # base class.
             # This example also makes use of the following Properties:
             #   - A float value called amplitude

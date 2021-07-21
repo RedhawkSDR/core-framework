@@ -25,19 +25,13 @@
     <processor name="x86_64"/>
   </implementation>
   <child name="supersimple">
-    <childPropertyFile>
-        <localfile name="supersimple.prf.xml"/>
-    </childPropertyFile>
-    <childDescriptorFile>
-        <localfile name="supersimple.scd.xml"/>
-    </childDescriptorFile>
+    <childSoftwarePackageFile>
+        <localfile name="supersimple.spd.xml"/>
+    </childSoftwarePackageFile>
   </child>
   <child name="anothersimple">
-    <childPropertyFile>
-        <localfile name="anothersimple.prf.xml"/>
-    </childPropertyFile>
-    <childDescriptorFile>
-        <localfile name="anothersimple.scd.xml"/>
-    </childDescriptorFile>
+    <childSoftwarePackageFile>
+        <localfile name="anothersimple.spd.xml"/>
+    </childSoftwarePackageFile>
   </child>
 </softpkg>

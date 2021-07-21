@@ -7,7 +7,7 @@
 from ossie.device import start_device
 import logging
 
-from anothersimple_base import *
+from .anothersimple_base import *
 
 class anothersimple_i(anothersimple_base):
     """<DESCRIPTION GOES HERE>"""
@@ -24,7 +24,8 @@ class anothersimple_i(anothersimple_base):
         # TODO add customization here.
         pass
 
-     
+
+ 
     def updateUsageState(self):
         """
         This is called automatically after allocateCapacity or deallocateCapacity are called.
@@ -34,7 +35,6 @@ class anothersimple_i(anothersimple_base):
            self._usageState = CF.Device.BUSY   # in use, with no capacity remaining for allocation
         """
         return NOOP
-
 
     def process(self):
         """
@@ -107,7 +107,7 @@ class anothersimple_i(anothersimple_base):
             type MessageEvent, create the following code:
         
             msg_out = anothersimple_i.MyMsg()
-            this.port_msg_output.sendMessage(msg_out)
+            self.port_msg_output.sendMessage(msg_out)
 
     Accessing the Application and Domain Manager:
     
@@ -115,9 +115,9 @@ class anothersimple_i(anothersimple_base):
         the Application are available to the Component.
         
         To access the Domain Manager:
-            dommgr = self.getDomainManager().getRef();
+            dommgr = self.getDomainManager().getRef()
         To access the Application:
-            app = self.getApplication().getRef();
+            app = self.getApplication().getRef()
         Properties:
         
             Properties are accessed directly as member variables. If the property name is baudRate,
@@ -167,7 +167,7 @@ class anothersimple_i(anothersimple_base):
             # This example assumes that the device has two ports:
             #   - A provides (input) port of type bulkio.InShortPort called dataShort_in
             #   - A uses (output) port of type bulkio.OutFloatPort called dataFloat_out
-            # The mapping between the port and the class if found in the device
+            # The mapping between the port and the class is found in the device
             # base class.
             # This example also makes use of the following Properties:
             #   - A float value called amplitude

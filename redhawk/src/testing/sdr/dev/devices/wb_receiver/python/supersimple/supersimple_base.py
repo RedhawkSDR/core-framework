@@ -7,14 +7,12 @@ from ossie.cf import CF
 from ossie.cf import CF__POA
 from ossie.utils import uuid
 
-from ossie.device import AggregateDevice, Device
+from ossie.device import Device
+from ossie.device import AggregateDevice
 from ossie.threadedcomponent import *
 from ossie.properties import simple_property
 
 import queue, copy, time, threading
-from ossie.resource import usesport, providesport, PortCallError
-import bulkio
-from omniORB import any as _any
 from ossie.dynamiccomponent import DynamicComponent
 
 class supersimple_base(CF__POA.AggregatePlainDevice, Device, AggregateDevice, ThreadedComponent, DynamicComponent):
@@ -35,10 +33,6 @@ class supersimple_base(CF__POA.AggregatePlainDevice, Device, AggregateDevice, Th
             # in future releases
             self.auto_start = False
             # Instantiate the default implementations for all ports on this device
-            self.port_foo = bulkio.InFloatPort("foo", maxsize=self.DEFAULT_QUEUE_SIZE)
-            self.port_foo._portLog = self._baseLog.getChildLogger('foo', 'ports')
-            self.port_bar = bulkio.OutFloatPort("bar")
-            self.port_bar._portLog = self._baseLog.getChildLogger('bar', 'ports')
 
         def start(self):
             Device.start(self)
@@ -52,23 +46,14 @@ class supersimple_base(CF__POA.AggregatePlainDevice, Device, AggregateDevice, Th
         def releaseObject(self):
             try:
                 self.stop()
-            except Exception:
+            except Exception as e:
                 self._baseLog.exception("Error stopping")
-            #Device.releaseObject(self)
 
         ######################################################################
         # PORTS
         # 
         # DO NOT ADD NEW PORTS HERE.  You can add ports in your derived class, in the SCD xml file, 
         # or via the IDE.
-
-        port_foo = providesport(name="foo",
-                                repid="IDL:BULKIO/dataFloat:1.0",
-                                type_="control")
-
-        port_bar = usesport(name="bar",
-                            repid="IDL:BULKIO/dataFloat:1.0",
-                            type_="control")
 
         ######################################################################
         # PROPERTIES
@@ -102,7 +87,4 @@ class supersimple_base(CF__POA.AggregatePlainDevice, Device, AggregateDevice, Th
 
 
 
-
-        def removeAllocationIdRouting(self,tuner_id):
-            pass
 

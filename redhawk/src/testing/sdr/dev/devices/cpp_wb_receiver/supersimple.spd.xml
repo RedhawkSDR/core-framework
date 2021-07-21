@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softpkg PUBLIC "-//JTRS//DTD SCA V2.2.2 SPD//EN" "softpkg.dtd">
+<softpkg id="DCE:646ea61b-b3e5-49a8-8387-3ccffed301ab" name="supersimple" type="3.0.0">
+  <title></title>
+  <author>
+    <name>null</name>
+  </author>
+  <propertyfile type="PRF">
+    <localfile name="supersimple.prf.xml"/>
+  </propertyfile>
+  <descriptor>
+    <localfile name="supersimple.scd.xml"/>
+  </descriptor>
+</softpkg>

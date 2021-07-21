@@ -1,2 +1,2 @@
-from supersimple import *
+from .supersimple import *
 

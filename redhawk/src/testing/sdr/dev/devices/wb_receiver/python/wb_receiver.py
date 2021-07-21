@@ -22,14 +22,11 @@ class wb_receiver_i(wb_receiver_base):
 
         For a tuner device, the structure frontend_tuner_status needs to match the number
         of tuners that this device controls and what kind of device it is.
-        The options for devices are: TX, RX, RX_DIGITIZER, CHANNELIZER, DDC, RX_DIGITIZER_CHANNELIZER
-     
-        For example, if this device has 5 physical
-        tuners, 3 RX_DIGITIZER and 2 CHANNELIZER, then the code in the construct function 
-        should look like this:
+        The options for devices are: ANTENNA, RX, RX_ARRAY, DBOT, ABOT, ARDC, RDC, SRDC, DRDC, TX, TX_ARRAY, TDC
+        
+        An example of setting up this device as an ABOT would look like this:
 
-        self.addChannels(3, "RX_DIGITIZER");
-        self.addChannels(2, "CHANNELIZER");
+        self.addChannels(1, "ABOT")
      
         The incoming request for tuning contains a string describing the requested tuner
         type. The string for the request must match the string in the tuner status.
@@ -42,31 +39,51 @@ class wb_receiver_i(wb_receiver_base):
         grandchild = retval_another.addChild(anothersimple)
         grandchild_2 = retval_another.addChild(anothersimple)
         greatgrandchild = grandchild_2.addChild(anothersimple)
-        print 'retval_super', retval_super.query([])
-        print 'retval_another', retval_another.query([])
-        print 'wb_receiver:', self._dynamicComponents
-        print self._get_label()
-        print self._name
+        print('retval_super', retval_super.query([]))
+        print('retval_another', retval_another.query([]))
+        print('wb_receiver:', self._dynamicComponents)
+        print(self._get_label())
+        print(self._name)
 
-        print '====================================== 1', len(self._dynamicComponents)
-        print self._label, 'children:'
+        print('====================================== 1', len(self._dynamicComponents))
+        print(self._label, 'children:')
         for dev in self._dynamicComponents:
-            print ' ', dev._label
-        print '====================================== 2'
+            print(' ', dev._label)
+        print('====================================== 2')
         for dev in self._dynamicComponents:
             if len(dev._dynamicComponents) == 0:
-                print dev._label, 'has not children'
+                print(dev._label, 'has not children')
             else:
-                print dev._label, 'children:'
+                print(dev._label, 'children:')
                 for _dev in dev._dynamicComponents:
-                    print ' ', _dev._label
+                    print(' ', _dev._label)
                     if len(_dev._dynamicComponents) == 0:
-                        print ' ',_dev._label, 'has not children'
+                        print(' ',_dev._label, 'does not have children')
                     else:
-                        print ' ',_dev._label, 'children:'
+                        print(' ',_dev._label, 'children:')
                         for __dev in _dev._dynamicComponents:
-                            print '  ', __dev._label
-        print '====================================== 3'
+                            print('  ', __dev._label)
+        print('====================================== 3')
+
+    def allocate(self, alloc_props):
+        retval = super(wb_receiver_i, self).allocate(alloc_props)
+        #
+        # if len(retval) > 0, add data and control ports. For example:
+        # retval[0].data_ports = [CF.Device.PortDescription(self.port_dataShort_out._this(), 'dataShort_out', 'IDL:BULKIO/dataShort:1.0')]
+        # retval[0].control_ports = [CF.Device.PortDescription(self.port_DigitalTuner_in._this(), 'DigitalTuner_in', 'IDL:FRONTEND/DigitalTuner:1.0')]
+        #
+        return retval
+
+ 
+    def updateUsageState(self):
+        """
+        This is called automatically after allocateCapacity or deallocateCapacity are called.
+        Your implementation should determine the current state of the device:
+           self._usageState = CF.Device.IDLE   # not in use
+           self._usageState = CF.Device.ACTIVE # in use, with capacity remaining for allocation
+           self._usageState = CF.Device.BUSY   # in use, with no capacity remaining for allocation
+        """
+        return NOOP
 
     def process(self):
         """
@@ -79,9 +96,6 @@ class wb_receiver_i(wb_receiver_base):
         StreamSRI:
             To create a StreamSRI object, use the following code (this generates a normalized SRI that does not flush the queue when full):
                 sri = bulkio.sri.create("my_stream_id")
-
-            To create a StreamSRI object based on tuner status structure index 'idx' and collector center frequency of 100:
-                sri = frontend.sri.create("my_stream_id", self.frontend_tuner_status[idx], self._id, collector_frequency=100)
 
         PrecisionUTCTime:
             To create a PrecisionUTCTime object, use the following code:
@@ -142,7 +156,7 @@ class wb_receiver_i(wb_receiver_base):
             type MessageEvent, create the following code:
         
             msg_out = wb_receiver_i.MyMsg()
-            this.port_msg_output.sendMessage(msg_out)
+            self.port_msg_output.sendMessage(msg_out)
 
     Accessing the Application and Domain Manager:
     
@@ -150,9 +164,9 @@ class wb_receiver_i(wb_receiver_base):
         the Application are available to the Component.
         
         To access the Domain Manager:
-            dommgr = self.getDomainManager().getRef();
+            dommgr = self.getDomainManager().getRef()
         To access the Application:
-            app = self.getApplication().getRef();
+            app = self.getApplication().getRef()
         Properties:
         
             Properties are accessed directly as member variables. If the property name is baudRate,
@@ -202,7 +216,7 @@ class wb_receiver_i(wb_receiver_base):
             # This example assumes that the device has two ports:
             #   - A provides (input) port of type bulkio.InShortPort called dataShort_in
             #   - A uses (output) port of type bulkio.OutFloatPort called dataFloat_out
-            # The mapping between the port and the class if found in the device
+            # The mapping between the port and the class is found in the device
             # base class.
             # This example also makes use of the following Properties:
             #   - A float value called amplitude
@@ -240,231 +254,6 @@ class wb_receiver_i(wb_receiver_base):
         self._baseLog.debug("process() example log message")
         return NOOP
 
-    '''
-    *************************************************************
-    Functions servicing the tuner control port
-    *************************************************************'''
-    def getTunerType(self,allocation_id):
-        idx = self.getTunerMapping(allocation_id)
-        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
-        return self.frontend_tuner_status[idx].tuner_type
-
-    def getTunerDeviceControl(self,allocation_id):
-        idx = self.getTunerMapping(allocation_id)
-        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
-        if self.getControlAllocationId(idx) == allocation_id:
-            return True
-        return False
-
-    def getTunerGroupId(self,allocation_id):
-        idx = self.getTunerMapping(allocation_id)
-        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
-        return self.frontend_tuner_status[idx].group_id
-
-    def getTunerRfFlowId(self,allocation_id):
-        idx = self.getTunerMapping(allocation_id)
-        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
-        return self.frontend_tuner_status[idx].rf_flow_id
-
-
-    def setTunerCenterFrequency(self,allocation_id, freq):
-        idx = self.getTunerMapping(allocation_id)
-        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
-        if allocation_id != self.getControlAllocationId(idx):
-            raise FRONTEND.FrontendException(("ID "+str(allocation_id)+" does not have authorization to modify the tuner"))
-        if freq<0: raise FRONTEND.BadParameterException("Center frequency cannot be less than 0")
-        # set hardware to new value. Raise an exception if it's not possible
-        self.frontend_tuner_status[idx].center_frequency = freq
-
-    def getTunerCenterFrequency(self,allocation_id):
-        idx = self.getTunerMapping(allocation_id)
-        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
-        return self.frontend_tuner_status[idx].center_frequency
-
-    def setTunerBandwidth(self,allocation_id, bw):
-        idx = self.getTunerMapping(allocation_id)
-        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
-        if allocation_id != self.getControlAllocationId(idx):
-            raise FRONTEND.FrontendException(("ID "+str(allocation_id)+" does not have authorization to modify the tuner"))
-        if bw<0: raise FRONTEND.BadParameterException("Bandwidth cannot be less than 0")
-        # set hardware to new value. Raise an exception if it's not possible
-        self.frontend_tuner_status[idx].bandwidth = bw
-
-    def getTunerBandwidth(self,allocation_id):
-        idx = self.getTunerMapping(allocation_id)
-        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
-        return self.frontend_tuner_status[idx].bandwidth
-
-    def setTunerAgcEnable(self,allocation_id, enable):
-        raise FRONTEND.NotSupportedException("setTunerAgcEnable not supported")
-
-    def getTunerAgcEnable(self,allocation_id):
-        raise FRONTEND.NotSupportedException("getTunerAgcEnable not supported")
-
-    def setTunerGain(self,allocation_id, gain):
-        raise FRONTEND.NotSupportedException("setTunerGain not supported")
-
-    def getTunerGain(self,allocation_id):
-        raise FRONTEND.NotSupportedException("getTunerGain not supported")
-
-    def setTunerReferenceSource(self,allocation_id, source):
-        raise FRONTEND.NotSupportedException("setTunerReferenceSource not supported")
-
-    def getTunerReferenceSource(self,allocation_id):
-        raise FRONTEND.NotSupportedException("getTunerReferenceSource not supported")
-
-    def setTunerEnable(self,allocation_id, enable):
-        idx = self.getTunerMapping(allocation_id)
-        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
-        if allocation_id != self.getControlAllocationId(idx):
-            raise FRONTEND.FrontendException(("ID "+str(allocation_id)+" does not have authorization to modify the tuner"))
-        # set hardware to new value. Raise an exception if it's not possible
-        self.frontend_tuner_status[idx].enabled = enable
-
-    def getTunerEnable(self,allocation_id):
-        idx = self.getTunerMapping(allocation_id)
-        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
-        return self.frontend_tuner_status[idx].enabled
-
-
-    def setTunerOutputSampleRate(self,allocation_id, sr):
-        idx = self.getTunerMapping(allocation_id)
-        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
-        if allocation_id != self.getControlAllocationId(idx):
-            raise FRONTEND.FrontendException(("ID "+str(allocation_id)+" does not have authorization to modify the tuner"))
-        if sr<0: raise FRONTEND.BadParameterException("Sample rate cannot be less than 0")
-        # set hardware to new value. Raise an exception if it's not possible
-        self.frontend_tuner_status[idx].sample_rate = sr
-
-    def getTunerOutputSampleRate(self,allocation_id):
-        idx = self.getTunerMapping(allocation_id)
-        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
-        return self.frontend_tuner_status[idx].sample_rate
-
-
-    def getScanStatus(self, allocation_id):
-        idx = self.getTunerMapping(allocation_id)
-        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
-        # set hardware to new value. Raise an exception if it's not possible
-        _scan_strategy=FRONTEND.ScanningTuner.ScanStrategy(
-            FRONTEND.ScanningTuner.MANUAL_SCAN, 
-            FRONTEND.ScanningTuner.ScanModeDefinition(center_frequency=1.0), 
-            FRONTEND.ScanningTuner.TIME_BASED, 
-            0.0)
-        _scan_status=FRONTEND.ScanningTuner.ScanStatus(_scan_strategy,
-                                           start_time=bulkio.timestamp.now(),
-                                           center_tune_frequencies=[],
-                                           started=False)
-        return _scan_status
-
-    def setScanStartTime(self, allocation_id, start_time):
-        idx = self.getTunerMapping(allocation_id)
-        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
-        if allocation_id != self.getControlAllocationId(idx):
-            raise FRONTEND.FrontendException(("ID "+str(allocation_id)+" does not have authorization to modify the tuner"))
-
-    def setScanStrategy(self, allocation_id, scan_strategy):
-        idx = self.getTunerMapping(allocation_id)
-        if idx < 0: raise FRONTEND.FrontendException("Invalid allocation id")
-        if allocation_id != self.getControlAllocationId(idx):
-            raise FRONTEND.FrontendException(("ID "+str(allocation_id)+" does not have authorization to modify the tuner"))
-
-    '''
-    *************************************************************
-    Functions servicing the RFInfo port(s)
-    - port_name is the port over which the call was received
-    *************************************************************'''
-    def get_rf_flow_id(self,port_name):
-        return ""
-
-    def set_rf_flow_id(self,port_name, _id):
-        pass
-
-    def get_rfinfo_pkt(self,port_name):
-        _antennainfo=FRONTEND.AntennaInfo('','','','')
-        _freqrange=FRONTEND.FreqRange(0,0,[])
-        _feedinfo=FRONTEND.FeedInfo('','',_freqrange)
-        _sensorinfo=FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
-        _rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange)
-        _rfinfopkt=FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],_rfcapabilities,[])
-        return _rfinfopkt
-
-    def set_rfinfo_pkt(self,port_name, pkt):
-        pass
-    '''
-    *************************************************************
-    Functions supporting tuning allocation
-    *************************************************************'''
-    def deviceEnable(self, fts, tuner_id):
-        '''
-        ************************************************************
-        modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
-        Make sure to set the 'enabled' member of fts to indicate that tuner as enabled
-        ************************************************************'''
-        print "deviceEnable(): Enable the given tuner  *********"
-        fts.enabled = True
-        return
-
-    def deviceDisable(self,fts, tuner_id):
-        '''
-        ************************************************************
-        modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
-        Make sure to reset the 'enabled' member of fts to indicate that tuner as disabled
-        ************************************************************'''
-        print "deviceDisable(): Disable the given tuner  *********"
-        fts.enabled = False
-        return
-
-    def deviceSetTuningScan(self,request, scan_request, fts, tuner_id):
-        '''
-        ************************************************************
-
-        This function is called when the allocation request contains a scanner allocation
-
-        modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
-        
-        The bandwidth, center frequency, and sampling rate that the hardware was actually tuned
-        to needs to populate fts (to make sure that it meets the tolerance requirement. For example,
-        if the tuned values match the requested values, the code would look like this:
-        
-        fts.bandwidth = request.bandwidth
-        fts.center_frequency = request.center_frequency
-        fts.sample_rate = request.sample_rate
-        
-        return True if the tuning succeeded, and False if it failed
-        ************************************************************'''
-        print "deviceSetTuning(): Evaluate whether or not a tuner is added  *********"
-        return True
-
-    def deviceSetTuning(self,request, fts, tuner_id):
-        '''
-        ************************************************************
-
-        This function is called when the allocation request does not contain a scanner allocation
-
-        modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
-        
-        The bandwidth, center frequency, and sampling rate that the hardware was actually tuned
-        to needs to populate fts (to make sure that it meets the tolerance requirement. For example,
-        if the tuned values match the requested values, the code would look like this:
-        
-        fts.bandwidth = request.bandwidth
-        fts.center_frequency = request.center_frequency
-        fts.sample_rate = request.sample_rate
-        
-        return True if the tuning succeeded, and False if it failed
-        ************************************************************'''
-        print "deviceSetTuning(): Evaluate whether or not a tuner is added  *********"
-        return True
-
-    def deviceDeleteTuning(self, fts, tuner_id):
-        '''
-        ************************************************************
-        modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
-        return True if the tune deletion succeeded, and False if it failed
-        ************************************************************'''
-        print "deviceDeleteTuning(): Deallocate an allocated tuner  *********"
-        return True
   
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)

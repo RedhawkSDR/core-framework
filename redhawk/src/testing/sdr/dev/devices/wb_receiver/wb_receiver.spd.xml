@@ -11,22 +11,6 @@
   <descriptor>
     <localfile name="wb_receiver.scd.xml"/>
   </descriptor>
-  <!--child name="wb_tuner">
-    <childPropertyFile>
-        <localfile name="wb_tuner.prf.xml"/>
-    </childPropertyFile>
-    <childDescriptorFile>
-        <localfile name="wb_tuner.scd.xml"/>
-    </childDescriptorFile>
-  </child>
-  <child name="nb_tuner">
-    <childPropertyFile>
-        <localfile name="nb_tuner.prf.xml"/>
-    </childPropertyFile>
-    <childDescriptorFile>
-        <localfile name="nb_tuner.scd.xml"/>
-    </childDescriptorFile>
-  </child-->
   <implementation id="python">
     <description>The implementation contains descriptive information about the template for a software resource.</description>
     <code type="Executable">
@@ -39,19 +23,13 @@
     <os name="Linux"/>
   </implementation>
   <child name="supersimple">
-    <childPropertyFile>
-        <localfile name="supersimple.prf.xml"/>
-    </childPropertyFile>
-    <childDescriptorFile>
-        <localfile name="supersimple.scd.xml"/>
-    </childDescriptorFile>
+    <childSoftwarePackageFile>
+        <localfile name="supersimple.spd.xml"/>
+    </childSoftwarePackageFile>
   </child>
   <child name="anothersimple">
-    <childPropertyFile>
-        <localfile name="anothersimple.prf.xml"/>
-    </childPropertyFile>
-    <childDescriptorFile>
-        <localfile name="anothersimple.scd.xml"/>
-    </childDescriptorFile>
+    <childSoftwarePackageFile>
+        <localfile name="anothersimple.spd.xml"/>
+    </childSoftwarePackageFile>
   </child>
 </softpkg>

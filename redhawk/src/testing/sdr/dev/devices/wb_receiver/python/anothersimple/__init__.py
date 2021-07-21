@@ -1,2 +1,2 @@
-from anothersimple import *
+from .anothersimple import *
 

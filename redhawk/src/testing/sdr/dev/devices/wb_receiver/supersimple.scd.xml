@@ -5,6 +5,7 @@
   <componentrepid repid="IDL:CF/Device:1.0"/>
   <componenttype>device</componenttype>
   <componentfeatures>
+    <supportsinterface repid="IDL:CF/AggregateDevice:1.0" supportsname="AggregateDevice"/>
     <supportsinterface repid="IDL:CF/Device:1.0" supportsname="Device"/>
     <supportsinterface repid="IDL:CF/Resource:1.0" supportsname="Resource"/>
     <supportsinterface repid="IDL:CF/LifeCycle:1.0" supportsname="LifeCycle"/>
@@ -16,10 +17,7 @@
     <supportsinterface repid="IDL:CF/Logging:1.0" supportsname="Logging"/>
     <supportsinterface repid="IDL:CF/LogEventConsumer:1.0" supportsname="LogEventConsumer"/>
     <supportsinterface repid="IDL:CF/LogConfiguration:1.0" supportsname="LogConfiguration"/>
-    <ports>
-      <provides repid="IDL:BULKIO/dataFloat:1.0" providesname="foo"/>
-      <uses repid="IDL:BULKIO/dataFloat:1.0" usesname="bar"/>
-    </ports>
+    <ports/>
   </componentfeatures>
   <interfaces>
     <interface name="Device" repid="IDL:CF/Device:1.0">
@@ -48,11 +46,5 @@
     </interface>
     <interface name="LogEventConsumer" repid="IDL:CF/LogEventConsumer:1.0"/>
     <interface name="LogConfiguration" repid="IDL:CF/LogConfiguration:1.0"/>
-    <interface name="dataFloat" repid="IDL:BULKIO/dataFloat:1.0">
-      <inheritsinterface repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
-      <inheritsinterface repid="IDL:BULKIO/updateSRI:1.0"/>
-    </interface>
-    <interface name="ProvidesPortStatisticsProvider" repid="IDL:BULKIO/ProvidesPortStatisticsProvider:1.0"/>
-    <interface name="updateSRI" repid="IDL:BULKIO/updateSRI:1.0"/>
   </interfaces>
 </softwarecomponent>
