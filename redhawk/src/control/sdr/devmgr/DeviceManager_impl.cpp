@@ -1708,8 +1708,7 @@ DeviceManager_impl::registerDevice (CF::Device_ptr registeringDevice)
   // the mutex lock, which would prevent shutdown from killing
   // this).
   bool allregistered = false;
-  {
-  boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
+
   //Get properties from SPD
   std::string spdFile = ossie::corba::returnString(registeringDevice->softwareProfile());
   std::string spd_id;
@@ -1820,6 +1819,8 @@ DeviceManager_impl::registerDevice (CF::Device_ptr registeringDevice)
     }
   }
 
+  {
+  boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
   // Register the device with the Device manager, unless it is already
   // registered
   if (!deviceIsRegistered (registeringDevice)) {
