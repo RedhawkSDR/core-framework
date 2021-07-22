@@ -37,7 +37,7 @@ public:
     void setParentInstance(DynamicComponent *parent);
     void removeInstance(Device_impl* instance);
     template<class T>
-    T* addChild(std::string instance_name)
+    T* addChild(const std::string &instance_name)
     {
         SCOPED_LOCK(_dynamicComponentDeploymentLock);
 
