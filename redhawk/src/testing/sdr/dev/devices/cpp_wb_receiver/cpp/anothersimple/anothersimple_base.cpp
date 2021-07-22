@@ -10,6 +10,8 @@
 
 ******************************************************************************************/
 
+using namespace anothersimple_ns;
+
 anothersimple_base::anothersimple_base(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl) :
     Device_impl(devMgr_ior, id, lbl, sftwrPrfl),
     AggregateDevice_impl(),
@@ -49,7 +51,6 @@ anothersimple_base::~anothersimple_base()
 void anothersimple_base::construct()
 {
     loadProperties();
-
     this->setHost(this);
 
 }
@@ -111,3 +112,6 @@ void anothersimple_base::loadProperties()
                 "property");
 
 }
+
+
+

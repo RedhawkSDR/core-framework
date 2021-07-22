@@ -52,7 +52,7 @@ Device_impl* DynamicComponent::create_device_instance(Device_impl::ctor_type cto
     char* label = (char *)parameters["DEVICE_LABEL"].c_str();
     std::string idm_channel_ior = parameters["IDM_CHANNEL_IOR"];
     char* composite_device = (char *)parameters["COMPOSITE_DEVICE_IOR"].c_str();
-    std::string s_profile;
+    std::string s_profile = parameters["PROFILE_NAME"];
     char* profile = (char *)s_profile.c_str();
 
     std::string logging_config_uri;

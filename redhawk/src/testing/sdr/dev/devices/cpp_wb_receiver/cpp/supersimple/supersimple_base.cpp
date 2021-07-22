@@ -10,6 +10,8 @@
 
 ******************************************************************************************/
 
+using namespace supersimple_ns;
+
 supersimple_base::supersimple_base(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl) :
     Device_impl(devMgr_ior, id, lbl, sftwrPrfl),
     AggregateDevice_impl(),
@@ -112,6 +114,4 @@ void supersimple_base::loadProperties()
 }
 
 
-void supersimple_base::removeAllocationIdRouting(const size_t tuner_id) {
-}
 

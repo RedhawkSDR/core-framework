@@ -3,12 +3,13 @@
 
 #include <boost/thread.hpp>
 #include <ossie/Device_impl.h>
+#include <CF/AggregateDevices.h>
 #include <ossie/AggregateDevice_impl.h>
 #include <ossie/ThreadedComponent.h>
 #include <ossie/DynamicComponent.h>
 
-#define BOOL_VALUE_HERE 0
 
+namespace supersimple_ns {
 class supersimple_base : public Device_impl, public virtual POA_CF::AggregatePlainDevice, public AggregateDevice_impl, protected ThreadedComponent, public virtual DynamicComponent
 {
     public:
@@ -18,14 +19,25 @@ class supersimple_base : public Device_impl, public virtual POA_CF::AggregatePla
         supersimple_base(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Properties capacities, char *compDev);
         ~supersimple_base();
 
+        /**
+         * @throw CF::Resource::StartError
+         * @throw CORBA::SystemException
+         */
         void start();
 
+        /**
+         * @throw CF::Resource::StopError
+         * @throw CORBA::SystemException
+         */
         void stop();
 
+        /**
+         * @throw CF::LifeCycle::ReleaseError
+         * @throw CORBA::SystemException
+         */
         void releaseObject();
 
         void loadProperties();
-        void removeAllocationIdRouting(const size_t tuner_id);
 
     protected:
         // Member variables exposed as properties
@@ -38,5 +50,6 @@ class supersimple_base : public Device_impl, public virtual POA_CF::AggregatePla
 
     private:
         void construct();
+};
 };
 #endif // SUPERSIMPLE_BASE_IMPL_BASE_H

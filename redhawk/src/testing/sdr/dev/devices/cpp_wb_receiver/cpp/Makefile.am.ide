@@ -8,12 +8,13 @@ redhawk_SOURCES_auto += cpp_wb_receiver.cpp
 redhawk_SOURCES_auto += cpp_wb_receiver.h
 redhawk_SOURCES_auto += cpp_wb_receiver_base.cpp
 redhawk_SOURCES_auto += cpp_wb_receiver_base.h
-redhawk_SOURCES_auto += supersimple/supersimple.cpp
-redhawk_SOURCES_auto += supersimple/supersimple.h
-redhawk_SOURCES_auto += supersimple/supersimple_base.cpp
-redhawk_SOURCES_auto += supersimple/supersimple_base.h
+redhawk_SOURCES_auto += struct_props.h
 redhawk_SOURCES_auto += anothersimple/anothersimple.cpp
 redhawk_SOURCES_auto += anothersimple/anothersimple.h
 redhawk_SOURCES_auto += anothersimple/anothersimple_base.cpp
 redhawk_SOURCES_auto += anothersimple/anothersimple_base.h
+redhawk_SOURCES_auto += supersimple/supersimple.cpp
+redhawk_SOURCES_auto += supersimple/supersimple.h
+redhawk_SOURCES_auto += supersimple/supersimple_base.cpp
+redhawk_SOURCES_auto += supersimple/supersimple_base.h
 

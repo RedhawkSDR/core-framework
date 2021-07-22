@@ -3,6 +3,7 @@
 
 #include "supersimple_base.h"
 
+namespace supersimple_ns {
 class supersimple_i : public supersimple_base
 {
     ENABLE_LOGGING
@@ -20,7 +21,7 @@ class supersimple_i : public supersimple_base
     protected:
 
         void updateUsageState();
-    private:
+};
 };
 
 #endif // SUPERSIMPLE_I_IMPL_H

@@ -1,18 +1,16 @@
-#ifndef cpp_wb_receiver_BASE_IMPL_BASE_H
-#define cpp_wb_receiver_BASE_IMPL_BASE_H
+#ifndef CPP_WB_RECEIVER_BASE_IMPL_BASE_H
+#define CPP_WB_RECEIVER_BASE_IMPL_BASE_H
 
 #include <boost/thread.hpp>
-#include <CF/cf.h>
-#include <CF/AggregateDevices.h>
 #include <ossie/Device_impl.h>
+#include <CF/AggregateDevices.h>
 #include <ossie/AggregateDevice_impl.h>
 #include <ossie/ThreadedComponent.h>
 #include <ossie/DynamicComponent.h>
 
-#include "supersimple/supersimple.h"
+#include "struct_props.h"
 #include "anothersimple/anothersimple.h"
-
-#define BOOL_VALUE_HERE 0
+#include "supersimple/supersimple.h"
 
 class cpp_wb_receiver_base : public Device_impl, public virtual POA_CF::AggregatePlainDevice, public AggregateDevice_impl, protected ThreadedComponent, public virtual DynamicComponent
 {
@@ -23,10 +21,22 @@ class cpp_wb_receiver_base : public Device_impl, public virtual POA_CF::Aggregat
         cpp_wb_receiver_base(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Properties capacities, char *compDev);
         ~cpp_wb_receiver_base();
 
+        /**
+         * @throw CF::Resource::StartError
+         * @throw CORBA::SystemException
+         */
         void start();
 
+        /**
+         * @throw CF::Resource::StopError
+         * @throw CORBA::SystemException
+         */
         void stop();
 
+        /**
+         * @throw CF::LifeCycle::ReleaseError
+         * @throw CORBA::SystemException
+         */
         void releaseObject();
 
         void loadProperties();
@@ -37,8 +47,18 @@ class cpp_wb_receiver_base : public Device_impl, public virtual POA_CF::Aggregat
         std::string device_kind;
         /// Property: device_model
         std::string device_model;
+        /// Property: frontend_coherent_feeds
+        std::vector<std::string> frontend_coherent_feeds;
+        /// Property: frontend_listener_allocation
+        frontend_listener_allocation_struct frontend_listener_allocation;
+        /// Property: frontend_tuner_allocation
+        frontend_tuner_allocation_struct frontend_tuner_allocation;
+        /// Property: frontend_scanner_allocation
+        frontend_scanner_allocation_struct frontend_scanner_allocation;
+        /// Property: frontend_tuner_status
+        std::vector<frontend_tuner_status_struct_struct> frontend_tuner_status;
 
     private:
         void construct();
 };
-#endif // cpp_wb_receiver_BASE_IMPL_BASE_H
+#endif // CPP_WB_RECEIVER_BASE_IMPL_BASE_H

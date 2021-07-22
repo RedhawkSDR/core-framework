@@ -1,5 +1,5 @@
-#ifndef cpp_wb_receiver_I_IMPL_H
-#define cpp_wb_receiver_I_IMPL_H
+#ifndef CPP_WB_RECEIVER_I_IMPL_H
+#define CPP_WB_RECEIVER_I_IMPL_H
 
 #include "cpp_wb_receiver_base.h"
 
@@ -17,6 +17,9 @@ class cpp_wb_receiver_i : public cpp_wb_receiver_base
 
         int serviceFunction();
 
+    protected:
+
+        void updateUsageState();
 };
 
-#endif // cpp_wb_receiver_I_IMPL_H
+#endif // CPP_WB_RECEIVER_I_IMPL_H

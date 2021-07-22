@@ -3,6 +3,7 @@
 
 #include "anothersimple_base.h"
 
+namespace anothersimple_ns {
 class anothersimple_i : public anothersimple_base
 {
     ENABLE_LOGGING
@@ -20,7 +21,7 @@ class anothersimple_i : public anothersimple_base
     protected:
 
         void updateUsageState();
-    private:
+};
 };
 
 #endif // ANOTHERSIMPLE_I_IMPL_H

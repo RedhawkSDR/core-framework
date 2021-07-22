@@ -41,32 +41,18 @@ void cpp_wb_receiver_i::constructor()
 {
     /***********************************************************************************
      This is the RH constructor. All properties are properly initialized before this function is called 
-
-     For a tuner device, the structure frontend_tuner_status needs to match the number
-     of tuners that this device controls and what kind of device it is.
-     The options for devices are: TX, RX, RX_DIGITIZER, CHANNELIZER, DDC, RX_DIGITIZER_CHANNELIZER
-     
-     For example, if this device has 5 physical
-     tuners, 3 RX_DIGITIZER and 2 CHANNELIZER, then the code in the construct function 
-     should look like this:
-
-     this->addChannels(3, "RX_DIGITIZER");
-     this->addChannels(2, "CHANNELIZER");
-     
-     The incoming request for tuning contains a string describing the requested tuner
-     type. The string for the request must match the string in the tuner status.
     ***********************************************************************************/
     std::string supersimple_name("supersimple");
     std::string anothersimple_name("anothersimple");
     std::map< std::string, std::string > parameters;
 
-    supersimple_i* super_1 = this->addChild<supersimple_i>(supersimple_name);
-    anothersimple_i* another_1 = this->addChild<anothersimple_i>(anothersimple_name);
+    supersimple_ns::supersimple_i* super_1 = this->addChild<supersimple_ns::supersimple_i>(supersimple_name);
+    anothersimple_ns::anothersimple_i* another_1 = this->addChild<anothersimple_ns::anothersimple_i>(anothersimple_name);
 
-    anothersimple_i* another_grandchild_1 = another_1->addChild<anothersimple_i>(anothersimple_name);
-    anothersimple_i* another_grandchild_2 = another_1->addChild<anothersimple_i>(anothersimple_name);
+    anothersimple_ns::anothersimple_i* another_grandchild_1 = another_1->addChild<anothersimple_ns::anothersimple_i>(anothersimple_name);
+    anothersimple_ns::anothersimple_i* another_grandchild_2 = another_1->addChild<anothersimple_ns::anothersimple_i>(anothersimple_name);
 
-    anothersimple_i* another_greatgrandchild_1 = another_grandchild_2->addChild<anothersimple_i>(anothersimple_name);
+    anothersimple_ns::anothersimple_i* another_greatgrandchild_1 = another_grandchild_2->addChild<anothersimple_ns::anothersimple_i>(anothersimple_name);
     bool all_correct = true;
     if (super_1 == NULL)
         all_correct = false;
@@ -79,10 +65,23 @@ void cpp_wb_receiver_i::constructor()
     if (another_greatgrandchild_1 == NULL)
         all_correct = false;
     if (not all_correct) {
-        std::cout<<"============ they did not deploy correctly"<<std::endl;
-    } else {
-        std::cout<<"============ they deployed correctly"<<std::endl;
+        throw std::runtime_error("did not deploy all child devices correctly");
     }
+}
+
+
+/**************************************************************************
+
+    This is called automatically after allocateCapacity or deallocateCapacity are called.
+    Your implementation should determine the current state of the device:
+
+       setUsageState(CF::Device::IDLE);   // not in use
+       setUsageState(CF::Device::ACTIVE); // in use, with capacity remaining for allocation
+       setUsageState(CF::Device::BUSY);   // in use, with no capacity remaining for allocation
+
+**************************************************************************/
+void cpp_wb_receiver_i::updateUsageState()
+{
 }
 
 /***********************************************************************************************
@@ -99,10 +98,6 @@ void cpp_wb_receiver_i::constructor()
         To create a StreamSRI object, use the following code:
                 std::string stream_id = "testStream";
                 BULKIO::StreamSRI sri = bulkio::sri::create(stream_id);
-
-        To create a StreamSRI object based on tuner status structure index 'idx' and collector center frequency of 100:
-                std::string stream_id = "my_stream_id";
-                BULKIO::StreamSRI sri = this->create(stream_id, this->frontend_tuner_status[idx], 100);
 
     Time:
         To create a PrecisionUTCTime object, use the following code:
@@ -342,3 +337,4 @@ int cpp_wb_receiver_i::serviceFunction()
     
     return NOOP;
 }
+

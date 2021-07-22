@@ -8,8 +8,9 @@
 **************************************************************************/
 
 #include "supersimple.h"
+#include "../anothersimple/anothersimple.h"
 
-#include <anothersimple/anothersimple.h>
+using namespace supersimple_ns;
 
 PREPARE_LOGGING(supersimple_i)
 
@@ -44,19 +45,18 @@ void supersimple_i::constructor()
     ***********************************************************************************/
     std::string anothersimple_name("anothersimple");
 
-    anothersimple_i* super_another_child_1 = this->addChild<anothersimple_i>(anothersimple_name);
-    anothersimple_i* super_another_child_2 = this->addChild<anothersimple_i>(anothersimple_name);
+    anothersimple_ns::anothersimple_i* super_another_child_1 = this->addChild<anothersimple_ns::anothersimple_i>(anothersimple_name);
+    anothersimple_ns::anothersimple_i* super_another_child_2 = this->addChild<anothersimple_ns::anothersimple_i>(anothersimple_name);
     bool both_correct = true;
     if (super_another_child_1 == NULL)
         both_correct = false;
     if (super_another_child_2 == NULL)
         both_correct = false;
     if (not both_correct) {
-        std::cout<<"============ they did not deploy correctly"<<std::endl;
-    } else {
-        std::cout<<"============ they deployed correctly"<<std::endl;
+        throw std::runtime_error("did not deploy all child devices correctly");
     }
 }
+
 
 /**************************************************************************
 
@@ -322,18 +322,6 @@ void supersimple_i::updateUsageState()
 int supersimple_i::serviceFunction()
 {
     RH_DEBUG(this->_baseLog, "serviceFunction() example log message");
-    
-    std::cout<<"these are the devices "<<this->_identifier<<" owns"<<std::endl;
-    for (unsigned int i=0; i<_dynamicComponents.size(); i++) {
-        anothersimple_i* base_dev = dynamic_cast<anothersimple_i*>(_dynamicComponents[i]);
-        std::cout<<"  "<<_dynamicComponents[i]->_identifier;
-        if (base_dev == NULL) {
-            std::cout<<" it did not narrow correctly";
-        } else {
-            std::cout<<" it narrowed correctly";
-        }
-        std::cout<<std::endl;
-    }
     
     return NOOP;
 }

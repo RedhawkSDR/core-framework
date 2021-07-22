@@ -9,6 +9,8 @@
 
 #include "anothersimple.h"
 
+using namespace anothersimple_ns;
+
 PREPARE_LOGGING(anothersimple_i)
 
 anothersimple_i::anothersimple_i(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl) :
@@ -41,6 +43,7 @@ void anothersimple_i::constructor()
      This is the RH constructor. All properties are properly initialized before this function is called 
     ***********************************************************************************/
 }
+
 
 /**************************************************************************
 

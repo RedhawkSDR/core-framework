@@ -25,7 +25,10 @@
 #include "Device_impl.h"
 #include "ossie/debug.h"
 #include "ossie/Events.h"
+#include <boost/filesystem.hpp>
 #include "ossie/Autocomplete.h"
+
+namespace fs = boost::filesystem;
 
 class DynamicComponent {
 public:
@@ -47,11 +50,14 @@ public:
         std::string device_name_count = device_name_count_stream.str();
         std::string device_label = ossie::corba::returnString(this->_base_device->label())+":"+device_name_count;
         std::string device_id = ossie::corba::returnString(this->_base_device->identifier())+":"+device_name_count;
+        std::string profile_name = fs::path(this->_base_device->softwareProfile()).parent_path().string()+"/"+instance_name+".spd.xml";
+        
         std::map< std::string, std::string > parameters;
 
         CORBA::ORB_ptr orb = ossie::corba::Orb();
         parameters["IDM_CHANNEL_IOR"] = _base_device->getIDMIOR();
         parameters["DEVICE_LABEL"] = device_label.c_str();
+        parameters["PROFILE_NAME"] = profile_name.c_str();
         parameters["DEVICE_MGR_IOR"] = orb->object_to_string(_base_device->getDeviceManager()->getRef());
         parameters["DEVICE_ID"] = device_id.c_str();
         parameters["COMPOSITE_DEVICE_IOR"] = orb->object_to_string(_base_device->_this());

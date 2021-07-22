@@ -39,31 +39,7 @@ class wb_receiver_i(wb_receiver_base):
         grandchild = retval_another.addChild(anothersimple)
         grandchild_2 = retval_another.addChild(anothersimple)
         greatgrandchild = grandchild_2.addChild(anothersimple)
-        print('retval_super', retval_super.query([]))
-        print('retval_another', retval_another.query([]))
-        print('wb_receiver:', self._dynamicComponents)
-        print(self._get_label())
-        print(self._name)
 
-        print('====================================== 1', len(self._dynamicComponents))
-        print(self._label, 'children:')
-        for dev in self._dynamicComponents:
-            print(' ', dev._label)
-        print('====================================== 2')
-        for dev in self._dynamicComponents:
-            if len(dev._dynamicComponents) == 0:
-                print(dev._label, 'has not children')
-            else:
-                print(dev._label, 'children:')
-                for _dev in dev._dynamicComponents:
-                    print(' ', _dev._label)
-                    if len(_dev._dynamicComponents) == 0:
-                        print(' ',_dev._label, 'does not have children')
-                    else:
-                        print(' ',_dev._label, 'children:')
-                        for __dev in _dev._dynamicComponents:
-                            print('  ', __dev._label)
-        print('====================================== 3')
 
     def allocate(self, alloc_props):
         retval = super(wb_receiver_i, self).allocate(alloc_props)
