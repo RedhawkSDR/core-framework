@@ -19,32 +19,14 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-#Sun ORB start line
 myDir=`dirname $0`
-# Setup the OSSIEHOME Lib jars on the classpath
-libDir=${SDRROOT}/../../base/framework/java
-libFiles=`ls -1 $libDir/*.jar`
-for file in $libFiles
+classpath=$myDir/BasicAC_java_impl1.jar:$myDir/bin
+libdir=${SDRROOT}/../../base/framework/java
+for jar in $(readlink -e $libdir/ossie/*.jar $libdir/*.jar | uniq)
 do
-  if [ x"$CLASSPATH" = "x" ]
-  then
-    export CLASSPATH=$file
-  else
-    export CLASSPATH=$file:$CLASSPATH
-  fi
+    classpath=$classpath:$jar
 done
 
-# Path for Java
-if test -x $JAVA_HOME/bin/java; then
-  JAVA=$JAVA_HOME/bin/java
-else
-  JAVA=java
-fi
-
 # NOTE: the $@ must be quoted "$@" for arguments to be passed correctly
+exec java -cp $classpath:$CLASSPATH basicac_java_impl1.basicac_java_impl1 "$@"
 
-#Sun ORB start line
-exec $JAVA -cp :$myDir/BasicAC_java_impl1.jar:$myDir/bin:$CLASSPATH basicac_java_impl1.basicac_java_impl1 "$@"
-
-#JacORB start lines
-#$JAVA_HOME/bin/java -cp $OSSIEHOME/lib/log4j.jar:$OSSIEHOME/lib/CFInterfaces.jar:$OSSIEHOME/lib/ossie.jar:$myDir/jacorb.jar:$myDir/antlr.jar:$myDir/avalon-framework.jar:$myDir/backport-util-concurrent.jar:$myDir/logkit.jar:$OSSIEHOME/lib/CFInterfaces.jar:$myDir:$myDir/BasicAC_java_impl1.jar:$myDir/bin:$CLASSPATH basicac_java_impl1.basicac_java_impl1 "$@"

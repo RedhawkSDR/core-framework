@@ -19,20 +19,14 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-#Sun ORB start line
-# Important, the $@ must be quoted "$@" for arguments to be passed correctly
 myDir=`dirname $0`
-JAVA_LIBDIR=${myDir}/../../../../../base/framework/java
-JAVA_CLASSPATH=${JAVA_LIBDIR}/log4j-1.2.15.jar:${JAVA_LIBDIR}/CFInterfaces.jar:${JAVA_LIBDIR}/ossie.jar:${myDir}/log_test_java.jar:${myDir}:${myDir}/bin:${CLASSPATH}
-
-# Path for Java
-if test -x $JAVA_HOME/bin/java; then
-  JAVA=$JAVA_HOME/bin/java
-else
-  JAVA=java
-fi
+classpath=$myDir/log_test_java.jar:$myDir/bin
+libdir=${SDRROOT}/../../base/framework/java
+for jar in $(readlink -e $libdir/ossie/*.jar $libdir/*.jar | uniq)
+do
+    classpath=$classpath:$jar
+done
 
 # NOTE: the $@ must be quoted "$@" for arguments to be passed correctly
+exec java -cp $classpath:$CLASSPATH log_test_java.java.log_test_java "$@"
 
-#Sun ORB start line
-exec $JAVA -cp ${JAVA_CLASSPATH} log_test_java.java.log_test_java "$@"

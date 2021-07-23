@@ -20,32 +20,13 @@
 #
 
 myDir=`dirname $0`
-
-# Setup the OSSIEHOME Lib jars on the classpath
-libDir=${SDRROOT}/../../base/framework/java
-libFiles=`ls -1 $libDir/*.jar`
-for file in $libFiles
+classpath=$myDir/TestComplexProps.jar:$myDir/bin
+libdir=${SDRROOT}/../../base/framework/java
+for jar in $(readlink -e $libdir/ossie/*.jar $libdir/*.jar | uniq)
 do
-	if [ x"$CLASSPATH" = "x" ]
-	then
-		export CLASSPATH=$file
-	else
-		export CLASSPATH=$file:$CLASSPATH
-	fi
+    classpath=$classpath:$jar
 done
 
 # NOTE: the $@ must be quoted "$@" for arguments to be passed correctly
-myDir=`dirname $0`
-
-# Path for Java
-if test -x $JAVA_HOME/bin/java; then
-  JAVA=$JAVA_HOME/bin/java
-else
-  JAVA=java
-fi
-
-# NOTE: the $@ must be quoted "$@" for arguments to be passed correctly
-
-#Sun ORB start line
-exec $JAVA -cp ::$myDir/TestComplexProps.jar:$myDir/bin:$CLASSPATH TestComplexProps.java.TestComplexProps "$@"
+exec java -cp $classpath:$CLASSPATH TestComplexProps.java.TestComplexProps "$@"
 

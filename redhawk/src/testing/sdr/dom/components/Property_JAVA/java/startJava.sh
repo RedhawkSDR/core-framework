@@ -20,31 +20,13 @@
 #
 
 myDir=`dirname $0`
-
-# Setup the OSSIEHOME Lib jars on the classpath
-libDir=${SDRROOT}/../../base/framework/java
-libFiles=`ls -1 $libDir/*.jar`
-for file in $libFiles
+classpath=$myDir/Property_JAVA.jar:$myDir/bin
+libdir=${SDRROOT}/../../base/framework/java
+for jar in $(readlink -e $libdir/ossie/*.jar $libdir/*.jar | uniq)
 do
-  if [ x"$CLASSPATH" = "x" ]
-  then
-    export CLASSPATH=$file
-  else
-    export CLASSPATH=$file:$CLASSPATH
-  fi
+    classpath=$classpath:$jar
 done
 
-# Path for Java
-if test -x $JAVA_HOME/bin/java; then
-  JAVA=$JAVA_HOME/bin/java
-else
-  JAVA=java
-fi
-
 # NOTE: the $@ must be quoted "$@" for arguments to be passed correctly
+exec java -cp $classpath:$CLASSPATH Property_JAVA.java.Property_JAVA "$@"
 
-#Sun ORB start line
-exec $JAVA -cp :$myDir/Property_JAVA.jar:$myDir/bin:$CLASSPATH Property_JAVA.java.Property_JAVA "$@"
-
-#JacORB start lines
-#exec $JAVA -cp :$myDir/jacorb.jar:$myDir/antlr.jar:$myDir/avalon-framework.jar:$myDir/backport-util-concurrent.jar:$myDir/logkit.jar:$myDir/Property_JAVA.jar:$myDir/bin:$CLASSPATH Property_JAVA.java.Property_JAVA "$@"

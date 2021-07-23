@@ -19,19 +19,14 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-#Sun ORB start line
 myDir=`dirname $0`
-# Path for Java
-if test -x $JAVA_HOME/bin/java; then
-  JAVA=$JAVA_HOME/bin/java
-else
-  JAVA=java
-fi
+classpath=$myDir/HardLimit_java_impl1.jar:$myDir/bin
+libdir=${SDRROOT}/../../base/framework/java
+for jar in $(readlink -e $libdir/ossie/*.jar $libdir/*.jar | uniq)
+do
+    classpath=$classpath:$jar
+done
 
 # NOTE: the $@ must be quoted "$@" for arguments to be passed correctly
+exec java -cp $classpath:$CLASSPATH HardLimit_java_impl1.HardLimit_java_impl1 "$@"
 
-#Sun ORB start line
-exec $JAVA -cp $CLASSPATH:../../../../../base/framework/java/CFInterfaces.jar:../../../../../base/framework/java/log4j-1.2.15.jar:../../../../../base/framework/java/ossie.jar:../../../../../../../interfaces/bulkioInterfaces/BULKIOInterfaces.jar:$myDir/HardLimit_java_impl1.jar:$myDir/bin HardLimit_java_impl1.HardLimit_java_impl1 "$@"
-
-#JacORB start lines
-#$JAVA_HOME/bin/java -cp $OSSIEHOME/lib/log4j.jar:$OSSIEHOME/lib/CFInterfaces.jar:$OSSIEHOME/lib/ossie.jar:$myDir/jacorb.jar:$myDir/antlr.jar:$myDir/avalon.jar:$myDir/backport-util-concurrent.jar:$myDir/logkit.jar:$OSSIEHOME/lib/BULKIOInterfaces.jar:$myDir:$myDir/HardLimit_java_impl1.jar:$myDir/bin HardLimit_java_impl1.HardLimit_java_impl1 "$@"
