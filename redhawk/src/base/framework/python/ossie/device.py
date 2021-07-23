@@ -453,7 +453,7 @@ class Device(resource.Resource):
             if retval:
                 alloc_id = uuidgen()
                 self._allocationTracker[alloc_id] = properties
-                return [CF.Device.Allocation(self._this(),None,None,properties,alloc_id)]
+                return [CF.Device.Allocation(self._this(),[],[],properties,alloc_id)]
             else:
                 return []
         except CF.Device.InvalidCapacity:
