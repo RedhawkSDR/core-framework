@@ -91,7 +91,13 @@ public:
     std::string get_interface() const { return data_.interface; }
     std::string get_device() const { return data_.device; }
     std::string get_vlan() const { return data_.vlan; }
-    uint64_t get_speed_mbit_per_sec() const { return data_.speed; }
+    uint64_t get_speed_mbit_per_sec() const {
+        uint64_t tmp_speed = data_.speed;
+        if (tmp_speed == 0) {
+            return 1000;
+        }
+        return data_.speed;
+    }
     uint64_t get_rx_bytes() const { return data_.rx_bytes; }
     uint64_t get_rx_compressed() const { return data_.rx_compressed; }
     uint64_t get_rx_crc_errors() const { return data_.rx_crc_errors; }
