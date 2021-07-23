@@ -18,33 +18,18 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
+
 myDir=`dirname $0`
 
-#
 # this needs to be absolute path to python unit test framework will work
-#
 bulkio_top=$myDir/../../../../../
 bulkio_libsrc_top=$bulkio_top/libsrc
 
-# Setup the OSSIEHOME Lib jars on the classpath
-libDir=$OSSIEHOME/lib
-libFiles=`ls -1 $libDir/*.jar`
-for file in $libFiles
+classpath=$myDir/Java_Ports.jar:$myDir/bin:$bulkio_libsrc_top/bulkio.jar:$bulkio_top/BULKIOInterfaces.jar
+for jar in $(readlink -e $OSSIEHOME/lib/*.jar | uniq)
 do
-	if [ x"$CLASSPATH" = "x" ]
-	then
-		export CLASSPATH=$file
-	else
-		export CLASSPATH=$file:$CLASSPATH
-	fi
+    classpath=$classpath:$jar
 done
 
 # NOTE: the $@ must be quoted "$@" for arguments to be passed correctly
-
-#Sun ORB start line
-# JNI
-exec $JAVA_HOME/bin/java -cp ::$myDir/Java_Ports.jar:$myDir/bin:$bulkio_libsrc_top/bulkio.jar:$bulkio_top/BULKIOInterfaces.jar:$CLASSPATH Java_Ports.java.Java_Ports "$@"
-#exec $JAVA_HOME/bin/java -cp ::$myDir/Java_Ports.jar:$myDir/bin:$CLASSPATH Java_Ports.java.Java_Ports "$@"
-
-#JacORB start lines
-#$JAVA_HOME/bin/java -cp ::$myDir/jacorb.jar:$myDir/antlr.jar:$myDir/avalon-framework.jar:$myDir/backport-util-concurrent.jar:$myDir/logkit.jar:$myDir/TestJava.jar:$myDir/bin:$CLASSPATH TestJava.java.TestJava "$@"
+exec java -cp $classpath:$CLASSPATH Java_Ports.java.Java_Ports "$@"

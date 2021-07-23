@@ -18,32 +18,18 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
+
 myDir=`dirname $0`
 
-# Setup the OSSIEHOME Lib jars on the classpath
-libDir=$OSSIEHOME/lib
-libFiles=`ls -1 $libDir/*.jar`
-for file in $libFiles
+# this needs to be absolute path to python unit test framework will work
+bulkio_top=$myDir/../../../../../
+bulkio_libsrc_top=$bulkio_top/libsrc
+
+classpath=$myDir/Oversized_framedata.jar:$myDir/bin:$bulkio_libsrc_top/bulkio.jar:$bulkio_top/BULKIOInterfaces.jar
+for jar in $(readlink -e $OSSIEHOME/lib/*.jar | uniq)
 do
-  if [ x"$CLASSPATH" = "x" ]
-  then
-    export CLASSPATH=$file
-  else
-    export CLASSPATH=$file:$CLASSPATH
-  fi
+    classpath=$classpath:$jar
 done
 
-# Path for Java
-if test -x $JAVA_HOME/bin/java; then
-  JAVA=$JAVA_HOME/bin/java
-else
-  JAVA=java
-fi
-
 # NOTE: the $@ must be quoted "$@" for arguments to be passed correctly
-
-#Sun ORB start line
-exec $JAVA -cp :$myDir/Oversized_framedata.jar:$myDir/bin:$CLASSPATH Oversized_framedata.java.Oversized_framedata "$@"
-
-#JacORB start lines
-#exec $JAVA -cp :$myDir/jacorb.jar:$myDir/antlr.jar:$myDir/avalon-framework.jar:$myDir/backport-util-concurrent.jar:$myDir/logkit.jar:$myDir/Oversized_framedata.jar:$myDir/bin:$CLASSPATH Oversized_framedata.java.Oversized_framedata "$@"
+exec java -cp $classpath:$CLASSPATH Oversized_framedata.java.Oversized_framedata "$@"
