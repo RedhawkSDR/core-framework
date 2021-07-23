@@ -1025,8 +1025,7 @@ class SDDSSink(object):
         self.sri = None
 
     def __del__(self):
-        if self.outFile != None:
-            self.outFile.close()
+        pass
 
     def attach(self, streamDef, userid):
         """
