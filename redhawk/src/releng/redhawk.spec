@@ -229,7 +229,7 @@ fi
 %endif
 %{_prefix}/lib/CFInterfaces.jar
 %{_prefix}/lib/apache-commons-lang-2.4.jar
-%{_prefix}/lib/log4j-1.2.15.jar
+%{_prefix}/lib/log4j-1.2.17.jar
 %{_prefix}/lib/ossie.jar
 %{_prefix}/lib/python
 %exclude %{_prefix}/lib/python/ossie/apps/qtbrowse

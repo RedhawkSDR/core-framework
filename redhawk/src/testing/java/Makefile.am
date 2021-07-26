@@ -35,7 +35,7 @@ ossie_tests_jar_SOURCE += utils/ChainFilter.java
 ossie_tests_jar_SOURCE += utils/TestFilter.java
 ossie_tests_jar_SOURCE += utils/TextListener.java
 
-ossie_tests_jar_CLASSPATH=$(OSSIE_CLASSPATH):$(JUNIT_CLASSPATH):.
+ossie_tests_jar_CLASSPATH=$(OSSIE_CLASSPATH):$(JUNIT_CLASSPATH)
 ossie_tests_jar_JAVACFLAGS = -g -Xlint
 
 test_ossie : ossie-tests.jar Makefile

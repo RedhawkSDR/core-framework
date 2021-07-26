@@ -69,12 +69,12 @@ META-INF/MANIFEST.MF: META-INF/MANIFEST.MF.in packageList.txt Makefile
 
 CFInterfaces_jar_SOURCE = $(idlj_SOURCE) $(idljni_SOURCE)
 CFInterfaces_jar_JAVACFLAGS = -g
-CFInterfaces_jar_CLASSPATH = apache-commons-lang-2.4.jar:$(omnijni_builddir)/src/java
+CFInterfaces_jar_CLASSPATH = apache-commons-lang-2.4.jar:$(omnijni_builddir)/src/java:$(OSSIE_CLASSPATH)
 CFInterfaces_jar_MANIFEST = META-INF/MANIFEST.MF
 CFInterfaces_jar_JARADD = -C $(IDLJ_BUILDDIR) . -C $(omnijni_builddir)/src/java omnijni
 
 java_JARFILES = CFInterfaces.jar
-java_DATA = log4j-1.2.15.jar apache-commons-lang-2.4.jar
+java_DATA = log4j-1.2.17.jar apache-commons-lang-2.4.jar
 
 clean-local:
 	rm -rf $(IDLJ_BUILDDIR)
