@@ -244,7 +244,7 @@ class SoftPkg(object):
         return list(self.__impls.values())
 
     def getImplementation(self, implId):
-        if self.__impls.get(implId):
+        if implId in self.__impls:
             return self.__impls[implId]
         return None
 

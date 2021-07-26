@@ -1084,9 +1084,11 @@ def create_prf_definition( className, device, devices, source_file):
 
         # check for bulkio output ports
         if 'data_outputs' in device and device['data_outputs']:
+            import pdb
+            pdb.set_trace()
             # only way to get the list comprehension to work..
             data_output_ports=copy.copy(device.get('data_outputs'))
-            port_descs=[ y.values()[0] for y in data_output_ports ]
+            port_descs=[ list(y.values())[0] for y in data_output_ports ]
             typelist=[ x['itype'] for x in port_descs if 'itype' in x and 'BULKIO' in x['itype'] ]
             if len(typelist) > 0:
                 if 'fei_stream_id_allocation' in devices:
@@ -1097,7 +1099,7 @@ def create_prf_definition( className, device, devices, source_file):
 
                 # check for vita49 and sdds port
                 words=['SDDS', 'VITA49']
-                if True in [ t[0] for t in [ map(lambda x: x in y, words) for y in typelist ] ]:
+                if len([ s for s in typelist if any(a in s.upper() for a in words)]):
                     if 'fei_payload_format_allocation' in devices:
                         device['properties'].append( {'frontend_payload_format_allocation' : convert_properties_to_list(devices['fei_payload_format_allocation']) } )
 

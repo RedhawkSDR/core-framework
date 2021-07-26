@@ -39,7 +39,7 @@ class CppCodeGenerator(CodeGenerator):
 
     def templatesChildren(self, component):
         templates = []
-        if not component.get('children'):
+        if 'children' not in component:
             return templates
 
         for child_key in component['children']:
