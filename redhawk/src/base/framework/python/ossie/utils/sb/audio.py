@@ -29,13 +29,7 @@ def _deferred_imports():
     def _deferred_imports():
         pass
 
-    has_pygst = False
     has_gi = False
-    try:
-        import pygst
-        has_pygst = True
-    except ImportError:
-        pass
     try:
         import gi
         has_gi = True
@@ -49,15 +43,6 @@ def _deferred_imports():
             from gi.repository import GObject, Gst
 
             Gst.init(None)
-        elif has_pygst:
-            pygst.require('0.10')
-            import gst
-        else:  # Cause the ImportError
-            os_major_version = _get_os_major_version()
-            if os_major_version < 7:  # evaluates as True if os_major_version is None
-                import pygst
-            else:
-                import gi
 
         from bulkio.bulkioInterfaces import BULKIO__POA
 
@@ -104,12 +89,6 @@ class SoundSink(_SinkBase):
             self.pause = self._pause_v1
             self._pushPacket = self._push_packet_v1
             self._get_caps = self._get_caps_v1
-        else:  # use gstreamer v0.10
-            self._create_pipeline = self._create_pipeline_v0
-            self.play = self._play_v0
-            self.pause = self._pause_v0
-            self._pushPacket = self._push_packet_v0
-            self._get_caps = self._get_caps_v0
         self._create_pipeline()
         if has_gi:
             self.start()
@@ -183,14 +162,8 @@ class SoundSink(_SinkBase):
         super(SoundSink,self).stop()
         self.pause()
 
-    def _play_v0(self):
-        self.pipeline.set_state(gst.STATE_PLAYING)
-
     def _play_v1(self):
         self.pipeline.set_state(Gst.State.PLAYING)
-
-    def _pause_v0(self):
-        self.pipeline.set_state(gst.STATE_PAUSED)
 
     def _pause_v1(self):
         self.pipeline.set_state(Gst.State.PAUSED)
@@ -206,29 +179,6 @@ class SoundSink(_SinkBase):
             self.pause()
             self.source.set_property('caps', self._get_caps())
             self.play()
-
-    def _create_pipeline_v0(self):
-        self.sample_rate = None
-
-        self.pipeline = gst.Pipeline(self._instanceName)
-
-        # Create an AppSrc to push data in; the format will be determined later
-        self.source = gst.element_factory_make('appsrc', 'source')
-        self.pipeline.add(self.source)
-
-        # Create sample rate and format converters to help with connecting
-        converter = gst.element_factory_make('audioconvert', 'converter')
-        resampler = gst.element_factory_make('audioresample', 'resampler')
-        self.pipeline.add(converter)
-        self.pipeline.add(resampler)
-
-        # Create an ALSA sink for output
-        sink = gst.element_factory_make("alsasink", "sink")
-        self.pipeline.add(sink)
-
-        self.source.link(converter)
-        converter.link(resampler)
-        resampler.link(sink)
 
     def _create_pipeline_v1(self):
         self.sample_rate = None
@@ -253,55 +203,31 @@ class SoundSink(_SinkBase):
         converter.link(resampler)
         resampler.link(sink)
 
-    def _get_caps_v0(self):
-        bits = struct.calcsize(self.datatype) * 8
-        if self.datatype in ('f', 'd'):
-            return gst.Caps('audio/x-raw-float, endianness=%s, width=%d, rate=%d, channels=1'
-                            '' % (self.ENDIANNESS, bits, self.sample_rate))
-        else:
-            # In struct module, unsigned types are uppercase, signed are lower
-            if self.datatype.isupper():
-                signed = 'false'
-            else:
-                signed = 'true'
-            return gst.Caps('audio/x-raw, endianness=%s, signed=%s, width=%d, depth=%d, rate=%d, channels=1'
-                            '' % (self.ENDIANNESS, signed, bits, bits, self.sample_rate))
-
     def _get_caps_v1(self):
         caps_str = ('audio/x-raw, format={0}, channels=1, layout=interleaved, rate={1}'
                     ''.format(self.format_caps, self.sample_rate))
         caps = Gst.Caps.from_string(caps_str)
         return caps
 
-    def _push_packet_v0(self, data, timestamp, EOS, streamId):
-        if self.breakBlock:
-            return
-
-        if self.datatype not in ('b', 'B'):
-            # dataChar and dataOctet provide data as string; other formats require packing
-            format = self.datatype
-            data = struct.pack('%d%s' % (len(data), format), *data)
-        buf = gst.Buffer(data)
-        self.source.emit('push_buffer', buf)
 
     def _push_packet_v1(self, data, timestamp, EOS, streamId):
         if self.breakBlock or not data:
             return
 
         if self.translate_char_to_short:
-            data = struct.unpack('%d%s' % (len(data), self.datatype), data)
+            # decode string to signed bytes
+            data=[ int.from_bytes(d.encode('ISO-8859-1'),sys.byteorder,signed=True) for d in data ]
             S16_MAX = 2 ** (16 - 1) - 1
             S8_MAX = 2 ** (8 - 1) - 1
             mult = (S16_MAX + 0.0) / S8_MAX  # force floating point division
             data = [int(round(d * mult)) for d in data]
 
         dtype = self.datatype
-        if dtype in ('b'):
+        if dtype in ('b','s'):
             # char gets translated to short to accommodate Gst.Buffer.new_wrapped()
             dtype = 'h'
-        if dtype not in ('B'):
-            # dataChar and dataOctet provide data as string; other formats require packing
-            data = struct.pack('%d%s' % (len(data), dtype), *data)
+        # dataChar and dataOctet provide data as string; other formats require packing
+        data = struct.pack('%d%s' % (len(data), dtype), *data)
 
         buf = Gst.Buffer.new_wrapped(data)
         self.source.emit('push_buffer', buf)

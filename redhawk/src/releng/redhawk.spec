@@ -65,6 +65,7 @@ Requires:       python36-qt5
 Requires:       python36-qt5-base
 Requires:       python36-lxml
 Requires:       python36-jinja2
+Requires:       python36-gobject-devel
 Requires:       binutils
 Requires:       numactl
 Requires:       sqlite
@@ -82,6 +83,7 @@ BuildRequires:  python36-qt5
 BuildRequires:  python36-qt5-base
 BuildRequires:  python36-qt5-devel
 BuildRequires:  python36-jinja2
+BuildRequires:  python36-gobject-devel
 BuildRequires:  log4cxx-devel >= 0.10
 %if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
 BuildRequires:  omniORB-devel > 4.2.2
