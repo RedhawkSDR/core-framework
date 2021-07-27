@@ -27,6 +27,7 @@ OSSIE_SDRROOT_AS_PREFIX
 PKG_CHECK_MODULES([OSSIE], [ossie >= {{versions.redhawk}}])
 
 RH_JAVA_HOME
+RH_JACORB_HOME
 RH_PROG_JAVAC([{{versions.java}}])
 RH_PROG_JAR
 

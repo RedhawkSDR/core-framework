@@ -69,6 +69,7 @@ HAVE_JAVASUPPORT=no
 if test "x$enable_java" != "xno"; then
   # Ensure JAVA_HOME is set
   RH_JAVA_HOME
+  RH_JACORB_HOME
   RH_PROG_JAVAC([11])
   RH_PROG_JAR
   RH_PROG_IDLJ

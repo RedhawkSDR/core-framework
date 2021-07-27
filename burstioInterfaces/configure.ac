@@ -64,6 +64,7 @@ if test "x$enable_java" != "xno"; then
   java_source_version=11
 
   RH_JAVA_HOME
+  RH_JACORB_HOME
   RH_PROG_JAVAC([$java_source_version])
   RH_PROG_JAR
   RH_JARFILE_RULES

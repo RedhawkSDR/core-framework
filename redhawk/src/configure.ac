@@ -168,6 +168,8 @@ if test "x$enable_java" != "xno"; then
 
   # Ensure JAVA_HOME is set
   RH_JAVA_HOME
+  # Ensure JACORB_HOME is set
+  RH_JACORB_HOME
 
   # Minimum Java version
   java_source_version=11

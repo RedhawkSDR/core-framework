@@ -51,6 +51,19 @@ AC_DEFUN([RH_JAVA_HOME],
   fi
 ])
 
+AC_DEFUN([RH_JACORB_HOME],
+[
+  AC_ARG_VAR([JACORB_HOME], [JacORB location])
+  AC_MSG_CHECKING([for a valid JACORB_HOME])
+  if test -n "$JACORB_HOME" -a -d "$JACORB_HOME" -a -x "$JACORB_HOME/bin/idl"; then
+    AC_MSG_RESULT([$JACORB_HOME])
+  else
+    AC_MSG_RESULT([no])
+    echo "Set the JACORB_HOME environment variable."
+    AS_EXIT(1)
+  fi
+])
+
 dnl RH_PROG_JAVA
 AC_DEFUN([RH_PROG_JAVA],
 [
