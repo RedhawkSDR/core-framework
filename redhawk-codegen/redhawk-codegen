@@ -46,7 +46,7 @@ TemplateSetup = {
     "pgdevice" : ( [ { "cpp": "redhawk.codegen.jinja.cpp.component.programmable"} ], "Generate programmable device"),
     "component" : ( [ {"cpp": "redhawk.codegen.jinja.cpp.component.pull"}, {"java": "redhawk.codegen.jinja.java.component.pull"}, {"python": "redhawk.codegen.jinja.python.component.pull"} ], "Generate a component or device" ),
     "device" : ( [ {"cpp": "redhawk.codegen.jinja.cpp.component.pull"}, {"java": "redhawk.codegen.jinja.java.component.pull"}, {"python": "redhawk.codegen.jinja.python.component.pull"} ], "Generate a component or device" ),
-    "service" : ([ {"cpp": "redhawk.codegen.jinja.cpp.service.pull"}, {"java": "redhawk.codegen.jinja.java.service.pull"}, {"python": "redhawk.codegen.jinja.python.service.pull"}  ], "Generate a service" )
+    "service" : ([ {"cpp": "redhawk.codegen.jinja.cpp.service"}, {"java": "redhawk.codegen.jinja.java.service"}, {"python": "redhawk.codegen.jinja.python.service"}  ], "Generate a service" )
 }
 
 usage = """%s [options] <SPD file> [filenames...]
