@@ -94,8 +94,9 @@ class PortsTest(unittest.TestCase):
             _freqrange=FRONTEND.FreqRange(0,0,[])
             _feedinfo=FRONTEND.FeedInfo('','',_freqrange)
             _sensorinfo=FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
-            _rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange)
-            _rfinfopkt=FRONTEND.RFInfoPkt(self._id,0.0,0.0,0.0,False,_sensorinfo,[],_rfcapabilities,[])
+            _range=FRONTEND.Range(0.0,0.0,[])
+            _rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange,_range,_range)
+            _rfinfopkt=FRONTEND.RFInfoPkt(self._id,0.0,0.0,0.0,False,_sensorinfo,[],[],[],_rfcapabilities,[])
             return _rfinfopkt
         def set_rfinfo_pkt(self, port_name, pkt):
             self._id = pkt.rf_flow_id
@@ -116,8 +117,9 @@ class PortsTest(unittest.TestCase):
             _freqrange=FRONTEND.FreqRange(0,0,[])
             _feedinfo=FRONTEND.FeedInfo('','',_freqrange)
             _sensorinfo=FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
-            _rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange)
-            _rfinfopkt=FRONTEND.RFInfoPkt(self._id,0.0,0.0,0.0,False,_sensorinfo,[],_rfcapabilities,[])
+            _range=FRONTEND.Range(0.0,0.0,[])
+            _rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange,_range,_range)
+            _rfinfopkt=FRONTEND.RFInfoPkt(self._id,0.0,0.0,0.0,False,_sensorinfo,[],[],[],_rfcapabilities,[])
             return _rfinfopkt
         def set_current_rf_input(self, port_name, _input):
             self._id = _input.rf_flow_id
@@ -328,8 +330,9 @@ class PortsTest(unittest.TestCase):
         _freqrange=FRONTEND.FreqRange(0,0,[])
         _feedinfo=FRONTEND.FeedInfo('','',_freqrange)
         _sensorinfo=FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
-        _rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange)
-        rfinfo=FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],_rfcapabilities,[])
+        _range=FRONTEND.Range(0.0,0.0,[])
+        _rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange,_range,_range)
+        rfinfo=FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],[],[],_rfcapabilities,[])
         rfinfo.rf_flow_id = "newvalue"
 
         output_port._set_rfinfo_pkt(rfinfo)
@@ -406,8 +409,9 @@ class PortsTest(unittest.TestCase):
         _freqrange=FRONTEND.FreqRange(0,0,[])
         _feedinfo=FRONTEND.FeedInfo('','',_freqrange)
         _sensorinfo=FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
-        _rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange)
-        rfsource=FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],_rfcapabilities,[])
+        _range=FRONTEND.Range(0.0,0.0,[])
+        _rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange,_range,_range)
+        rfsource=FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],[],[],_rfcapabilities,[])
         rfsource.rf_flow_id = "newvalue"
 
         output_port._set_current_rf_input(rfsource)
