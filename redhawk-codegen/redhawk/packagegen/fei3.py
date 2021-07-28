@@ -540,20 +540,22 @@ def fei3_xml_gen(args):
         devClassName, device_definition = list(dev.items())[0]
         className='{}'.format(devClassName.split('.')[-1])
 
+        namespace=ns
         if not parentProfile and 'children' in device_definition and device_definition['children']:
             device_definition['root_device']=True
+            namespace=None
 
         # for each device create spd/scd/prf pojects and generate xml in output directory/device class name
         logger.debug("Generating FEI Device {} in namespace {} from device/definition {}/{} ".format(className,
-                                                                                                     ns,
+                                                                                                     namespace,
                                                                                                      devClassName,
                                                                                                      device_definition))
 
-        spd, scd, prf = generate_redhawk_profile( ns, devClassName, className, device_definition,
+        spd, scd, prf = generate_redhawk_profile( namespace, devClassName, className, device_definition,
                                                   fei3_devices['DEVICES'], fei3_devices, args )
 
         # determine output directory for profile
-        opath=determine_profile_directory( ns, className, args, nest, parent=(not parentProfile))
+        opath=determine_profile_directory( namespace, className, args, nest, parent=(not parentProfile))
 
         # write out a redhawk profile
         profile=write_redhawk_profile( className, spd, scd, prf, opath, args)
@@ -562,7 +564,7 @@ def fei3_xml_gen(args):
             parentProfile=profile
 
         # check if we should nest children under parent
-        if not args.unnest and not nest:
+        if args.nest and not nest:
             nest=parentClassName
 
     # run codegen with parent spd file
@@ -1084,8 +1086,6 @@ def create_prf_definition( className, device, devices, source_file):
 
         # check for bulkio output ports
         if 'data_outputs' in device and device['data_outputs']:
-            import pdb
-            pdb.set_trace()
             # only way to get the list comprehension to work..
             data_output_ports=copy.copy(device.get('data_outputs'))
             port_descs=[ list(y.values())[0] for y in data_output_ports ]
@@ -1740,7 +1740,7 @@ def process_command_line():
                                      action="store_true",
                                      default=False)
 
-    fei3_xml_gen_parser.add_argument('--unnest',
+    fei3_xml_gen_parser.add_argument('--nest',
                                      help="Create child profiles in namespace directory",
                                      action="store_true",
                                      default=False)

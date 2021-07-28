@@ -1,13 +1,18 @@
 
+# *NOTE* this a yaml file format. 
 #
-# Add device class name under each FEI3 device type prefixed with dash
+# Add device class name(s) under (nest) each FEI3 device type. 
+# Indent each class name and prefix with dash and space to create a list of that device type
+#
 #   e.g. Digital Receiver Channel (RDC)
+#             - WBDDC
 #             - NBDDC
 #
 # PARENT:
 # For device hierarchies, define a PARENT device class name. The device class
-# name can be an existing device class name, or a new device class that will
-# be defines as an AggregatePlainDevice.  Leave empty for a non-hierarchial
+# name can be an existing device class name, or a new device class defined as 
+# an  AggregatePlainDevice.  Leave PARENT section empty for a non-hierarchial
+#
 # FEI3 device.
 #
 #    e.g. PARENT
@@ -15,6 +20,13 @@
 # or
 #    e.g. PARENT
 #            - USRP             -- Would generate a parent device called USRP of type AggregatePlainDevice
+# or
+#    e.g  PARENT                -- Would generate a plain device type call SimpleRTL, (non-hierarchial)
+#
+#         ...
+#         Analog Input Receiver/Digital Out Channel (ARDC):
+#            - SimpleRTL
+#
 #
 
 PARENT:
