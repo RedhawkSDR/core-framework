@@ -34,6 +34,10 @@
 #include "debug.h"
 #include "Transport.h"
 
+// forward declaration 
+class PortSupplier_impl;
+
+
 namespace redhawk {
 
     class UsesPort : public Port_Uses_base_impl
@@ -93,7 +97,7 @@ namespace redhawk {
 
         virtual ExtendedCF::UsesConnectionSequence* connections();
         
-        virtual void registerParent(const CORBA::Object_ptr parent);
+        virtual void registerParent(PortSupplier_impl *parent);
 
     protected:
         class Connection {
@@ -175,7 +179,7 @@ namespace redhawk {
 
         ConnectionList _connections;
         
-        CORBA::Object_ptr _parent;
+        PortSupplier_impl *_parent;
 
     private:
         ossie::notification<void (const std::string&)> _portConnected;

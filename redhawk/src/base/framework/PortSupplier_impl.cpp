@@ -50,7 +50,7 @@ void PortSupplier_impl::addPort (const std::string& name, PortBase* servant)
     servant->initializePort();
     redhawk::UsesPort *register_port = dynamic_cast<redhawk::UsesPort*>(servant);
     if (register_port) {
-        register_port->registerParent(this->_this());
+        register_port->registerParent(this);
     }
 }
 

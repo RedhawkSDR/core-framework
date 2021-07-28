@@ -22,6 +22,7 @@
 #include <ossie/CorbaUtils.h>
 #include <ossie/CorbaSequence.h>
 #include <ossie/PropertyMap.h>
+#include <ossie/PortSupplier_impl.h>
 
 namespace redhawk {
 
@@ -79,10 +80,10 @@ namespace redhawk {
     UsesPort::UsesPort(const std::string& name) :
         Port_Uses_base_impl(name)
     {
-        _parent = CORBA::Object::_nil();
+      _parent = 0;
     }
     
-    void UsesPort::registerParent(const CORBA::Object_ptr parent) {
+    void UsesPort::registerParent(PortSupplier_impl *parent) {
         _parent = parent;
     };
 
@@ -120,7 +121,9 @@ namespace redhawk {
             CF::UpstreamRegistrar_ptr _up = CF::UpstreamRegistrar::_narrow(object);
             if ( !CORBA::is_nil(_up) ) {
                 CF::UpstreamTuple_var up_reg = new CF::UpstreamTuple();
-                up_reg->upstream = _parent;
+		if ( _parent != 0 ) {
+		  up_reg->upstream = _parent->_this();
+		}
                 up_reg->port = this->_this();
                 up_reg->connection_id = CORBA::string_dup(connection_id.c_str());
                 _up->setUpstream(up_reg);
@@ -156,7 +159,9 @@ namespace redhawk {
                 CF::UpstreamRegistrar_ptr _up = CF::UpstreamRegistrar::_narrow((*connection)->objref);
                 if ( !CORBA::is_nil(_up) ) {
                     CF::UpstreamTuple_var up_reg = new CF::UpstreamTuple();
-                    up_reg->upstream = _parent;
+		    if ( _parent ) {
+		      up_reg->upstream = _parent->_this();
+		    }
                     up_reg->port = this->_this();
                     _up->removeUpstream(up_reg);
                 }

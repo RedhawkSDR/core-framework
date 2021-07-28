@@ -1707,13 +1707,11 @@ DeviceManager_impl::registerDevice (CF::Device_ptr registeringDevice)
   // due to a lack of threads (which would result in blocking
   // the mutex lock, which would prevent shutdown from killing
   // this).
-  bool allregistered = false;
 
   //Get properties from SPD
   std::string spdFile = ossie::corba::returnString(registeringDevice->softwareProfile());
   std::string spd_id;
-
-  if ((not spdFile.empty()) and (spdinfo != NULL)) {
+  if( not spdFile.empty() and spdinfo )  {
     std::string spd_name = spdinfo->getName();
     spd_id = spdinfo->getID();
     std::string deviceid = ossie::corba::returnString(registeringDevice->identifier());
@@ -1783,86 +1781,97 @@ DeviceManager_impl::registerDevice (CF::Device_ptr registeringDevice)
         RH_ERROR(this->_baseLog, eout.str());
         throw(CF::InvalidObjectReference(eout.str().c_str()));
     }
+  }
 
+  // This lock needs to be here because we add the device to
+  // the registeredDevices list at the top...therefore
+  // getting the registeredDevices attribute could
+  // show the device as registered before it actually gets
+  // registered.
+  //
+  // This lock should be after as may CORBA calls as possible
+  // (e.g., registeringDevice->label()) in case omniORB blocks
+  // due to a lack of threads (which would result in blocking
+  // the mutex lock, which would prevent shutdown from killing
+  // this).
+
+  if (not spdFile.empty() and spdinfo ) {
     //configure properties
     try {  
-        RH_DEBUG(this->_baseLog, "Configuring device " << deviceLabel << " on Device Manager " << _label);
-        const CF::Properties cprops  = spdinfo->getNonNilConfigureProperties();
-        RH_TRACE(this->_baseLog, "Listing configuration properties");
-        for (unsigned int j=0; j<cprops.length(); j++) {
-        RH_TRACE(this->_baseLog, "Prop id " << cprops[j].id );
-        }
-        if (cprops.length() != 0)
-            registeringDevice->configure (cprops);
+      RH_DEBUG(this->_baseLog, "Configuring device " << deviceLabel << " on Device Manager " << _label);
+      const CF::Properties cprops  = spdinfo->getNonNilConfigureProperties();
+      RH_TRACE(this->_baseLog, "Listing configuration properties");
+      for (unsigned int j=0; j<cprops.length(); j++) {
+	RH_TRACE(this->_baseLog, "Prop id " << cprops[j].id );
+      }
+      if (cprops.length() != 0)
+	registeringDevice->configure (cprops);
     } catch (CF::PropertySet::PartialConfiguration& ex) {
-        std::ostringstream eout;
-        eout << "Device '" << deviceLabel << "' - '" << spd_id << "' may not have been configured correctly; "
-            << "Call to configure() resulted in PartialConfiguration exception.";
-        RH_ERROR(this->_baseLog, eout.str())
-        throw CF::InvalidObjectReference(eout.str().c_str());
+      std::ostringstream eout;
+      eout << "Device '" << deviceLabel << "' - '" << spd_id << "' may not have been configured correctly; "
+	   << "Call to configure() resulted in PartialConfiguration exception.";
+      RH_ERROR(this->_baseLog, eout.str())
+	throw CF::InvalidObjectReference(eout.str().c_str());
     } catch (CF::PropertySet::InvalidConfiguration& ex) {
-        std::ostringstream eout;
-        eout << "Device '" << deviceLabel << "' - '" << spd_id << "' may not have been configured correctly; "
-            << "Call to configure() resulted in InvalidConfiguration exception. Device registration with Device Manager failed";
-        RH_ERROR(this->_baseLog, eout.str());
-        throw CF::InvalidObjectReference(eout.str().c_str());
+      std::ostringstream eout;
+      eout << "Device '" << deviceLabel << "' - '" << spd_id << "' may not have been configured correctly; "
+	   << "Call to configure() resulted in InvalidConfiguration exception. Device registration with Device Manager failed";
+      RH_ERROR(this->_baseLog, eout.str());
+      throw CF::InvalidObjectReference(eout.str().c_str());
     } catch ( std::exception& ex ) {
-        std::ostringstream eout;
-        eout << "The following standard exception occurred: "<<ex.what()<<" while attempting to configure "<<deviceLabel<<". Device registration with Device Manager failed";
-        RH_ERROR(this->_baseLog, eout.str());
-        throw CF::InvalidObjectReference(eout.str().c_str());
+      std::ostringstream eout;
+      eout << "The following standard exception occurred: "<<ex.what()<<" while attempting to configure "<<deviceLabel<<". Device registration with Device Manager failed";
+      RH_ERROR(this->_baseLog, eout.str());
+      throw CF::InvalidObjectReference(eout.str().c_str());
     } catch ( const CORBA::Exception& ex ) {
-        std::ostringstream eout;
-        eout << "The following CORBA exception occurred: "<<ex._name()<<" while attempting to configure "<<deviceLabel<<". Device registration with Device Manager failed";
-        RH_ERROR(this->_baseLog, eout.str());
-        throw CF::InvalidObjectReference(eout.str().c_str());
+      std::ostringstream eout;
+      eout << "The following CORBA exception occurred: "<<ex._name()<<" while attempting to configure "<<deviceLabel<<". Device registration with Device Manager failed";
+      RH_ERROR(this->_baseLog, eout.str());
+      throw CF::InvalidObjectReference(eout.str().c_str());
     }
   }
 
-  {
-  boost::recursive_mutex::scoped_lock lock(registeredDevicesmutex);
+
   // Register the device with the Device manager, unless it is already
   // registered
   if (!deviceIsRegistered (registeringDevice)) {
-    // if the device is not registered, then add it to the naming context
-    RH_TRACE(this->_baseLog, "Binding device to name " << deviceLabel)
+      // if the device is not registered, then add it to the naming context
+      RH_TRACE(this->_baseLog, "Binding device to name " << deviceLabel)
         CosNaming::Name_var device_name = ossie::corba::stringToName(deviceLabel.c_str());
-    try {
-      devMgrContext->bind(device_name, registeringDevice);
-    } catch ( ... ) {
-      // there is already something bound to that name
-      // from the perspective of this framework implementation, the multiple names are not acceptable
-      // consider this a registered device
+      try {
+	devMgrContext->bind(device_name, registeringDevice);
+      } catch ( ... ) {
+	// there is already something bound to that name
+	// from the perspective of this framework implementation, the multiple names are not acceptable
+	// consider this a registered device
+	RH_WARN(this->_baseLog, "Device is already registered");
+	return;
+      }
+      increment_registeredDevices(registeringDevice);
+    } else {
       RH_WARN(this->_baseLog, "Device is already registered");
       return;
     }
-    increment_registeredDevices(registeringDevice);
-  } else {
-    RH_WARN(this->_baseLog, "Device is already registered");
-    return;
-  }
 
-    // If this Device Manager is registered with a Domain Manager, register
-    // the new device with the Domain Manager
-    if (_adminState == DEVMGR_REGISTERED) { 
-        try {
-            RH_INFO(this->_baseLog, "Registering device " << deviceLabel << " on Domain Manager " << _domainName );
-            _dmnMgr->registerDevice (registeringDevice, myObj);
-        } catch( CF::DomainManager::RegisterError& e ) {
-            RH_ERROR(this->_baseLog, "Failed to register device to domain manager due to: " << e.msg);
-        } catch ( std::exception& ex ) {
-            RH_ERROR(this->_baseLog, "The following standard exception occurred: "<<ex.what()<<" while attempting to register with the Domain Manager")
-                } catch( const CORBA::Exception& e ) {
-            RH_ERROR(this->_baseLog, "Failed to register device to domain manager due to: " << e._name());
-        }
+  // If this Device Manager is registered with a Domain Manager, register
+  // the new device with the Domain Manager
+  if (_adminState == DEVMGR_REGISTERED) { 
+      try {
+	RH_INFO(this->_baseLog, "Registering device " << deviceLabel << " on Domain Manager " << _domainName );
+	_dmnMgr->registerDevice (registeringDevice, myObj);
+      } catch( CF::DomainManager::RegisterError& e ) {
+	RH_ERROR(this->_baseLog, "Failed to register device to domain manager due to: " << e.msg);
+      } catch ( std::exception& ex ) {
+	RH_ERROR(this->_baseLog, "The following standard exception occurred: "<<ex.what()<<" while attempting to register with the Domain Manager")
+	  } catch( const CORBA::Exception& e ) {
+	RH_ERROR(this->_baseLog, "Failed to register device to domain manager due to: " << e._name());
+      }
     } else {
-        RH_WARN(this->_baseLog, "Skipping DomainManager registerDevice because the device manager isn't registered")
+      RH_WARN(this->_baseLog, "Skipping DomainManager registerDevice because the device manager isn't registered");
     }
-
-    RH_TRACE(this->_baseLog, "Done registering device " << deviceLabel);
-    allregistered = verifyAllRegistered();
-  }
-  if (allregistered) {
+  
+  RH_TRACE(this->_baseLog, "Done registering device " << deviceLabel);
+  if ( verifyAllRegistered() ) {
       startOrder();
   }
 
@@ -2497,6 +2506,7 @@ void DeviceManager_impl::local_unregisterDevice(CF::Device_ptr device, const std
 }
 
 bool DeviceManager_impl::verifyAllRegistered() {
+    boost::recursive_mutex::scoped_lock _l(registeredDevicesmutex);
     if (_pendingDevices.empty() and _pendingServices.empty())
         return true;
     return false;
