@@ -23,7 +23,7 @@ jinja2 = '2.11'
 boost = '1.53'
 omniORB4 = '4.2.3'
 python = '3.6'
-java = '1.8'
+java = '11'
 log4j = '1.2.15'
 octave = '3.4.3'
 

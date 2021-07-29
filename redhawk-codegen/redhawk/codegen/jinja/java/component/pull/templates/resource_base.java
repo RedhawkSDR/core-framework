@@ -26,6 +26,7 @@
 //% set artifactType = component.artifacttype
 package ${component.package};
 
+import java.lang.reflect.InvocationTargetException;
 //% set listImported = false
 /*{% if component.hasmultioutport %}*/
 import java.util.List;
@@ -351,6 +352,10 @@ public abstract class ${classname} extends ${superClass}
         } catch (InstantiationException e) {
             e.printStackTrace();
         } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
             e.printStackTrace();
         }
     }

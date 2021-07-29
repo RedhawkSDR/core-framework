@@ -25,6 +25,7 @@ import frontend.*;
 /*{% endif %}*/
 /*{% endblock %}*/
 /*{% block baseadditionalimports %}*/
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
@@ -269,6 +270,10 @@ import CF.DevicePackage.InvalidCapacity;
         } catch (InstantiationException e) {
             e.printStackTrace();
         } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
             e.printStackTrace();
         }
     }
