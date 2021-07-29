@@ -564,7 +564,7 @@ def fei3_xml_gen(args):
             parentProfile=profile
 
         # check if we should nest children under parent
-        if args.nest and not nest:
+        if not args.unnest and not nest:
             nest=parentClassName
 
     # run codegen with parent spd file
@@ -595,6 +595,7 @@ def load_fei3_devices_specification(args):
         with StringIO() as fei_spec_doc:
             fei_spec_doc.write(content)
             fei_spec_contents=fei_spec_doc.getvalue()
+
 
     """
     load devices specification file with expanded macros
@@ -1420,8 +1421,9 @@ def create_struct_property(className, prop_name, properties, ns_override=None ):
 #   'attrs' - (dict) property attribute name/values
 #   'struct': ([ list of simple properties (see create_simple_property)
 #
-# Ab per redhawk specification, all members of the struct will be namespaced with the name of the
-# the struct sequence.
+# As per redhawk specification, all members of the struct will be namespaced with the name of the
+# the struct sequence. The struct itself will be namespaced if one is not provided.  If the struct
+# is not named, then the default value of <prop_name>_struct will be assiged.
 #
 
 def create_structseq_property(className, prop_name, properties ):
@@ -1443,18 +1445,42 @@ def create_structseq_property(className, prop_name, properties ):
         msg="Device {} property {} missing struct definition".format(className, prop_name)
         logger.error(msg)
         raise SystemExit(msg)
+        
+    # default id and name to prop_prop name if no overrides exist
+    if 'id' in attrs['attrs'] and not attrs['attrs']['id']:
+        attrs['attrs']['id']=prop_name
+    if 'name' in attrs['attrs'] and not attrs['attrs']['name']:
+        attrs['attrs']['name']=prop_name
 
     # converts a dictionary of property definitions i.e. { 'prop1': { 'attrs', ... }, 'prop2' ..}
     # to a list of individual dictionaries [ { prop1: { 'attrs', ..} , { 'prop2' : { ...}]
     # will also reorder list so 'attrs' is first and props follow
     struct_props=convert_properties_to_list(struct['struct'])
+    struct_attrs=next( ( prop for prop in struct_props if 'attrs' in prop ), None)
 
-    # ensure properties are namespaced
-    apply_namespace_to_properties( prop_name, struct_props, className)
+    # need to check if user supplied id/name for the structure inside the sequence
+    _set_id=False
+    _set_name=False
+    if struct_attrs:
+        if 'id' in struct_attrs['attrs'] and not struct_attrs['attrs']['id']:
+            _set_id=True
+        if 'name' in struct_attrs['attrs'] and not struct_attrs['attrs']['name']:
+            _set_name=True
 
     # convert member properties to proper format for jinja template
     _id, struct_props=create_struct_property(className, prop_name, struct_props )
     struct['struct']=struct_props
+
+    # Set id and name of the structure it none was provided.  
+    #    note - create_struct_property will set id/name using default rules we need to reset 
+    #           set this 
+    # 
+    struct_attrs=next( ( prop for prop in struct_props if 'attrs' in prop ), None)
+    if _set_name:
+        struct_attrs['attrs']['name'] = "{}_struct".format(prop_name)
+    _name= struct_attrs['attrs']['name']
+    if _set_id:
+        struct_attrs['attrs']['id'] = "{}::{}".format(prop_name, _name)
 
     prop_id = attrs['attrs']['id']
     return prop_id, props
@@ -1469,7 +1495,7 @@ def create_structseq_property(className, prop_name, properties ):
 #   'value' : (str) represents value
 #   'units' : (str) units
 #   'range' :  (str) range value
-#   'enumeration' - ([ { 'name': 'n', 'value' : 'v' }])
+#   'enumeration' - ([ { 'name': 'n', 'value' : 'v' } ... ]
 #   'kind' : ([ str, ])
 #   'actions' : (str)
 #
@@ -1510,7 +1536,10 @@ def create_simple_property( className, property_name, property_definition ):
         attrs['id']=attrs['name']
 
     #
-    # convert enumerations to {'label': label_value, 'value' : value_value } pairs
+    # convert enumerations from [ label_value, label_value, label_value .. ] to  {'label': label_value, 'value' : value_value } where value_value is derived
+    #  from the property type ie. string type will default value to label string, numeric types will be original value starting at 0
+    # OR
+    #  convert enumerations from [ { label_value : value_value } , { label_value : value_value } , ] to  {'label': label_value, 'value' : value_value } 
     #
     enums=None
     _ord=0
@@ -1518,14 +1547,15 @@ def create_simple_property( className, property_name, property_definition ):
         enums=[]
         for e in property_definition['enumeration']:
             enum=copy.copy(e)
-            if type(e) != tuple:
+            if type(e) != dict:
                 # convert singletons to tuple for dictionary processing
-                enum= (e,e)
+                enum= {e,e}
                 if attrs['type']!='string':
                     # if default non-string types to indexed value starting at 0
-                    enum=(e,_ord)
+                    enum={e,_ord}
                     _ord +=1
-            enums.append( { 'label' : enum[0], 'value' : enum[1] })
+            _label, _value = next(iter(enum.items()))
+            enums.append( { 'label' : _label, 'value' : _value })
         prop['enumeration']=enums[:]
 
     logger.debug("Device {}, Creating name/type {}/{} id/name {}/{} with property definition {}".format(className,
@@ -1740,8 +1770,8 @@ def process_command_line():
                                      action="store_true",
                                      default=False)
 
-    fei3_xml_gen_parser.add_argument('--nest',
-                                     help="Create child profiles in namespace directory",
+    fei3_xml_gen_parser.add_argument('--unnest',
+                                     help="Create child profiles in non-namespaced parent directory",
                                      action="store_true",
                                      default=False)
 

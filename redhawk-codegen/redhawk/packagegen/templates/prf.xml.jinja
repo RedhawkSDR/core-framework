@@ -62,7 +62,7 @@ id="{{attrs.id}}" name="{{attrs.name}}"{% for attr_name in [ 'mode', 'complex', 
 {% if enums is defined and enums -%}
 <{{element_name}}>
 {%   for enum in enums %}
-  </{{enum_label}} label="{{enum.label}}", value="{{enum.value}}"/>
+  <{{enum_label}} label="{{enum.label}}", value="{{enum.value}}"/>
 {%   endfor %}
 </{{element_name}}>
 {% endif %}
@@ -87,7 +87,7 @@ id="{{attrs.id}}" name="{{attrs.name}}"{% for attr_name in [ 'mode', 'complex', 
 -#}
 {% macro simple_property_element( prop, instruct ) %}
 <simple {{ property_element_attrs(prop.attrs, instruct ) }} >
-{{  simple_property_contents( prop )|indent(4,indentfirst=True) }}
+{{  simple_property_contents( prop )|indent(4,indentfirst=True) -}}
 </simple>
 {% endmacro %}
 
@@ -122,14 +122,14 @@ id="{{attrs.id}}" name="{{attrs.name}}"{% for attr_name in [ 'mode', 'complex', 
 {%  for prop_def in props %}
 {%   for prop_id, p in prop_def.items() %}
 {%      if p.attrs.ptype == 'simple' -%}
-{{         simple_property_element( p, True )|indent(4,indentfirst=True) }}
+{{         simple_property_element( p, True )|indent(4,indentfirst=True) -}}
 {%     endif %}
 {%     if p.attrs.ptype == 'simpleseq' %}
-{{        simple_sequence_property_element( p, True )|indent(4,indentfirst=True) }}
+{{        simple_sequence_property_element( p, True )|indent(4,indentfirst=True) -}}
 {%     endif %}
 {%   endfor %}
 {% endfor %}
-{{list_element_using_attr( 'configurationkind', 'kindtype', attrs.kind )|indent(4,indentfirst=True) }}
+{{list_element_using_attr( 'configurationkind', 'kindtype', attrs.kind )|indent(4,indentfirst=True) -}}
 </struct>
 {% endmacro %}
 {#-
@@ -137,9 +137,9 @@ id="{{attrs.id}}" name="{{attrs.name}}"{% for attr_name in [ 'mode', 'complex', 
 -#}
 {% macro structseq_property_element( attrs, struct ) %}
 <structsequence {{property_element_attrs(attrs)}} >
-{{single_element( 'description', attrs.description) }}
-{{struct_property_element(struct[0].attrs,struct[1:])|indent(4,indentfirst=True) }}
-{{list_element_using_attr( 'configurationkind', 'kindtype', attrs.kind )|indent(4,indentfirst=True) }}
+{{single_element( 'description', attrs.description) -}}
+{{struct_property_element(struct[0].attrs,struct[1:])|indent(4,indentfirst=True) -}}
+{{list_element_using_attr( 'configurationkind', 'kindtype', attrs.kind )|indent(4,indentfirst=True) -}}
 </structsequence>
 {% endmacro %}
 

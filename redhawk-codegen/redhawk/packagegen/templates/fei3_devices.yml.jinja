@@ -1196,16 +1196,17 @@ tx_array: &tx_array
 #        - <struct name>:         ## Generator will properly namespace ID values when generating xml defintion
 #            - attrs:
 #                 <<:* struct_attributes
-
+#
 #            - prop_name1:
 #                 <<: **<simple/seq property macro from above>
 #
 #        - <structseq name>:         ## Generator will properly namespace ID values when generating xml defintion
 #            - attrs:
-#                 <<:* struct_attributes
-#                 ptype: structseq
-
-#            - struct:
+#                 <<:* structseq_attributes
+#
+#            - struct:                     ## Generator will default struct name to structseq name_defintion
+#                  - attrs:
+#                       <<:* struct_attributes
 #                  - prop_name1:
 #                        <<: *<simple/seq property macro from above>
 #
@@ -1220,7 +1221,7 @@ tx_array: &tx_array
 #      kind:                 # list of kinds [ property, allocation, message ]
 #      action:               # default is external
 #      value:                # provide a default value, sequences types use python list []
-#      enumeration:          # list of enumerations as [ (label,value) .. ] or [ label, .. ]  and value determined from type
+#      enumeration:          # list of enumerations as [ { label : value },  .. ] or [ label, .. ]  and value determined from type
 #      units:                # provide a units string
 #      description:          # provide a description string
 #      attrs:                # over ride property attributes, you will need to repeat the type context
@@ -1230,6 +1231,54 @@ tx_array: &tx_array
 #        mode: readwrite      # readwrite, readonly, writeonly#
 #        complex:             # true/false for complex values
 #        commandline:         # Pass property on command line true, false
+#
+# e.g. structure
+#       - time_of_day:
+#           - attrs:
+#                <<: *struct_attributes
+#                mode: readonly
+#           - mode:
+#               <<: *string_property
+#               value: SIM
+#               enumeration: [ { SIMULATED: SIM}, {ONE PPS : ONEPPS}, {IRIG : IRIGB}, {NAV: NAV}, {TFN :  TFN} ]
+#           - reference_track:
+#               <<: *short_property
+#               value: 0
+#               enumeration: [ {'OFF': 0}, {CALIBRATE: 1},  {TRACE: 2} ]
+#           - toy:
+#               <<: *short_property
+#               value: 0
+#               enumeration: [ {24 Hour offset from IRIGB :  0}, {Direct from IRIGB : 1 } ]
+#
+#           - tracking_interval:
+#               <<: *double_property
+#               value: 0.0
+#
+# e.g struct sequence
+#       - tuner_output:
+#            - attrs:
+#                  <<: *structseq_attributes
+#                  mode: readonly
+#
+#            - struct:
+#                - attrs:
+#                     <<: *struct_attributes
+#                - tuner_id:
+#                     <<: *string_property
+#                - protocol:
+#                     <<: *string_property
+#                - interface:
+#                     <<: *string_property
+#                - ip_address:
+#                     <<: *string_property
+#                - port:
+#                     <<: *short_property
+#                - vlan:
+#                     <<: *short_property
+#                - enabled:
+#                     <<: *boolean_property
+#                     value: True
+
 
 
 #
@@ -1339,7 +1388,8 @@ DEVICES:
 {% endblock %}
 {% endif %}
 
-{% block antenna %}
+
+{%- block antenna %}
 {% for ant in fei3_spec.ANTENNA %}
 - {{ant}}:
      <<: *antenna
@@ -1350,7 +1400,8 @@ DEVICES:
 {% endfor %}
 {% endblock %}
 
-{% block rx_analog %}
+
+{%- block rx_analog %}
 {% for rx in fei3_spec.RX %}
 - {{rx}}:
      <<: *rx_analog
@@ -1364,7 +1415,8 @@ DEVICES:
 {% endfor %}
 {% endblock %}
 
-{% block rx_array %}
+
+{%- block rx_array %}
 {% for rx_array in fei3_spec.RX_ARRAY %}
 - {{rx_array}}:
      <<: *rx_array
@@ -1378,7 +1430,8 @@ DEVICES:
 {% endfor %}
 {% endblock %}
 
-{% block analog_tuner_bank %}
+
+{%- block analog_tuner_bank %}
 {% for abot in fei3_spec.ABOT %}
 - {{abot}}:
      <<: *analog_tuner_bank
@@ -1392,7 +1445,8 @@ DEVICES:
 {% endfor %}
 {% endblock %}
 
-{% block rx_analog_digital %}
+
+{%- block rx_analog_digital %}
 {% for ardc in fei3_spec.ARDC %}
 - {{ardc}}:
      <<: *rx_analog_digital
@@ -1407,7 +1461,8 @@ DEVICES:
 {% endfor %}
 {% endblock %}
 
-{% block digital_tuner_bank %}
+
+{%- block digital_tuner_bank %}
 {% for dbot in fei3_spec.DBOT %}
 - {{dbot}}:
      <<: *digital_tuner_bank
@@ -1423,7 +1478,8 @@ DEVICES:
 {% endfor %}
 {% endblock %}
 
-{% block rdc %}
+
+{%- block rdc %}
 {% for rdc_tuner in fei3_spec.RDC %}
 - {{rdc_tuner}}:
      <<: *rdc_tuner
@@ -1439,7 +1495,7 @@ DEVICES:
 {% endblock %}
 
 
-{% block digital_snapshot %}
+{%- block digital_snapshot %}
 {% for srdc in fei3_spec.SRDC %}
 - {{srdc}}:
      <<: *digital_snapshot
@@ -1456,7 +1512,7 @@ DEVICES:
 {% endblock %}
 
 
-{% block digital_delay %}
+{%- block digital_delay %}
 {% for drdc in fei3_spec.DRDC %}
 - {{drdc}}:
      <<: *digital_delay
@@ -1472,7 +1528,8 @@ DEVICES:
 {% endfor %}
 {% endblock %}
 
-{% block tx_analog %}
+
+{%- block tx_analog %}
 {% for tx_tuner in fei3_spec.TX %}
 - {{tx_tuner}}:
      <<: *tdc_tuner
@@ -1487,7 +1544,7 @@ DEVICES:
 {% endblock %}
 
 
-{% block tdc %}
+{%- block tdc %}
 {% for tdc_tuner in fei3_spec.TDC %}
 - {{tdc_tuner}}:
      <<: *tdc_tuner
@@ -1503,7 +1560,7 @@ DEVICES:
 {% endblock %}
 
 
-{% block tx_array %}
+{%- block tx_array %}
 {% for tx_array in fei3_spec.TX_ARRAY %}
 - {{tx_array}}:
      <<: *tx_array
