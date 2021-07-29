@@ -244,7 +244,7 @@ AC_SUBST(PROJECTDEPS_CFLAGS, '$(OSSIE_CFLAGS) -I$(top_srcdir)/base/include/ossie
 AC_SUBST(PROJECTDEPS_LIBS, '$(top_builddir)/base/framework/libossiecf.la $(OSSIEIDL_LIBS)')
 
 if test "$HAVE_JAVASUPPORT" = yes; then
-  AC_SUBST(OSSIE_CLASSPATH, '$(top_srcdir)/base/framework/java/CFInterfaces.jar:$(top_srcdir)/base/framework/java/ossie/ossie.jar:$(top_srcdir)/base/framework/java/jacorb.jar:$(top_srcdir)/base/framework/java/jacorb-omgapi.jar:$(top_srcdir)/base/framework/java/jacorb-services.jar:$(top_srcdir)/base/framework/java/slf4j-api.jar:$(top_srcdir)/base/framework/java/slf4j-log4j12.jar:$(top_srcdir)/base/framework/java/log4j.jar')
+  AC_SUBST(OSSIE_CLASSPATH, '$(top_srcdir)/base/framework/java/CFInterfaces.jar:$(top_srcdir)/base/framework/java/ossie/ossie.jar:$(top_srcdir)/base/framework/java/jacorb.jar:$(top_srcdir)/base/framework/java/jacorb-omgapi.jar:$(top_srcdir)/base/framework/java/jacorb-services.jar:$(top_srcdir)/base/framework/java/slf4j-api.jar:$(top_srcdir)/base/framework/java/slf4j-log4j12.jar:$(top_srcdir)/base/framework/java/log4j.jar:$(top_srcdir)/base/framework/java/commons-lang3-3.12.0.jar')
 
   # Set up omnijni-required variables
   # Enable other parts of the framework to locate omnijni
@@ -433,3 +433,4 @@ AC_CONFIG_FILES( [testing/Makefile \
                 testing/sdr/dom/components/DomainEventReader/cpp/Makefile ])
 ])
 AC_OUTPUT
+

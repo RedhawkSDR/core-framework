@@ -31,7 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.apache.log4j.Logger;
 
-import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.omg.CORBA.Any;
 import org.omg.CORBA.AnySeqHelper;
 import org.omg.CORBA.BAD_OPERATION;

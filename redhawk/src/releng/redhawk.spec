@@ -64,7 +64,6 @@ Requires:       python36-qt5
 Requires:       python36-qt5-base
 Requires:       python36-lxml
 Requires:       python36-jinja2
-Requires:       python36-gobject-devel
 Requires:       binutils
 Requires:       numactl
 Requires:       sqlite
@@ -83,7 +82,6 @@ BuildRequires:  python36-qt5
 BuildRequires:  python36-qt5-base
 BuildRequires:  python36-qt5-devel
 BuildRequires:  python36-jinja2
-BuildRequires:  python36-gobject-devel
 BuildRequires:  log4cxx-devel >= 0.10
 %if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
 BuildRequires:  omniORB-devel > 4.2.2
@@ -228,7 +226,7 @@ fi
 %dir %{_prefix}/lib64
 %endif
 %{_prefix}/lib/CFInterfaces.jar
-%{_prefix}/lib/apache-commons-lang-2.4.jar
+%{_prefix}/lib/commons-lang3-3.12.0.jar
 %{_prefix}/lib/log4j-1.2.17.jar
 %{_prefix}/lib/ossie.jar
 %{_prefix}/lib/python
@@ -373,3 +371,4 @@ fi
 
 * Tue Jan 11 2011 - 1.6.0-0
 - Initial spec file for redhawk and redhawk-sdrroot.
+

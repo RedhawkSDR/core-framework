@@ -23,7 +23,7 @@
 # Important, the $@ must be quoted "$@" for arguments to be passed correctly
 myDir=`dirname $0`
 JAVA_LIBDIR=${myDir}/../../../../../base/framework/java
-JAVA_CLASSPATH=${JAVA_LIBDIR}/apache-commons-lang-2.4.jar:${JAVA_LIBDIR}/log4j-1.2.15.jar:${JAVA_LIBDIR}/CFInterfaces.jar:${JAVA_LIBDIR}/ossie.jar:${myDir}/msg_through_java.jar:${myDir}:${myDir}/bin:${CLASSPATH}
+JAVA_CLASSPATH=${JAVA_LIBDIR}/log4j-1.2.15.jar:${JAVA_LIBDIR}/CFInterfaces.jar:${JAVA_LIBDIR}/ossie.jar:${myDir}/msg_through_java.jar:${myDir}:${myDir}/bin:${CLASSPATH}
 
 # Path for Java
 if test -x $JAVA_HOME/bin/java; then

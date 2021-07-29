@@ -196,7 +196,7 @@ ossie_legacy_jar_CLASSPATH = $(OSSIE_CLASSPATH)
 ossie_legacy_jar_JAVACFLAGS = -g -Xlint:deprecation
 
 # Additional Java compiler flags
-ossie_jar_CLASSPATH = apache-commons-lang-2.4.jar::$(OSSIE_CLASSPATH)
+ossie_jar_CLASSPATH = $(OSSIE_CLASSPATH)
 ossie_jar_JAVACFLAGS = -g -Xlint:deprecation -Xlint:unchecked
 ossie_jar_JARADD = -C src . ossie-legacy.jar
 

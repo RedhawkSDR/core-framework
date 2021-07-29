@@ -26,7 +26,7 @@ package org.ossie.properties;
 
 import java.lang.reflect.Array;
 
-import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang3.ArrayUtils;
 
 /**
  * @since 3.0
