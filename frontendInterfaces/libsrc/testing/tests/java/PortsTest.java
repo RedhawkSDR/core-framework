@@ -149,11 +149,17 @@ public class PortsTest
             foo.sensor.mission = new String("");
             foo.sensor.rx = new String("");
             foo.ext_path_delays = new PathDelay[0];
+            foo.tdoa_sigma = new FreqDependentDeviation[0];
+            foo.fdoa_sigma = new FreqDependentDeviation[0];
             foo.capabilities = new RFCapabilities();
             foo.capabilities.freq_range = new FreqRange();
             foo.capabilities.freq_range.values = new double[0];
             foo.capabilities.bw_range = new FreqRange();
             foo.capabilities.bw_range.values = new double[0];
+            foo.capabilities.sample_rate_range = new Range();
+            foo.capabilities.sample_rate_range.values = new double[0];
+            foo.capabilities.gain_range = new Range();
+            foo.capabilities.gain_range.values = new double[0];
             foo.additional_info = new CF.DataType[0];
             return foo;
         };
@@ -197,11 +203,17 @@ public class PortsTest
             foo.sensor.mission = new String("");
             foo.sensor.rx = new String("");
             foo.ext_path_delays = new PathDelay[0];
+            foo.tdoa_sigma = new FreqDependentDeviation[0];
+            foo.fdoa_sigma = new FreqDependentDeviation[0];
             foo.capabilities = new RFCapabilities();
             foo.capabilities.freq_range = new FreqRange();
             foo.capabilities.freq_range.values = new double[0];
             foo.capabilities.bw_range = new FreqRange();
             foo.capabilities.bw_range.values = new double[0];
+            foo.capabilities.sample_rate_range = new Range();
+            foo.capabilities.sample_rate_range.values = new double[0];
+            foo.capabilities.gain_range = new Range();
+            foo.capabilities.gain_range.values = new double[0];
             foo.additional_info = new CF.DataType[0];
             return foo;
         };
@@ -284,6 +296,13 @@ public class PortsTest
 
         public double getTunerOutputSampleRate(String id) throws FrontendException, BadParameterException, NotSupportedException {
             return 0.0;
+        }
+
+        public CF.DataType[] getTunerSettings(String id) throws FrontendException, BadParameterException, NotSupportedException {
+            return null;
+        }
+ 
+        public void configureTuner(String id, final CF.DataType[] tunerSettings) throws FrontendException, BadParameterException, NotSupportedException {
         }
     }
 
@@ -631,11 +650,17 @@ public class PortsTest
             rfinfo.sensor.mission = new String("");
             rfinfo.sensor.rx = new String("");
             rfinfo.ext_path_delays = new PathDelay[0];
+            rfinfo.tdoa_sigma = new FreqDependentDeviation[0];
+            rfinfo.fdoa_sigma = new FreqDependentDeviation[0];
             rfinfo.capabilities = new RFCapabilities();
             rfinfo.capabilities.freq_range = new FreqRange();
             rfinfo.capabilities.freq_range.values = new double[0];
             rfinfo.capabilities.bw_range = new FreqRange();
             rfinfo.capabilities.bw_range.values = new double[0];
+            rfinfo.capabilities.sample_rate_range = new Range();
+            rfinfo.capabilities.sample_rate_range.values = new double[0];
+            rfinfo.capabilities.gain_range = new Range();
+            rfinfo.capabilities.gain_range.values = new double[0];
             rfinfo.additional_info = new CF.DataType[0];
 
         try {
@@ -766,11 +791,17 @@ public class PortsTest
             rfinfo.sensor.mission = new String("");
             rfinfo.sensor.rx = new String("");
             rfinfo.ext_path_delays = new PathDelay[0];
+            rfinfo.tdoa_sigma = new FreqDependentDeviation[0];
+            rfinfo.fdoa_sigma = new FreqDependentDeviation[0];
             rfinfo.capabilities = new RFCapabilities();
             rfinfo.capabilities.freq_range = new FreqRange();
             rfinfo.capabilities.freq_range.values = new double[0];
             rfinfo.capabilities.bw_range = new FreqRange();
             rfinfo.capabilities.bw_range.values = new double[0];
+            rfinfo.capabilities.sample_rate_range = new Range();
+            rfinfo.capabilities.sample_rate_range.values = new double[0];
+            rfinfo.capabilities.gain_range = new Range();
+            rfinfo.capabilities.gain_range.values = new double[0];
             rfinfo.additional_info = new CF.DataType[0];
 
         try {
