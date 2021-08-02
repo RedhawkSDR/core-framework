@@ -118,12 +118,4 @@ False: Does not need control and can just attach to any currently tasked device 
     </simple>
     <configurationkind kindtype="allocation"/>
   </struct>
-  <structsequence id="connectionTable" mode="readonly">
-    <struct id="connectionTable::connection_descriptor" name="connection_descriptor">
-      <simple id="connectionTable::connection_id" name="connection_id" type="string"/>
-      <simple id="connectionTable::stream_id" name="stream_id" type="string"/>
-      <simple id="connectionTable::port_name" name="port_name" type="string"/>
-    </struct>
-    <configurationkind kindtype="property"/>
-  </structsequence>
 </properties>

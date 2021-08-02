@@ -142,6 +142,7 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
 
 #{% if component.hasmultioutport %}
         def updated_connectionTable(self, id, oldval, newval):
+            pass
 #{% for port in component.ports if port.multiout %}
             self.${port.pyname}.updateConnectionFilter(newval)
 #{% endfor %}

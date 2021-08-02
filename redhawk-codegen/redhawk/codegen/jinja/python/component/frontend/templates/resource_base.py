@@ -86,6 +86,7 @@ from omniORB import any as _any
 
 #{% if component.hasmultioutport %}
         def connectionTableChanged(self, oldValue, newValue):
+            pass
 #{%   for port in component.ports if port.multiout %}
             self.${port.pyname}.updateConnectionFilter(newValue)
 #{%   endfor %}
