@@ -7,12 +7,18 @@
 from ossie.device import start_device
 import logging
 
+from frontend.tuner_device import validateRequestSingle, floatingPointCompare, validateRequestVsRFInfo
+
 from .RDC_base import *
 
 from data_generator import DataGenerator
 
 class RDC_i(RDC_base):
     """<DESCRIPTION GOES HERE>"""
+    MINFREQ = 50000000.0
+    MAXFREQ = 3000000000.0
+    AVAILABLE_BW_SR = ((2000000,2500000.0,8),(4000000,5000000.0,4),(8000000,10000000.0,2))
+
     def constructor(self):
         """
         This is called by the framework immediately after your device registers with the system.
@@ -370,6 +376,25 @@ class RDC_i(RDC_base):
 
     def set_rfinfo_pkt(self,port_name, pkt):
         pass
+
+    def convert_rf_to_if(self,rf_freq):
+        # Convert freq based on RF/IF of Analog Tuner
+        if self.rfinfo.if_center_freq > 0:
+            ifoffset = rf_freq - self.rfinfo.rf_center_freq
+            if_freq =self.rfinfo.if_center_freq+ifoffset
+        else:
+            if_freq = rf_freq 
+
+        return float(if_freq)
+    
+    # Start with smallest possible and see if that can satisfy request.
+    # Sending 0 for don't care should pass because we are looking for requested to be less than available
+    def findBestBWSR(self,requestedBW,requestedSR):
+        for bw,sr,decimation in self.AVAILABLE_BW_SR:
+            if bw>= requestedBW and sr>=requestedSR:
+                return (bw,sr,decimation)
+        return (False,False,False)
+
     '''
     *************************************************************
     Functions supporting tuning allocation
@@ -455,8 +480,6 @@ class RDC_i(RDC_base):
         fts.sample_rate = sr
         fts.decimation = decimation
         print("deviceSetTuning(): 5")
-        #Update output multiPort to add this allocation. Make Allocation ID the same as StreamID
-        self.matchAllocationIdToStreamId(request.allocation_id, request.allocation_id,"dataShort_out")
                 
         # Setup data Generator and start data for that tuner
         self.datagenerator.stream_id = request.allocation_id
