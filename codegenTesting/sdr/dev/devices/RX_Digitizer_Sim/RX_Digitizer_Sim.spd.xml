@@ -22,4 +22,9 @@
     <runtime name="python" version="2.6.6"/>
     <os name="Linux"/>
   </implementation>
+  <child name="RDC">
+    <childSoftwarePackageFile>
+      <localfile name="RDC.spd.xml"/>
+    </childSoftwarePackageFile>
+  </child>
 </softpkg>

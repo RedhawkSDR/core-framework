@@ -395,7 +395,7 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         
         value = {}
         value['ALLOC_ID'] = str(uuid.uuid4())
-        value['TYPE'] = 'RX_DIGITIZER'
+        value['TYPE'] = 'RDC'
         value['BW_TOLERANCE'] = 100.0
         value['SR_TOLERANCE'] = 100.0
         value['RF_FLOW_ID'] = rf_flow_id
@@ -425,10 +425,11 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         freqRange= FRONTEND.FreqRange(0,1e12,[] )
         feed_info = FRONTEND.FeedInfo("feed_name", "polarization",freqRange)
         sensor_info = FRONTEND.SensorInfo("msn_name", "collector_name", "receiver_name",antenna_info,feed_info)
-        delays = [];
-        cap = FRONTEND.RFCapabilities(freqRange,freqRange);
-        add_props = [];
-        rf_info_pkt = FRONTEND.RFInfoPkt(rf_flow_id,rf_freq, rf_bw, if_freq, spec_inverted, sensor_info, delays, cap, add_props)         
+        delays = []
+        _range=FRONTEND.Range(0.0,0.0,[])
+        cap = FRONTEND.RFCapabilities(freqRange,freqRange,_range,_range)
+        add_props = []
+        rf_info_pkt = FRONTEND.RFInfoPkt(rf_flow_id,rf_freq, rf_bw, if_freq, spec_inverted, sensor_info, delays, [], [], cap, add_props)         
         
         return rf_info_pkt
 

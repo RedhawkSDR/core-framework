@@ -23,7 +23,7 @@ dut_name = 'RX_Digitizer_Sim'
 IMPL_ID = 'python'
 dut_execparams = {}
 dut_configure = {}
-dut_capabilities = {'RX_DIGITIZER':{'COMPLEX': True,
+dut_capabilities = {'RDC':{'COMPLEX': True,
                                     'CF_MAX':   3000e6,
                                     'CF_MIN':   50e6,
                                     'BW_MAX':   8000000.0,

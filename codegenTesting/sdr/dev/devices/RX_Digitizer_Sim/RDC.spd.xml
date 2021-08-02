@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE softpkg PUBLIC "-//JTRS//DTD SCA V2.2.2 SPD//EN" "softpkg.dtd">
+<softpkg id="DCE:6aa85696-88b7-44cb-a08d-6ef45133f21a" name="RDC" type="3.0.0">
+  <title></title>
+  <author>
+    <name>null</name>
+  </author>
+  <propertyfile type="PRF">
+    <localfile name="RDC.prf.xml"/>
+  </propertyfile>
+  <descriptor>
+    <localfile name="RDC.scd.xml"/>
+  </descriptor>
+</softpkg>

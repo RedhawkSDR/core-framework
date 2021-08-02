@@ -42,18 +42,74 @@ class RX_Digitizer_Sim_i(RX_Digitizer_Sim_base):
         type. The string for the request must match the string in the tuner status.
         """
         # TODO add customization here.
-        self.setNumChannels(2, "RX_DIGITIZER");
+        #self.setNumChannels(2, "RX_DIGITIZER");
         
-        self.datagenerators =[]
-        self.datagenerators.append(DataGenerator(self.port_dataShort_out))
-        self.datagenerators.append(DataGenerator(self.port_dataShort_out))
+        # self.datagenerators =[]
+        # self.datagenerators.append(DataGenerator(self.port_dataShort_out))
+        # self.datagenerators.append(DataGenerator(self.port_dataShort_out))
         
-        self.rfinfo = self._createEmptyRFInfo()
+        # self.rfinfo = self._createEmptyRFInfo()
         
-        for datagenerator in self.datagenerators:
-            datagenerator.keyword_dict['FRONTEND::DEVICE_ID'] = self._get_identifier()
-            datagenerator.keyword_dict['FRONTEND::RF_FLOW_ID'] = self.rfinfo.rf_flow_id
-            datagenerator.waveform_type = "Sine"
+        # for datagenerator in self.datagenerators:
+        #     datagenerator.keyword_dict['FRONTEND::DEVICE_ID'] = self._get_identifier()
+        #     datagenerator.keyword_dict['FRONTEND::RF_FLOW_ID'] = self.rfinfo.rf_flow_id
+        #     datagenerator.waveform_type = "Sine"
+        self.addChannels(1, "DBOT")
+        self.rdcs = []
+        self._delegatedAllocations = {}
+        self.rdcs.append(self.addChild(RDC))
+        self.rdcs.append(self.addChild(RDC))
+
+    def allocate(self, capacities):
+        result = []
+
+        if len(capacities) == 0:
+            return []
+
+        allocation_id = str(uuid.uuid1())
+        props = capacities
+
+        # copy the const properties to something that is modifiable
+        local_props = []
+        local_props = props
+
+        for cap in local_props:
+            if cap.id == "FRONTEND::coherent_feeds":
+                pass
+
+            if cap.id == "FRONTEND::tuner_allocation":
+                tuner_alloc = cap.value._v
+
+        # Verify that the device is in a valid state
+        if (not self.isUnLocked() or self.isDisabled() or self.isError()):
+            invalidState = ''
+            if self.isLocked():
+                invalidState = "LOCKED"
+            elif self.isDisabled():
+                invalidState = "DISABLED"
+            elif self.isError():
+                invalidState = "ERROR"
+            else:
+                invalidState = "SHUTTING_DOWN"
+            raise CF.Device.InvalidState(invalidState)
+
+        for rdc in self.rdcs:
+            result = rdc.allocate(local_props)
+            if len(result) > 0:
+                self._delegatedAllocations[allocation_id] = result
+                return result
+
+        return result
+
+    def deallocate(self, alloc_id):
+        if self._delegatedAllocations.get(alloc_id) != None:
+            for alloc in self._delegatedAllocations[alloc_id]:
+                dev = alloc.device_ref
+                dev.deallocate(alloc_id)
+            self._delegatedAllocations.pop(alloc_id)
+            return
+        invalidProps = []
+        raise CF.Device.InvalidCapacity("Capacities do not match allocated ones in the child devices", invalidProps)
         
     def process(self):
         # TODO fill in your code here
@@ -71,18 +127,18 @@ class RX_Digitizer_Sim_i(RX_Digitizer_Sim_base):
         Make sure to set the 'enabled' member of fts to indicate that tuner as enabled
         ************************************************************'''
         print("deviceEnable(): Enable the given tuner  *********")
-        try:
-            self.datagenerators[tuner_id].enableDataFlow()
-            fts.enabled = True
+        # try:
+        #     self.datagenerators[tuner_id].enableDataFlow()
+        #     fts.enabled = True
 
-        except Exception as e:
-            self._log.exception("Got exception % s" %str(e))
-            return False
+        # except Exception as e:
+        #     self._log.exception("Got exception % s" %str(e))
+        #     return False
 
-        if fts.center_frequency == 112e6:
-            print(self.getTunerStatus(fts.allocation_id_csv))
+        # if fts.center_frequency == 112e6:
+        #     print(self.getTunerStatus(fts.allocation_id_csv))
 
-        return True
+        return False
 
     def deviceDisable(self,fts, tuner_id):
         '''
@@ -90,9 +146,9 @@ class RX_Digitizer_Sim_i(RX_Digitizer_Sim_base):
         modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
         Make sure to reset the 'enabled' member of fts to indicate that tuner as disabled
         ************************************************************'''
-        self._log.debug(  "deviceDisable(): Disable the given tuner  *********")
-        self.datagenerators[tuner_id].disableDataFlow()
-        fts.enabled = False
+        # self._log.debug(  "deviceDisable(): Disable the given tuner  *********")
+        # self.datagenerators[tuner_id].disableDataFlow()
+        # fts.enabled = False
 
         return
 
@@ -111,58 +167,58 @@ class RX_Digitizer_Sim_i(RX_Digitizer_Sim_base):
         
         return True if the tuning succeeded, and False if it failed
         ************************************************************'''
-        self._log.debug( "deviceSetTuning(): Evaluate whether or not a tuner is added  *********")
+        # self._log.debug( "deviceSetTuning(): Evaluate whether or not a tuner is added  *********")
         
-        self._log.debug(  "allocating tuner_id %s" % tuner_id)
+        # self._log.debug(  "allocating tuner_id %s" % tuner_id)
         
-        if fts.center_frequency == 111e6:
-            raise Exception('bad center frequency')
+        # if fts.center_frequency == 111e6:
+        #     raise Exception('bad center frequency')
         
-        # Check that allocation can be satisfied
-        if self.rfinfo.rf_flow_id !="":
-            try:
-                validateRequestVsRFInfo(request,self.rfinfo,1)
-            except FRONTEND.BadParameterException as e:
-                self._log.info("ValidateRequestVsRFInfo Failed: %s" %(str(e)))
-                return False
+        # # Check that allocation can be satisfied
+        # if self.rfinfo.rf_flow_id !="":
+        #     try:
+        #         validateRequestVsRFInfo(request,self.rfinfo,1)
+        #     except FRONTEND.BadParameterException as e:
+        #         self._log.info("ValidateRequestVsRFInfo Failed: %s" %(str(e)))
+        #         return False
                 
         
-        #Convert CF based on RFInfo. 
-        tuneFreq = self.convert_rf_to_if(request.center_frequency)
+        # #Convert CF based on RFInfo. 
+        # tuneFreq = self.convert_rf_to_if(request.center_frequency)
         
-        # Check the CF
+        # # Check the CF
 
-        if not(validateRequestSingle(self.MINFREQ,self.MAXFREQ,tuneFreq)):
-            self._log.debug( "Center Freq Does not fit %s, %s, %s" %(tuneFreq, self.MINFREQ , self.MAXFREQ))
-            return False         
-        # Check the BW/SR
+        # if not(validateRequestSingle(self.MINFREQ,self.MAXFREQ,tuneFreq)):
+        #     self._log.debug( "Center Freq Does not fit %s, %s, %s" %(tuneFreq, self.MINFREQ , self.MAXFREQ))
+        #     return False         
+        # # Check the BW/SR
         
 
-        bw,sr,decimation = self.findBestBWSR(request.bandwidth,request.sample_rate)
-        if not bw:
-            self._log.debug( "Can't Satisfy BW and SR request")
-            return False
+        # bw,sr,decimation = self.findBestBWSR(request.bandwidth,request.sample_rate)
+        # if not bw:
+        #     self._log.debug( "Can't Satisfy BW and SR request")
+        #     return False
  
-        # Update Tuner Status
-        fts.bandwidth = bw
-        fts.center_frequency = request.center_frequency
-        fts.sample_rate = sr
-        fts.decimation = decimation
-        print("deviceSetTuning(): 5")
-        #Update output multiPort to add this allocation. Make Allocation ID the same as StreamID
-        self.matchAllocationIdToStreamId(request.allocation_id, request.allocation_id,"dataShort_out")
+        # # Update Tuner Status
+        # fts.bandwidth = bw
+        # fts.center_frequency = request.center_frequency
+        # fts.sample_rate = sr
+        # fts.decimation = decimation
+        # print("deviceSetTuning(): 5")
+        # #Update output multiPort to add this allocation. Make Allocation ID the same as StreamID
+        # self.matchAllocationIdToStreamId(request.allocation_id, request.allocation_id,"dataShort_out")
                 
-        # Setup data Generator and start data for that tuner
-        self.datagenerators[tuner_id].stream_id = request.allocation_id
-        self.datagenerators[tuner_id].sr = sr
-        self.datagenerators[tuner_id].cf = tuneFreq
-        self.datagenerators[tuner_id].keyword_dict['FRONTEND::BANDWIDTH'] = bw
-        self.datagenerators[tuner_id].keyword_dict['COL_RF'] = request.center_frequency
-        self.datagenerators[tuner_id].keyword_dict['CHAN_RF'] = request.center_frequency
-        self.datagenerators[tuner_id].start()
+        # # Setup data Generator and start data for that tuner
+        # self.datagenerators[tuner_id].stream_id = request.allocation_id
+        # self.datagenerators[tuner_id].sr = sr
+        # self.datagenerators[tuner_id].cf = tuneFreq
+        # self.datagenerators[tuner_id].keyword_dict['FRONTEND::BANDWIDTH'] = bw
+        # self.datagenerators[tuner_id].keyword_dict['COL_RF'] = request.center_frequency
+        # self.datagenerators[tuner_id].keyword_dict['CHAN_RF'] = request.center_frequency
+        # self.datagenerators[tuner_id].start()
         
-        print("Done with deviceSetTuning():")
-        return True
+        # print("Done with deviceSetTuning():")
+        return False
         
 
     def deviceDeleteTuning(self, fts, tuner_id):
@@ -172,11 +228,11 @@ class RX_Digitizer_Sim_i(RX_Digitizer_Sim_base):
         return True if the tune deletion succeeded, and False if it failed
         ************************************************************'''
         
-        self._log.debug( "deviceDeleteTuning(): Deallocate an allocated tuner  *********")
-        self.datagenerators[tuner_id].stop()
-        controlAllocationID =  fts.allocation_id_csv.split(',')[0]
-        self.removeStreamIdRouting(controlAllocationID, controlAllocationID)
-        return True
+        # self._log.debug( "deviceDeleteTuning(): Deallocate an allocated tuner  *********")
+        # self.datagenerators[tuner_id].stop()
+        # controlAllocationID =  fts.allocation_id_csv.split(',')[0]
+        # self.removeStreamIdRouting(controlAllocationID, controlAllocationID)
+        return False
 
     '''
     *************************************************************
@@ -344,16 +400,16 @@ class RX_Digitizer_Sim_i(RX_Digitizer_Sim_base):
         _freqrange=FRONTEND.FreqRange(0,0,[])
         _feedinfo=FRONTEND.FeedInfo('','',_freqrange)
         _sensorinfo=FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
-        _rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange)
-        _rfinfopkt=FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],_rfcapabilities,[])
+        _range=FRONTEND.Range(0.0,0.0,[])
+        _rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange,_range,_range)
+        _rfinfopkt=FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],[],[],_rfcapabilities,[])
         return _rfinfopkt
 
     def set_rfinfo_pkt(self,port_name, pkt):
         self.rfinfo = pkt
-        for tuner in self.frontend_tuner_status:
-            tuner.rf_flow_id=self.rfinfo.rf_flow_id
-        for datagenerator in self.datagenerators:
-            datagenerator.keyword_dict['FRONTEND::RF_FLOW_ID'] = self.rfinfo.rf_flow_id
+        for rdc in self.rdcs:
+            rdc.rf_flow_id = self.rfinfo.rf_flow_id
+            rdc.datagenerator.keyword_dict['FRONTEND::RF_FLOW_ID'] = self.rfinfo.rf_flow_id
 
     '''
     *************************************************************

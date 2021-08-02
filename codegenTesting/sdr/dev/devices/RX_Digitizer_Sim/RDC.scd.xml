@@ -5,7 +5,6 @@
   <componentrepid repid="IDL:CF/Device:1.0"/>
   <componenttype>device</componenttype>
   <componentfeatures>
-    <supportsinterface repid="IDL:CF/AggregateDevice:1.0" supportsname="AggregateDevice"/>
     <supportsinterface repid="IDL:CF/Device:1.0" supportsname="Device"/>
     <supportsinterface repid="IDL:CF/Resource:1.0" supportsname="Resource"/>
     <supportsinterface repid="IDL:CF/LifeCycle:1.0" supportsname="LifeCycle"/>
@@ -24,6 +23,12 @@
       <provides repid="IDL:FRONTEND/DigitalTuner:1.0" providesname="DigitalTuner_in">
         <porttype type="control"/>
       </provides>
+      <uses repid="IDL:CF/DeviceStatus:1.0" usesname="DeviceStatus_out">
+        <porttype type="control"/>
+      </uses>
+      <uses repid="IDL:BULKIO/dataShort:1.0" usesname="dataShort_out">
+        <porttype type="data"/>
+      </uses>
     </ports>
   </componentfeatures>
   <interfaces>
