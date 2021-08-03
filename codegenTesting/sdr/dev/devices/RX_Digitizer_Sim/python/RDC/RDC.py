@@ -413,9 +413,6 @@ class RDC_i(RDC_base):
             self._log.exception("Got exception % s" %str(e))
             return False
 
-        if fts.center_frequency == 112e6:
-            print(self.getTunerStatus(fts.allocation_id_csv))
-
         return True
 
     def deviceDisable(self,fts, tuner_id):
