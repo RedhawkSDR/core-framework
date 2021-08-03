@@ -188,7 +188,19 @@ rm -rf --preserve-root $RPM_BUILD_ROOT
 
 # install ossie framework
 cd src
+# ----- this is /root/rpmbuild/BUILD/redhawk-3.0.0/src
 make install DESTDIR=$RPM_BUILD_ROOT
+
+# add symlinks to .jars into ossiehome/lib
+ln -sf ${JACORB_HOME}/lib/jacorb-3.9.jar    %{buildroot}/usr/local/redhawk/core/lib/jacorb.jar
+ln -sf ${JACORB_HOME}/lib/jacorb-3.9.jar    %{buildroot}/usr/local/redhawk/core/lib/jacorb-3.9.jar
+ln -sf ${JACORB_HOME}/lib/jacorb-omgapi-3.9.jar    %{buildroot}/usr/local/redhawk/core/lib/jacorb-omgapi.jar
+ln -sf ${JACORB_HOME}/lib/jacorb-omgapi-3.9.jar    %{buildroot}/usr/local/redhawk/core/lib/jacorb-omgapi-3.9.jar
+ln -sf ${JACORB_HOME}/lib/jacorb-services-3.9.jar    %{buildroot}/usr/local/redhawk/core/lib/jacorb-services.jar
+ln -sf ${JACORB_HOME}/lib/jacorb-services-3.9.jar    %{buildroot}/usr/local/redhawk/core/lib/jacorb-services-3.9.jar
+ln -sf %{_prefix}/lib/slf4j-api-1.7.32.jar    %{buildroot}/usr/local/redhawk/core/lib/slf4j-api.jar
+ln -sf %{_prefix}/lib/slf4j-log4j12-1.7.32.jar    %{buildroot}/usr/local/redhawk/core/lib/slf4j-log4j12.jar
+ln -sf %{_prefix}/lib/log4j-1.2.17.jar    %{buildroot}/usr/local/redhawk/core/lib/log4j.jar
 
 %clean
 rm -rf --preserve-root $RPM_BUILD_ROOT
@@ -226,9 +238,21 @@ fi
 %dir %{_prefix}/lib64
 %endif
 %{_prefix}/lib/CFInterfaces.jar
-%{_prefix}/lib/commons-lang3-3.12.0.jar
+%{_prefix}/lib/jacorb.jar
+%{_prefix}/lib/jacorb-3.9.jar
+%{_prefix}/lib/jacorb-omgapi.jar
+%{_prefix}/lib/jacorb-omgapi-3.9.jar
+%{_prefix}/lib/jacorb-services.jar
+%{_prefix}/lib/jacorb-services-3.9.jar
+%{_prefix}/lib/slf4j-api.jar
+%{_prefix}/lib/slf4j-api-1.7.32.jar
+%{_prefix}/lib/slf4j-log4j12.jar
+%{_prefix}/lib/slf4j-log4j12-1.7.32.jar
+%{_prefix}/lib/log4j.jar
 %{_prefix}/lib/log4j-1.2.17.jar
 %{_prefix}/lib/ossie.jar
+%{_prefix}/lib/commons-lang3-3.12.0.jar
+%{_prefix}/lib/jboss-rmi-api_1.0_spec-1.0.6.Final.jar
 %{_prefix}/lib/python
 %exclude %{_prefix}/lib/python/ossie/apps/qtbrowse
 %exclude %{_prefix}/lib/python/ossie/apps/rhlauncher
