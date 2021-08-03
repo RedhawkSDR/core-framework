@@ -519,10 +519,13 @@ class LocalSandbox(Sandbox):
                             break
                     if not found_device:
                         sdrRoot = self.getSdrRoot()
-                        spd, scd, prf = sdrRoot.readProfile(dev.softwareProfile)
-                        comp = SandboxDevice(self, dev.softwareProfile, spd, scd, prf, dev.label, dev.identifier, None)
-                        comp.ref = dev
-                        self._registerComponent(comp)
+                        try:
+                            spd, scd, prf = sdrRoot.readProfile(dev.softwareProfile)
+                            comp = SandboxDevice(self, dev.softwareProfile, spd, scd, prf, dev.label, dev.identifier, None)
+                            comp.ref = dev
+                            self._registerComponent(comp)
+                        except:
+                            pass
 
     def getComponents(self):
         self._refreshChildDevices()
