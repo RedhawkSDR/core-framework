@@ -43,18 +43,13 @@ class fei_cap_i : public fei_cap_base
         frontend::RFInfoPkt get_rfinfo_pkt(const std::string& port_name);
         void set_rfinfo_pkt(const std::string& port_name, const frontend::RFInfoPkt& pkt);
 
-        std::vector<RDC_i*> RDCs;
+        std::vector<RDC_ns::RDC_i*> RDCs;
         std::map<std::string, CF::Device::Allocations_var> _delegatedAllocations;
 
-        CF::Device::Allocations* allocate (const CF::Properties& capacities)
-            throw (CF::Device::InvalidState, CF::Device::InvalidCapacity,
-                   CF::Device::InsufficientCapacity, CORBA::SystemException);
-        void deallocate (const char* alloc_id)
-            throw (CF::Device::InvalidState, CF::Device::InvalidCapacity,
-                   CORBA::SystemException);
-        CORBA::Boolean allocateCapacity(const CF::Properties & capacities)
-            throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState);
-        void deallocateCapacity (const CF::Properties& capacities) throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CORBA::SystemException);
+        CF::Device::Allocations* allocate (const CF::Properties& capacities);
+        void deallocate (const char* alloc_id);
+        CORBA::Boolean allocateCapacity(const CF::Properties & capacities);
+        void deallocateCapacity (const CF::Properties& capacities);
 
     private:
         ////////////////////////////////////////

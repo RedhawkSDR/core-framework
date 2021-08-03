@@ -9,6 +9,8 @@
 
 #include "RDC.h"
 
+using namespace RDC_ns;
+
 PREPARE_LOGGING(RDC_i)
 
 RDC_i::RDC_i(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl) :
@@ -33,6 +35,15 @@ RDC_i::RDC_i(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Propert
 
 RDC_i::~RDC_i()
 {
+}
+
+CF::Device::Allocations* RDC_i::allocate (const CF::Properties& capacities) {
+    CF::Device::Allocations_var result = new CF::Device::Allocations();
+    result = RDC_base::allocate(capacities);
+    /*
+     * Add data and control ports to response if length is greater than 0
+     */
+    return result._retn();
 }
 
 void RDC_i::constructor()

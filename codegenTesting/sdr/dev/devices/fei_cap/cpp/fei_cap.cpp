@@ -55,7 +55,7 @@ void fei_cap_i::constructor()
     this->setNumChannels(1, "RX_DIGITIZER");
     for (unsigned int i=0; i<2; i++) {
         std::ostringstream rdc_name;
-        RDCs.push_back(this->addChild<RDC_i>(rdc_name.str()));
+        RDCs.push_back(this->addChild<RDC_ns::RDC_i>(rdc_name.str()));
     }
 }
 
@@ -306,8 +306,7 @@ int fei_cap_i::serviceFunction()
     return NOOP;
 }
 
-CORBA::Boolean fei_cap_i::allocateCapacity(const CF::Properties & capacities)
-throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState) {
+CORBA::Boolean fei_cap_i::allocateCapacity(const CF::Properties & capacities) {
 
     std::string allocation_id;
 
@@ -331,7 +330,7 @@ throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidS
         }
     }
 
-    for (std::vector<RDC_i*>::iterator it=RDCs.begin(); it!=RDCs.end(); it++) {
+    for (std::vector<RDC_ns::RDC_i*>::iterator it=RDCs.begin(); it!=RDCs.end(); it++) {
         bool result = (*it)->allocateCapacity(capacities);
         if (result) {
             CF::Device::Allocations_var alloc_response = new CF::Device::Allocations();
@@ -346,9 +345,7 @@ throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidS
     return fei_cap_base::allocateCapacity(capacities);
 }
 
-void fei_cap_i::deallocateCapacity (const CF::Properties& capacities)
-throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState)
-{
+void fei_cap_i::deallocateCapacity (const CF::Properties& capacities) {
     std::string allocation_id;
 
     const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(capacities);
@@ -376,9 +373,7 @@ throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidS
     return;
 }
 
-CF::Device::Allocations* fei_cap_i::allocate(const CF::Properties& capacities)
-throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::InsufficientCapacity, CORBA::SystemException)
-{
+CF::Device::Allocations* fei_cap_i::allocate(const CF::Properties& capacities) {
     CF::Device::Allocations_var result = new CF::Device::Allocations();
 
     if (capacities.length() == 0) {
@@ -454,7 +449,7 @@ throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::Insuff
         throw CF::Device::InvalidState(invalidState);
     }
     
-    for (std::vector<RDC_i*>::iterator it=RDCs.begin(); it!=RDCs.end(); it++) {
+    for (std::vector<RDC_ns::RDC_i*>::iterator it=RDCs.begin(); it!=RDCs.end(); it++) {
         result = (*it)->allocate(local_capacities);
         if (result->length() > 0) {
             _delegatedAllocations[allocation_id] = result;
@@ -468,9 +463,7 @@ throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::Insuff
     return result._retn();
 }
 
-void fei_cap_i::deallocate (const char* alloc_id)
-throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CORBA::SystemException)
-{
+void fei_cap_i::deallocate (const char* alloc_id) {
     std::string _alloc_id = ossie::corba::returnString(alloc_id);
     if (_delegatedAllocations.find(_alloc_id) != _delegatedAllocations.end()) {
         for (size_t i=0; i<_delegatedAllocations[_alloc_id]->length(); i++) {
