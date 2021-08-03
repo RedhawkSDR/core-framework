@@ -23,11 +23,8 @@
     <os name="Linux"/>
   </implementation>
   <child name="RDC">
-    <childPropertyFile>
-        <localfile name="RDC.prf.xml"/>
-    </childPropertyFile>
-    <childDescriptorFile>
-        <localfile name="RDC.scd.xml"/>
-    </childDescriptorFile>
+    <childSoftwarePackageFile>
+        <localfile name="RDC.spd.xml"/>
+    </childSoftwarePackageFile>
   </child>
 </softpkg>

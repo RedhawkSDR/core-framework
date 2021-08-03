@@ -70,11 +70,11 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         self.assertEquals(self.comp._get_usageState(), CF.Device.BUSY)
         try:
             self.comp.deallocate('bad_id')
-        except Exception, e:
+        except Exception as e:
             pass
         try:
             self.comp.deallocate('2')
-        except Exception, e:
+        except Exception as e:
             pass
         self.assertEquals(self.comp._get_usageState(), CF.Device.ACTIVE)
         self.comp.deallocateCapacity([a])
@@ -131,11 +131,11 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
 
         try:
             self.comp.deallocate('bad_id')
-        except Exception, e:
+        except Exception as e:
             pass
         try:
             self.comp.deallocate('2')
-        except Exception, e:
+        except Exception as e:
             pass
         self.assertEquals(self.comp._get_usageState(), CF.Device.ACTIVE)
         fts=self.comp.frontend_tuner_status

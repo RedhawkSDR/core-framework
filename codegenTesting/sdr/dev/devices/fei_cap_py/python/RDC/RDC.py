@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 #
 # AUTO-GENERATED
@@ -7,7 +7,7 @@
 from ossie.device import start_device
 import logging
 
-from RDC_base import *
+from .RDC_base import *
 
 class RDC_i(RDC_base):
     """<DESCRIPTION GOES HERE>"""
@@ -355,7 +355,7 @@ class RDC_i(RDC_base):
         modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
         Make sure to set the 'enabled' member of fts to indicate that tuner as enabled
         ************************************************************'''
-        print "deviceEnable(): Enable the given tuner  *********"
+        print("deviceEnable(): Enable the given tuner  *********")
         fts.enabled = True
         return
 
@@ -365,7 +365,7 @@ class RDC_i(RDC_base):
         modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
         Make sure to reset the 'enabled' member of fts to indicate that tuner as disabled
         ************************************************************'''
-        print "deviceDisable(): Disable the given tuner  *********"
+        print("deviceDisable(): Disable the given tuner  *********")
         fts.enabled = False
         return
 
@@ -385,7 +385,7 @@ class RDC_i(RDC_base):
         
         return True if the tuning succeeded, and False if it failed
         ************************************************************'''
-        print "deviceSetTuning(): Evaluate whether or not a tuner is added  *********"
+        print("deviceSetTuning(): Evaluate whether or not a tuner is added  *********")
         return True
 
     def deviceDeleteTuning(self, fts, tuner_id):
@@ -394,7 +394,7 @@ class RDC_i(RDC_base):
         modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
         return True if the tune deletion succeeded, and False if it failed
         ************************************************************'''
-        print "deviceDeleteTuning(): Deallocate an allocated tuner  *********"
+        print("deviceDeleteTuning(): Deallocate an allocated tuner  *********")
         return True
   
 

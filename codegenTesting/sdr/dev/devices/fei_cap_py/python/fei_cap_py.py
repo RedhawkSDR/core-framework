@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 #
 # AUTO-GENERATED
@@ -42,7 +42,7 @@ class fei_cap_py_i(fei_cap_py_base):
         rdc_1 = self.addChild(RDC)
         rdc_2 = self.addChild(RDC)
 
-    def allocateCapacity(self, capacities):
+    def allocate(self, capacities):
         allocation_id = ''
         for prop in capacities:
             if prop.id == "FRONTEND::tuner_allocation":
@@ -59,16 +59,15 @@ class fei_cap_py_i(fei_cap_py_base):
 
         for dev in self._dynamicComponents:
             try:
-                result = dev.allocateCapacity(capacities)
+                result = dev.allocate(capacities)
             except:
                 continue
-            if (result):
-                alloc_response = CF.Device.Allocation(dev, CORBA.Object._nil, CORBA.Object._nil, [], allocation_id)
-                self._delegatedAllocations[allocation_id] = [alloc_response]
+            if len(result) > 0:
+                self._delegatedAllocations[allocation_id] = result
                 self._usageState = self.updateUsageState()
-                return True
+                return result
 
-        return fei_cap_py_base.allocateCapacity(self, capacities)
+        return fei_cap_py_base.allocate(self, capacities)
 
     def deallocateCapacity (self, capacities):
         allocation_id = ''
@@ -408,7 +407,7 @@ class fei_cap_py_i(fei_cap_py_base):
         modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
         Make sure to set the 'enabled' member of fts to indicate that tuner as enabled
         ************************************************************'''
-        print "deviceEnable(): Enable the given tuner  *********"
+        print("deviceEnable(): Enable the given tuner  *********")
         fts.enabled = True
         return
 
@@ -418,7 +417,7 @@ class fei_cap_py_i(fei_cap_py_base):
         modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
         Make sure to reset the 'enabled' member of fts to indicate that tuner as disabled
         ************************************************************'''
-        print "deviceDisable(): Disable the given tuner  *********"
+        print("deviceDisable(): Disable the given tuner  *********")
         fts.enabled = False
         return
 
@@ -438,7 +437,7 @@ class fei_cap_py_i(fei_cap_py_base):
         
         return True if the tuning succeeded, and False if it failed
         ************************************************************'''
-        print "deviceSetTuning(): Evaluate whether or not a tuner is added  *********"
+        print("deviceSetTuning(): Evaluate whether or not a tuner is added  *********")
         return True
 
     def deviceDeleteTuning(self, fts, tuner_id):
@@ -447,7 +446,7 @@ class fei_cap_py_i(fei_cap_py_base):
         modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
         return True if the tune deletion succeeded, and False if it failed
         ************************************************************'''
-        print "deviceDeleteTuning(): Deallocate an allocated tuner  *********"
+        print("deviceDeleteTuning(): Deallocate an allocated tuner  *********")
         return True
   
 if __name__ == '__main__':
