@@ -554,8 +554,8 @@ class FrontendTunerDevice(Device):
             if alloc_id == '':
                 alloc_id = model._uuidgen()
             retval = self._allocate_frontend_tuner_allocation(propdict['FRONTEND::tuner_allocation'], scanner_prop, alloc_id)
-            #retval = self.allocateCapacity(properties)
             if retval:
+                self._allocationTracker[alloc_id] = properties
                 return [CF.Device.Allocation(self._this(),[],[],properties,alloc_id)]
             else:
                 return []
@@ -564,8 +564,8 @@ class FrontendTunerDevice(Device):
             if alloc_id == '':
                 alloc_id = model._uuidgen()
             retval = self._allocate_frontend_listener_allocation(propdict['FRONTEND::listener_allocation'])
-            #retval = self.allocateCapacity(properties)
             if retval:
+                self._allocationTracker[alloc_id] = properties
                 return [CF.Device.Allocation(self._this(),[],[],properties,alloc_id)]
             else:
                 return []
@@ -636,6 +636,7 @@ class FrontendTunerDevice(Device):
                     return
                 self.deallocate(prop_key)
                 return
+
         raise CF.Device.InvalidCapacity("Allocation for capacity not found", properties)
 
         self._deviceLog.debug("deallocateCapacity() -->")
