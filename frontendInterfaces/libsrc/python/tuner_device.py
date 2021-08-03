@@ -560,7 +560,7 @@ class FrontendTunerDevice(Device):
             else:
                 return []
         if propdict.get('FRONTEND::listener_allocation'):
-            alloc_id = propdict['FRONTEND::tuner_allocation'].listener_allocation_id
+            alloc_id = propdict['FRONTEND::listener_allocation'].listener_allocation_id
             if alloc_id == '':
                 alloc_id = model._uuidgen()
             retval = self._allocate_frontend_listener_allocation(propdict['FRONTEND::listener_allocation'])

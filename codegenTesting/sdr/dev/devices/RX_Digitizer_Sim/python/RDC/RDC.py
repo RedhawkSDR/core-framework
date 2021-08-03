@@ -375,7 +375,10 @@ class RDC_i(RDC_base):
         return _rfinfopkt
 
     def set_rfinfo_pkt(self,port_name, pkt):
-        pass
+        self.rfinfo = pkt
+        self.rf_flow_id = self.rfinfo.rf_flow_id
+        self.frontend_tuner_status[0].rf_flow_id = self.rf_flow_id
+        self.datagenerator.keyword_dict['FRONTEND::RF_FLOW_ID'] = self.rfinfo.rf_flow_id
 
     def convert_rf_to_if(self,rf_freq):
         # Convert freq based on RF/IF of Analog Tuner
@@ -453,31 +456,28 @@ class RDC_i(RDC_base):
             except FRONTEND.BadParameterException as e:
                 self._log.info("ValidateRequestVsRFInfo Failed: %s" %(str(e)))
                 return False
-                
-        
+
         #Convert CF based on RFInfo. 
         tuneFreq = self.convert_rf_to_if(request.center_frequency)
-        
+
         # Check the CF
 
         if not(validateRequestSingle(self.MINFREQ,self.MAXFREQ,tuneFreq)):
             self._log.debug( "Center Freq Does not fit %s, %s, %s" %(tuneFreq, self.MINFREQ , self.MAXFREQ))
             return False         
         # Check the BW/SR
-        
 
         bw,sr,decimation = self.findBestBWSR(request.bandwidth,request.sample_rate)
         if not bw:
             self._log.debug( "Can't Satisfy BW and SR request")
             return False
- 
+
         # Update Tuner Status
         fts.bandwidth = bw
         fts.center_frequency = request.center_frequency
         fts.sample_rate = sr
         fts.decimation = decimation
-        print("deviceSetTuning(): 5")
-                
+
         # Setup data Generator and start data for that tuner
         self.datagenerator.stream_id = request.allocation_id
         self.datagenerator.sr = sr
@@ -486,8 +486,7 @@ class RDC_i(RDC_base):
         self.datagenerator.keyword_dict['COL_RF'] = request.center_frequency
         self.datagenerator.keyword_dict['CHAN_RF'] = request.center_frequency
         self.datagenerator.start()
-        
-        print("Done with deviceSetTuning():")
+
         return True
 
     def deviceDeleteTuning(self, fts, tuner_id):

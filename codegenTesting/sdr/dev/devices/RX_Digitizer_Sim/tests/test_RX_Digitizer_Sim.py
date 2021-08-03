@@ -63,11 +63,11 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
                
         alloc = self._generateAlloc(cf=110e6,sr=2.5e6,bw=2e6)
         allocationID = properties.props_to_dict(alloc)['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::allocation_id']
-        self.comp.connect(sink,connectionId=allocationID)
-        sink.start()
-        
+
         try:
-            retval = self.comp.allocateCapacity(alloc)
+            retval = self.comp.allocate(alloc)
+            port = retval[0].device_ref.getPort('dataShort_out')
+            port.connectPort(sink.getPort('shortIn'), allocationID)
         except Exception as e:
             print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
             print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
@@ -76,6 +76,8 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
             self.assertFalse("Exception thrown on allocateCapactiy %s" % str(e))
         if not retval:
             self.assertFalse("Allocation Failed")
+
+        sink.start()
             
         time.sleep(1)
         
@@ -101,18 +103,18 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         sink = sb.StreamSink()
         alloc = self._generateAlloc(cf=110e6,sr=2.5e6,bw=2e6)
         allocationID = properties.props_to_dict(alloc)['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::allocation_id']
-        self.comp.connect(sink,connectionId=allocationID)
-        sink.start()
 
-
-        
         #Allocate a Tuner
         try:
-            retval = self.comp.allocateCapacity(alloc)
+            retval = self.comp.allocate(alloc)
+            port = retval[0].device_ref.getPort('dataShort_out')
+            port.connectPort(sink.getPort('shortIn'), allocationID)
         except Exception as e:
             self.assertFalse("Exception thrown on allocateCapactiy %s" % str(e))
         if not retval:
             self.assertFalse("Allocation Failed")
+
+        sink.start()
 
         #Check Tuner 1 SRI, letting data and SRI flow for up to 1s
         data = sink.read(timeout=1)
@@ -125,17 +127,19 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         sink2 = sb.StreamSink()
         alloc2 = self._generateAlloc(cf=110e6,sr=5e6,bw=4e6)
         allocationID2 = properties.props_to_dict(alloc2)['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::allocation_id']
-        self.comp.connect(sink2,connectionId=allocationID2)
-        sink2.start()
 
         #Allocate a Second Tuner
         try:
-            retval = self.comp.allocateCapacity(alloc2)
+            retval = self.comp.allocate(alloc2)
+            port = retval[0].device_ref.getPort('dataShort_out')
+            port.connectPort(sink2.getPort('shortIn'), allocationID)
         except Exception as e:
             print(str(e))
             self.assertFalse("Exception thrown on allocateCapactiy on second Tuner %s" % str(e))
         if not retval:
             self.assertFalse("Allocation Failed on second Tuner")
+
+        sink2.start()
         
         #Sleep and let data and SRI flow    
         time.sleep(1)
@@ -179,21 +183,18 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         sink = sb.StreamSink()
         alloc = self._generateAlloc(cf=110e6,sr=2.5e6,bw=2e6,rf_flow_id="testRFInfoPacket_FlowID")
         allocationID = properties.props_to_dict(alloc)['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::allocation_id']
-        self.comp.connect(sink,connectionId=allocationID)
-        sink.start()
 
         #Send an RF Info Packet
         rfInfo_port = self.comp.getPort("RFInfo_in")
         rf_info_pkt = self._generateRFInfoPkt(rf_freq=100e6,rf_bw=100e6,if_freq=0,rf_flow_id="testRFInfoPacket_FlowID")
         rfInfo_port._set_rfinfo_pkt(rf_info_pkt)
 
-        
         #Allocate a Tuner
         try:
-            retval = self.comp.allocateCapacity(alloc)
+            retval = self.comp.allocate(alloc)
         except Exception as e:
             self.assertFalse("Exception thrown on allocateCapactiy %s" % str(e))
-        if not retval:
+        if len(retval) == 0:
             self.assertFalse("Allocation Failed")
         
         self.comp.deallocateCapacity(alloc)
@@ -204,23 +205,20 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         sink = sb.StreamSink()
         alloc = self._generateAlloc(cf=110e6,sr=2.5e6,bw=2e6,rf_flow_id="invalid_FlowID")
         allocationID = properties.props_to_dict(alloc)['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::allocation_id']
-        self.comp.connect(sink,connectionId=allocationID)
-        sink.start()
 
         #Send an RF Info Packet
         rfInfo_port = self.comp.getPort("RFInfo_in")
         rf_info_pkt = self._generateRFInfoPkt(rf_freq=100e6,rf_bw=100e6,if_freq=0,rf_flow_id="testRFInfoPacket_FlowID")
         rfInfo_port._set_rfinfo_pkt(rf_info_pkt)
 
-        
         #Allocate a Tuner
         try:
-            retval = self.comp.allocateCapacity(alloc)
+            retval = self.comp.allocate(alloc)
         except Exception as e:
             self.assertFalse("Exception thrown on allocateCapactiy %s" % str(e))
-        if retval:
+        if len(retval) > 0:
             self.assertFalse("Allocation Succeeded but should have failed")
-        
+
         try:
             self.comp.deallocateCapacity(alloc)      
         except CF.Device.InvalidCapacity as e:
@@ -234,21 +232,18 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         sink = sb.StreamSink()
         alloc = self._generateAlloc(cf=9001e6,sr=2.5e6,bw=2e6,rf_flow_id="testRFInfoPacket_FlowID")
         allocationID = properties.props_to_dict(alloc)['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::allocation_id']
-        self.comp.connect(sink,connectionId=allocationID)
-        sink.start()
 
         #Send an RF Info Packet
         rfInfo_port = self.comp.getPort("RFInfo_in")
         rf_info_pkt = self._generateRFInfoPkt(rf_freq=9000e6,rf_bw=100e6,if_freq=100e6,rf_flow_id="testRFInfoPacket_FlowID")
         rfInfo_port._set_rfinfo_pkt(rf_info_pkt)
 
-        
         #Allocate a Tuner
         try:
-            retval = self.comp.allocateCapacity(alloc)
+            retval = self.comp.allocate(alloc)
         except Exception as e:
             self.assertFalse("Exception thrown on allocateCapactiy %s" % str(e))
-        if not retval:
+        if len(retval) == 0:
             self.assertFalse("Allocation Failed")
         
         try:
@@ -264,28 +259,25 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         sink = sb.StreamSink()
         alloc = self._generateAlloc(cf=100e6,sr=2.5e6,bw=2e6,rf_flow_id="testRFInfoPacket_FlowID")
         allocationID = properties.props_to_dict(alloc)['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::allocation_id']
-        self.comp.connect(sink,connectionId=allocationID)
-        sink.start()
 
         #Send an RF Info Packet
         rfInfo_port = self.comp.getPort("RFInfo_in")
         rf_info_pkt = self._generateRFInfoPkt(rf_freq=9000e6,rf_bw=100e6,if_freq=100e6,rf_flow_id="testRFInfoPacket_FlowID")
         rfInfo_port._set_rfinfo_pkt(rf_info_pkt)
 
-        
         #Allocate a Tuner
         try:
-            retval = self.comp.allocateCapacity(alloc)
+            retval = self.comp.allocate(alloc)
         except Exception as e:
             self.assertFalse("Exception thrown on allocateCapactiy %s" % str(e))
-        if retval:
+        if len(retval) > 0:
             self.assertFalse("Allocation Succeeded but should have failed")
         
         try:
             self.comp.deallocateCapacity(alloc)      
         except CF.Device.InvalidCapacity as e:
             # Deallocating shouldn't be required if the allocation failed so we would expect this deallocation to be invalid
-            pass        
+            pass
 
     def testInValidRFInfoBW(self):
         """ Ask for a Allocation outside the range of the REceiver but should still work because the RFInfo packet tells the receiver a frequency down conversation has already occured"""
@@ -294,28 +286,25 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         sink = sb.StreamSink()
         alloc = self._generateAlloc(cf=9050.1e6,sr=0,bw=2e6,rf_flow_id="testRFInfoPacket_FlowID")
         allocationID = properties.props_to_dict(alloc)['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::allocation_id']
-        self.comp.connect(sink,connectionId=allocationID)
-        sink.start()
 
         #Send an RF Info Packet
         rfInfo_port = self.comp.getPort("RFInfo_in")
         rf_info_pkt = self._generateRFInfoPkt(rf_freq=9000e6,rf_bw=100e6,if_freq=100e6,rf_flow_id="testRFInfoPacket_FlowID")
         rfInfo_port._set_rfinfo_pkt(rf_info_pkt)
 
-        
         #Allocate a Tuner
         try:
-            retval = self.comp.allocateCapacity(alloc)
+            retval = self.comp.allocate(alloc)
         except Exception as e:
             self.assertFalse("Exception thrown on allocateCapactiy %s" % str(e))
-        if retval:
+        if len(retval) > 0:
             self.assertFalse("Allocation Succeeded but should have failed")
         
         try:
             self.comp.deallocateCapacity(alloc)      
         except CF.Device.InvalidCapacity as e:
             # Deallocating shouldn't be required if the allocation failed so we would expect this deallocation to be invalid
-            pass   
+            pass
 
     def testInValidRFInfoSR(self):
         """ Ask for a Allocation outside the range of the REceiver but should still work because the RFInfo packet tells the receiver a frequency down conversation has already occured"""
@@ -324,28 +313,25 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         sink = sb.StreamSink()
         alloc = self._generateAlloc(cf=9050.1e6,sr=2.5e6,bw=0,rf_flow_id="testRFInfoPacket_FlowID")
         allocationID = properties.props_to_dict(alloc)['FRONTEND::tuner_allocation']['FRONTEND::tuner_allocation::allocation_id']
-        self.comp.connect(sink,connectionId=allocationID)
-        sink.start()
 
         #Send an RF Info Packet
         rfInfo_port = self.comp.getPort("RFInfo_in")
         rf_info_pkt = self._generateRFInfoPkt(rf_freq=9000e6,rf_bw=100e6,if_freq=100e6,rf_flow_id="testRFInfoPacket_FlowID")
         rfInfo_port._set_rfinfo_pkt(rf_info_pkt)
 
-        
         #Allocate a Tuner
         try:
-            retval = self.comp.allocateCapacity(alloc)
+            retval = self.comp.allocate(alloc)
         except Exception as e:
             self.assertFalse("Exception thrown on allocateCapactiy %s" % str(e))
-        if retval:
+        if len(retval) > 0:
             self.assertFalse("Allocation Succeeded but should have failed")
-        
+
         try:
             self.comp.deallocateCapacity(alloc)      
         except CF.Device.InvalidCapacity as e:
             # Deallocating shouldn't be required if the allocation failed so we would expect this deallocation to be invalid
-            pass   
+            pass
 
     def testInvalidAllocation(self):
         alloc = self._generateAlloc(cf=110e6,sr=2.5e6,bw=2e6)

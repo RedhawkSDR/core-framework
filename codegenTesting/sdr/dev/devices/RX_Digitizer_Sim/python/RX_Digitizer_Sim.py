@@ -74,7 +74,7 @@ class RX_Digitizer_Sim_i(RX_Digitizer_Sim_base):
         if propdict.get('FRONTEND::tuner_allocation'):
             allocation_id = propdict['FRONTEND::tuner_allocation'].allocation_id
         if propdict.get('FRONTEND::listener_allocation'):
-            allocation_id = propdict['FRONTEND::tuner_allocation'].listener_allocation_id
+            allocation_id = propdict['FRONTEND::listener_allocation'].listener_allocation_id
 
         props = capacities
 
@@ -129,7 +129,7 @@ class RX_Digitizer_Sim_i(RX_Digitizer_Sim_base):
         if propdict.get('FRONTEND::tuner_allocation'):
             alloc_id = propdict['FRONTEND::tuner_allocation'].allocation_id
         if propdict.get('FRONTEND::listener_allocation'):
-            alloc_id = propdict['FRONTEND::tuner_allocation'].listener_allocation_id
+            alloc_id = propdict['FRONTEND::listener_allocation'].listener_allocation_id
         self.deallocate(alloc_id)
 
     def process(self):
@@ -429,8 +429,7 @@ class RX_Digitizer_Sim_i(RX_Digitizer_Sim_base):
     def set_rfinfo_pkt(self,port_name, pkt):
         self.rfinfo = pkt
         for rdc in self.rdcs:
-            rdc.rf_flow_id = self.rfinfo.rf_flow_id
-            rdc.datagenerator.keyword_dict['FRONTEND::RF_FLOW_ID'] = self.rfinfo.rf_flow_id
+            rdc.set_rfinfo_pkt('', pkt)
 
     '''
     *************************************************************
