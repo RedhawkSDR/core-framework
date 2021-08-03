@@ -63,6 +63,7 @@ RH_SOFTPKG_CXX([{{dep.spd}}]{{',[%s]' % dep.impl if dep.impl}})
 #{% block coreDeps %}
 OSSIE_ENABLE_LOG4CXX
 AX_BOOST_BASE([{{versions.boost}}])
+AX_BOOST_FILESYSTEM
 AX_BOOST_SYSTEM
 AX_BOOST_THREAD
 AX_BOOST_REGEX

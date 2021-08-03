@@ -41,6 +41,7 @@ PKG_CHECK_MODULES([INTERFACEDEPS], [{{component.interfacedeps|join(', ')}}])
 #{% endif %}
 OSSIE_ENABLE_LOG4CXX
 AX_BOOST_BASE([{{versions.boost}}])
+AX_BOOST_FILESYSTEM
 AX_BOOST_SYSTEM
 AX_BOOST_THREAD
 #{% block dependencies %}
