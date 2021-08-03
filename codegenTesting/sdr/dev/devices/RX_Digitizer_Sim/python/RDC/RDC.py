@@ -500,8 +500,6 @@ class RDC_i(RDC_base):
         return True if the tune deletion succeeded, and False if it failed
         ************************************************************'''
         self.datagenerator.stop()
-        controlAllocationID =  fts.allocation_id_csv.split(',')[0]
-        self.removeStreamIdRouting(controlAllocationID, controlAllocationID)
         return True
   
 

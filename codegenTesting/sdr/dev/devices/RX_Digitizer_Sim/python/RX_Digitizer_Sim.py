@@ -66,7 +66,16 @@ class RX_Digitizer_Sim_i(RX_Digitizer_Sim_base):
         if len(capacities) == 0:
             return []
 
-        allocation_id = str(uuid.uuid1())
+        propdict = {}
+        for prop in capacities:
+            propdef = self._props.getPropDef(prop.id)
+            propdict[prop.id] = propdef._fromAny(prop.value)
+
+        if propdict.get('FRONTEND::tuner_allocation'):
+            allocation_id = propdict['FRONTEND::tuner_allocation'].allocation_id
+        if propdict.get('FRONTEND::listener_allocation'):
+            allocation_id = propdict['FRONTEND::tuner_allocation'].listener_allocation_id
+
         props = capacities
 
         # copy the const properties to something that is modifiable
@@ -111,6 +120,18 @@ class RX_Digitizer_Sim_i(RX_Digitizer_Sim_base):
         invalidProps = []
         raise CF.Device.InvalidCapacity("Capacities do not match allocated ones in the child devices", invalidProps)
         
+    def deallocateCapacity(self, properties):
+        propdict = {}
+        for prop in properties:
+            propdef = self._props.getPropDef(prop.id)
+            propdict[prop.id] = propdef._fromAny(prop.value)
+
+        if propdict.get('FRONTEND::tuner_allocation'):
+            alloc_id = propdict['FRONTEND::tuner_allocation'].allocation_id
+        if propdict.get('FRONTEND::listener_allocation'):
+            alloc_id = propdict['FRONTEND::tuner_allocation'].listener_allocation_id
+        self.deallocate(alloc_id)
+
     def process(self):
         # TODO fill in your code here
         self._log.debug("process() example log message")
