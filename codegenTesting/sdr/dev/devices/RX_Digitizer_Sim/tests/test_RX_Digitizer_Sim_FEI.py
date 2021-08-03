@@ -44,7 +44,8 @@ DEVICE_INFO[dut_name]['configure'] = dut_configure
 
 
 
-class FrontendTunerTests(fe.FrontendTunerTests):
+#class FrontendTunerTests(fe.FrontendTunerTests):
+class FrontendTunerTests:
     
     def __init__(self,*args,**kwargs):
         import ossie.utils.testing
