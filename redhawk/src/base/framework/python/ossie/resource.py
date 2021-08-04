@@ -328,6 +328,7 @@ class Resource(object):
         #print "id:" + str(identifier)
         #print "loggerName:" + str(loggerName)
         #print "execparams:" + str(execparams)
+        self._dynamicComponents = []
         self.propertySetAccess = threading.Lock()
         self._id = identifier
         self._started = False
