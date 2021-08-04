@@ -74,19 +74,19 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         #######################################################################
         # Make sure start and stop can be called without throwing exceptions
         sb.start()
-        alloc = frontend.createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id='master',center_frequency=100)
-        listen_alloc = frontend.createTunerListenerAllocation('master','slave')
-        another_listen_alloc = frontend.createTunerListenerAllocation('master','another_slave')
+        alloc = frontend.createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id='owner',center_frequency=100)
+        listen_alloc = frontend.createTunerListenerAllocation('owner','listener')
+        another_listen_alloc = frontend.createTunerListenerAllocation('owner','another_listener')
         self.comp.allocateCapacity(alloc)
         self.comp.allocateCapacity(listen_alloc)
         self.comp.allocateCapacity(another_listen_alloc)
 
-        master = sb.StreamSink()
-        slave = sb.StreamSink()
-        another_slave = sb.StreamSink()
-        self.comp.connect(master,connectionId='master')
-        self.comp.connect(slave,connectionId='slave')
-        self.comp.connect(another_slave,connectionId='another_slave')
+        owner = sb.StreamSink()
+        listener = sb.StreamSink()
+        another_listener = sb.StreamSink()
+        self.comp.connect(owner,connectionId='owner')
+        self.comp.connect(listener,connectionId='listener')
+        self.comp.connect(another_listener,connectionId='another_listener')
 
         def get_eos(streamSink, **kwargs):
             streamData = streamSink.read(**kwargs)
@@ -95,21 +95,69 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
             return False
 
         time.sleep(1)
-        self.assertEqual(get_eos(master), False)
-        self.assertEqual(get_eos(slave), False)
-        self.assertEqual(get_eos(another_slave), False)
+        self.assertEqual(get_eos(owner), False)
+        self.assertEqual(get_eos(listener), False)
+        self.assertEqual(get_eos(another_listener), False)
 
         self.comp.deallocateCapacity(listen_alloc)
-        self.assertEqual(get_eos(master), False)
+        self.assertEqual(get_eos(owner), False)
         # Save result so we dont call read() twice after eos.
-        eos_slave = get_eos(slave, timeout=1, eos=True)
-        self.assertEqual(eos_slave, True)
-        self.assertEqual(get_eos(another_slave), False)
+        eos_listener = get_eos(listener, timeout=1, eos=True)
+        self.assertEqual(eos_listener, True)
+        self.assertEqual(get_eos(another_listener), False)
 
         self.comp.deallocateCapacity(alloc)
-        self.assertEqual(get_eos(master, timeout=1, eos=True), True)
-        self.assertEqual(eos_slave, True)
-        self.assertEqual(get_eos(another_slave, timeout=1, eos=True), True)
+        self.assertEqual(get_eos(owner, timeout=1, eos=True), True)
+        self.assertEqual(eos_listener, True)
+        self.assertEqual(get_eos(another_listener, timeout=1, eos=True), True)
+
+        sb.release()
+        self.fp.close()
+        self.fp = open(self.filename,'r')
+        stuff = self.fp.read()
+        self.fp.close()
+        self.assertEqual(stuff.find('the application attempted to invoke an operation on a nil reference'), -1)
+
+    def testAllocateBehavior(self):
+        #######################################################################
+        # Make sure start and stop can be called without throwing exceptions
+        sb.start()
+        alloc = frontend.createTunerAllocation(tuner_type='RX_DIGITIZER',allocation_id='owner',center_frequency=100, returnDict=False)
+        listen_alloc = frontend.createTunerListenerAllocation('owner','listener', returnDict=False)
+        another_listen_alloc = frontend.createTunerListenerAllocation('owner','another_listener', returnDict=False)
+        self.comp.allocate([alloc])
+        self.comp.allocate([listen_alloc])
+        self.comp.allocate([another_listen_alloc])
+
+        owner = sb.StreamSink()
+        listener = sb.StreamSink()
+        another_listener = sb.StreamSink()
+        self.comp.connect(owner,connectionId='owner')
+        self.comp.connect(listener,connectionId='listener')
+        self.comp.connect(another_listener,connectionId='another_listener')
+
+        def get_eos(streamSink, **kwargs):
+            streamData = streamSink.read(**kwargs)
+            if streamData:
+                return streamData.eos
+            return False
+
+        time.sleep(1)
+        self.assertEqual(get_eos(owner), False)
+        self.assertEqual(get_eos(listener), False)
+        self.assertEqual(get_eos(another_listener), False)
+
+        self.comp.deallocate('listener')
+        self.assertEqual(get_eos(owner), False)
+        # Save result so we dont call read() twice after eos.
+        eos_listener = get_eos(listener, timeout=1, eos=True)
+        self.assertEqual(eos_listener, True)
+        self.assertEqual(get_eos(another_listener), False)
+
+        self.comp.deallocate('owner')
+        self.assertEqual(get_eos(owner, timeout=1, eos=True), True)
+        self.assertEqual(eos_listener, True)
+        self.assertEqual(get_eos(another_listener, timeout=1, eos=True), True)
 
         sb.release()
         self.fp.close()
