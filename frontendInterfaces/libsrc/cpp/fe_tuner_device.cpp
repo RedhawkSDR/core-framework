@@ -578,9 +578,12 @@ namespace frontend {
                 if (_allocationTracker.find(existing_alloc_id) != _allocationTracker.end()) {
                     if (tuner_alloc.find("FRONTEND::listener_allocation::listener_allocation_id") == tuner_alloc.end()) {
                         throw CF::Device::InvalidCapacity("Missing listener_allocation_id", capacities);
+                    } else {
                         std::string listener_alloc_id = tuner_alloc["FRONTEND::listener_allocation::listener_allocation_id"].toString();
                         if (listener_alloc_id.empty()) {
                             tuner_alloc["FRONTEND::listener_allocation::listener_allocation_id"] = allocation_id;
+                        } else {
+                            allocation_id = listener_alloc_id;
                         }
                     }
                 } else {
