@@ -621,20 +621,28 @@ class FrontendTunerDevice(Device):
         self._validateAllocProps(properties)
         request_allocation_id = None
         for _prop in properties:
-            if _prop.id != 'FRONTEND::tuner_allocation':
+            if _prop.id != 'FRONTEND::tuner_allocation' and _prop.id != 'FRONTEND::listener_allocation':
                 continue
-            for _sub_prop in _prop.value._v:
-                if _sub_prop.id != 'FRONTEND::tuner_allocation::allocation_id':
-                    continue
-                request_allocation_id = _sub_prop.value._v
-                break
+            if _prop.id == 'FRONTEND::tuner_allocation':
+                for _sub_prop in _prop.value._v:
+                    if _sub_prop.id != 'FRONTEND::tuner_allocation::allocation_id':
+                        continue
+                    request_allocation_id = _sub_prop.value._v
+                    break
+            elif _prop.id == 'FRONTEND::listener_allocation':
+                for _sub_prop in _prop.value._v:
+                    if _sub_prop.id != 'FRONTEND::listener_allocation::listener_allocation_id':
+                        continue
+                    request_allocation_id = _sub_prop.value._v
+                    break
+
         if request_allocation_id:
-            for prop_key in self._allocationTracker:
-                props = self._allocationTracker[prop_key]
+            if self._allocationTracker.get(request_allocation_id):
+                props = self._allocationTracker[request_allocation_id]
                 if len(properties) == 0 and len(props) == 0:
-                    self.deallocate(prop_key)
+                    self.deallocate(request_allocation_id)
                     return
-                self.deallocate(prop_key)
+                self.deallocate(request_allocation_id)
                 return
 
         raise CF.Device.InvalidCapacity("Allocation for capacity not found", properties)
