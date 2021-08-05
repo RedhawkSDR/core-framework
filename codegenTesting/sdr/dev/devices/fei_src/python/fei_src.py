@@ -35,7 +35,7 @@ class fei_src_i(fei_src_base):
         type. The string for the request must match the string in the tuner status.
         """
         # TODO add customization here.
-        self.addChannels(1, "RX_DIGITIZER")
+        self.addChannels(1, "RDC")
         self._stream_started = False
         self._H = None
         self.data_count = 0
