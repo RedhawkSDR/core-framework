@@ -35,7 +35,7 @@ class inverted_fei_i(inverted_fei_base):
         type. The string for the request must match the string in the tuner status.
         """
         # TODO add customization here.
-        self.addChannels(1, "RX_DIGITIZER")
+        self.addChannels(1, "RDC")
         _antennainfo = FRONTEND.AntennaInfo('','','','')
         _freqrange = FRONTEND.FreqRange(0,0,[])
         _feedinfo = FRONTEND.FeedInfo('','',_freqrange)

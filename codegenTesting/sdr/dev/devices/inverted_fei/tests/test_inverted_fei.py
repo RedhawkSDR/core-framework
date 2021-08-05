@@ -59,7 +59,7 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         self.comp.max_dev_if_cf = 1e6
         self.assertTrue(self.comp.allocateCapacity(alloc))
         self.comp.deallocateCapacity(alloc)
-        pkt_inv=FRONTEND.RFInfoPkt('my_flow',rf_center_freq,rf_bandwidth,if_center_freq,True,_sensorinfo,[],_rfcapabilities,[])
+        pkt_inv=FRONTEND.RFInfoPkt('my_flow',rf_center_freq,rf_bandwidth,if_center_freq,True,_sensorinfo,[],[],[],_rfcapabilities,[])
         port.ref._set_rfinfo_pkt(pkt_inv)
         self.assertFalse(self.comp.allocateCapacity(alloc))
         self.comp.max_dev_if_cf = 1.15e6
