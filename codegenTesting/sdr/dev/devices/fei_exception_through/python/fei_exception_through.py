@@ -52,7 +52,7 @@ class fei_exception_through_i(fei_exception_through_base):
         type. The string for the request must match the string in the tuner status.
         """
         # TODO add customization here.
-        self.setNumChannels(1, "RX_DIGITIZER")
+        self.setNumChannels(1, "RDC")
         self.addPropertyChangeListener('busy_state', self.busyStateChanged)
 
     def busyStateChanged(self, _id, old_value, new_value):

@@ -71,7 +71,7 @@ void fei_exception_through_i::constructor()
      The incoming request for tuning contains a string describing the requested tuner
      type. The string for the request must match the string in the tuner status.
     ***********************************************************************************/
-    this->setNumChannels(1, "RX_DIGITIZER");
+    this->setNumChannels(1, "RDC");
     this->addPropertyListener(busy_state, this, &fei_exception_through_i::busyStatusChanged);
 }
 

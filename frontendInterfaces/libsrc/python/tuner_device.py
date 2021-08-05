@@ -544,6 +544,10 @@ class FrontendTunerDevice(Device):
             propdef = self._props.getPropDef(prop.id)
             propdict[prop.id] = propdef._fromAny(prop.value)
 
+        if not propdict.get('FRONTEND::listener_allocation'):
+            if self.isBusy():
+                return []
+
         self._checkValidIds(propdict)
         scanner_prop = None
         if propdict.get('FRONTEND::scanner_allocation'):
