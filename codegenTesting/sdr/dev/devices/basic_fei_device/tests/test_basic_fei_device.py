@@ -74,13 +74,13 @@ class ResourceTests(ossie.utils.testing.RHComponentTestCase):
 
     def testFailedAllocation(self):
         # Check the that tuner status exists and contains the extra "agc" field
-        frontend_allocation_1 = frontend.tuner_device.createTunerAllocation(tuner_type="RX_DIGITIZER",bandwidth=24.576, center_frequency=30000000, sample_rate=123, bandwidth_tolerance=100, allocation_id='hello')
+        frontend_allocation_1 = frontend.tuner_device.createTunerAllocation(tuner_type="ABOT",bandwidth=24.576, center_frequency=30000000, sample_rate=123, bandwidth_tolerance=100, allocation_id='hello')
         retval = self.comp.allocateCapacity(frontend_allocation_1)
         self.assertEqual(retval, True)
         self.assertEqual(self.comp.frontend_tuner_status[0].bandwidth, 24.576)
         self.assertEqual(self.comp.frontend_tuner_status[0].sample_rate, 123)
         self.assertEqual(self.comp.frontend_tuner_status[0].center_frequency, 30000000)
-        frontend_allocation_2 = frontend.tuner_device.createTunerAllocation(tuner_type="RX_DIGITIZER",bandwidth=20.576, center_frequency=20000000, sample_rate=456, bandwidth_tolerance=100, allocation_id='hello_2')
+        frontend_allocation_2 = frontend.tuner_device.createTunerAllocation(tuner_type="ABOT",bandwidth=20.576, center_frequency=20000000, sample_rate=456, bandwidth_tolerance=100, allocation_id='hello_2')
         retval = self.comp.allocateCapacity(frontend_allocation_2)
         self.assertEqual(retval, False)
         self.assertEqual(self.comp.frontend_tuner_status[0].bandwidth, 24.576)
