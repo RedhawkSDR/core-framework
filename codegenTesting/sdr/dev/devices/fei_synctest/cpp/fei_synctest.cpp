@@ -35,6 +35,12 @@ fei_synctest_i::~fei_synctest_i()
 {
 }
 
+CF::Device::Allocations* fei_synctest_i::allocate(const CF::Properties& capacities)
+{
+    CF::Device::Allocations_var result = fei_synctest_base::allocate(capacities);
+    return result._retn();
+}
+
 void fei_synctest_i::constructor()
 {
     /***********************************************************************************
@@ -54,7 +60,7 @@ void fei_synctest_i::constructor()
      The incoming request for tuning contains a string describing the requested tuner
      type. The string for the request must match the string in the tuner status.
     ***********************************************************************************/
-    this->addChannels(tuners, "RX_DIGITIZER");
+    this->addChannels(tuners, "RDC");
 }
 
 /***********************************************************************************************
@@ -479,6 +485,18 @@ double fei_synctest_i::getTunerOutputSampleRate(const std::string& allocation_id
     long idx = getTunerMapping(allocation_id);
     if (idx < 0) throw FRONTEND::FrontendException("Invalid allocation id");
     return frontend_tuner_status[idx].sample_rate;
+}
+
+void fei_synctest_i::configureTuner(const std::string& allocation_id, const CF::Properties& tunerSettings){
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
+    throw FRONTEND::NotSupportedException("configureTuner not supported");
+}
+
+CF::Properties* fei_synctest_i::getTunerSettings(const std::string& allocation_id){
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
+    throw FRONTEND::NotSupportedException("getTunerSettings not supported");
 }
 
 /*************************************************************

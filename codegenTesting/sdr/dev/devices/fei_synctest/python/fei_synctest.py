@@ -35,7 +35,7 @@ class fei_synctest_i(fei_synctest_base):
         type. The string for the request must match the string in the tuner status.
         """
         # TODO add customization here.
-        self.addChannels(self.tuners, "RX_DIGITIZER")
+        self.addChannels(self.tuners, "RDC")
         
     def process(self):
         """

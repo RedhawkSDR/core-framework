@@ -8,7 +8,7 @@ import itertools
 import traceback
 import time
 
-def allocate(id=1, tuner_type='RX_DIGITIZER', dev_ior=None, verbose=False ):
+def allocate(id=1, tuner_type='RDC', dev_ior=None, verbose=False ):
     import subprocess
     import os
     fpath=os.path.dirname(os.path.realpath(__file__))
@@ -22,7 +22,7 @@ def allocate(id=1, tuner_type='RX_DIGITIZER', dev_ior=None, verbose=False ):
         print("completed allocation ", id, tuner_type, " return values ", status, output)
     return status
 
-def deallocate(id=1, tuner_type='RX_DIGITIZER', dev_ior=None, verbose=False ):
+def deallocate(id=1, tuner_type='RDC', dev_ior=None, verbose=False ):
     import subprocess
     import os
     fpath=os.path.dirname(os.path.realpath(__file__))
@@ -75,7 +75,7 @@ class SyncTest(ossie.utils.testing.RHTestCase):
         with concurrent.futures.ProcessPoolExecutor(max_workers=n_execs) as e1:
             retval=e1.map(allocate,
                           allocations,
-                          itertools.repeat('RX_DIGITIZER'),
+                          itertools.repeat('RDC'),
                           itertools.repeat(dev_ior),
                           itertools.repeat(self.verbose) )
             e1.shutdown(wait=True)
@@ -108,7 +108,7 @@ class SyncTest(ossie.utils.testing.RHTestCase):
         with concurrent.futures.ProcessPoolExecutor(max_workers=n_execs) as e1:
             retval=e1.map(deallocate,
                           allocations,
-                          itertools.repeat('RX_DIGITIZER'),
+                          itertools.repeat('RDC'),
                           itertools.repeat(dev_ior),
                           itertools.repeat(self.verbose) )            
             e1.shutdown(wait=True)
