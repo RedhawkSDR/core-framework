@@ -18,8 +18,9 @@ class RFInfoPort(FRONTEND__POA.RFInfo):
         _freqrange=FRONTEND.FreqRange(0,0,[])
         _feedinfo=FRONTEND.FeedInfo('','',_freqrange)
         _sensorinfo=FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
-        _rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange)
-        _rfinfopkt=FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],_rfcapabilities,[])
+        _range=FRONTEND.Range(0.0,0.0,[])
+        _rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange,_range,_range)
+        _rfinfopkt=FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],[],[],_rfcapabilities,[])
         return _rfinfopkt
     def _set_rfinfo_pkt(self, rf_inputs):
         pass
@@ -36,8 +37,9 @@ class RFSourcePort(FRONTEND__POA.RFSource):
         _freqrange=FRONTEND.FreqRange(0,0,[])
         _feedinfo=FRONTEND.FeedInfo('','',_freqrange)
         _sensorinfo=FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
-        _rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange)
-        _rfinfopkt=FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],_rfcapabilities,[])
+        _range=FRONTEND.Range(0.0,0.0,[])
+        _rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange,_range,_range)
+        _rfinfopkt=FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],[],[],_rfcapabilities,[])
         return _rfinfopkt
     def _set_current_rf_input(self, rf_inputs):
         pass

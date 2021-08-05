@@ -370,8 +370,9 @@ class RDC_i(RDC_base):
         _freqrange=FRONTEND.FreqRange(0,0,[])
         _feedinfo=FRONTEND.FeedInfo('','',_freqrange)
         _sensorinfo=FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
-        _rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange)
-        _rfinfopkt=FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],_rfcapabilities,[])
+        _range=FRONTEND.Range(0.0,0.0,[])
+        _rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange,_range,_range)
+        _rfinfopkt=FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],[],[],_rfcapabilities,[])
         return _rfinfopkt
 
     def set_rfinfo_pkt(self,port_name, pkt):

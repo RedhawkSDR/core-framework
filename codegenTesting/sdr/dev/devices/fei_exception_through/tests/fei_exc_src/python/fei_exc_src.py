@@ -367,8 +367,9 @@ class fei_exc_src_i(fei_exc_src_base):
         _freqrange=FRONTEND.FreqRange(0,0,[])
         _feedinfo=FRONTEND.FeedInfo('','',_freqrange)
         _sensorinfo=FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
-        _rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange)
-        _rfinfopkt=FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],_rfcapabilities,[])
+        _range=FRONTEND.Range(0.0,0.0,[])
+        _rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange,_range,_range)
+        _rfinfopkt=FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],[],[],_rfcapabilities,[])
         return _rfinfopkt
 
     def set_rfinfo_pkt(self,port_name, pkt):
@@ -385,8 +386,9 @@ class fei_exc_src_i(fei_exc_src_base):
         _freqrange = FRONTEND.FreqRange(0,0,[])
         _feedinfo = FRONTEND.FeedInfo('','',_freqrange)
         _sensorinfo = FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
-        _rfcapabilities = FRONTEND.RFCapabilities(_freqrange,_freqrange)
-        _rfinfopkt = FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],_rfcapabilities,[])
+        _range=FRONTEND.Range(0.0,0.0,[])
+        _rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange,_range,_range)
+        _rfinfopkt=FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],[],[],_rfcapabilities,[])
         return _rfinfopkt
 
     def set_current_rf_input(self, port_name, pkt):
@@ -403,8 +405,9 @@ class fei_exc_src_i(fei_exc_src_base):
         _freqrange = FRONTEND.FreqRange(0,0,[])
         _feedinfo = FRONTEND.FeedInfo('','',_freqrange)
         _sensorinfo = FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
-        _rfcapabilities = FRONTEND.RFCapabilities(_freqrange,_freqrange)
-        _rfinfopkt = FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],_rfcapabilities,[])
+        _range = FRONTEND.Range(0.0,0.0,[])
+        _rfcapabilities = FRONTEND.RFCapabilities(_freqrange,_freqrange,_range,_range)
+        _rfinfopkt = FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],[],[],_rfcapabilities,[])
         _rfinfopkt.rf_center_freq=freq;
         _rfinfopkt.rf_bandwidth=freq/2.0;
         return _rfinfopkt

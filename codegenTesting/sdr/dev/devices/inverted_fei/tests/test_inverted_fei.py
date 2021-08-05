@@ -45,11 +45,12 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         _freqrange=FRONTEND.FreqRange(0,0,[])
         _feedinfo=FRONTEND.FeedInfo('','',_freqrange)
         _sensorinfo=FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
-        _rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange)
+        _range=FRONTEND.Range(0.0,0.0,[])
+        _rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange,_range,_range)
         rf_center_freq = 1e7
         rf_bandwidth = 3e5
         if_center_freq = 1e6
-        pkt_str=FRONTEND.RFInfoPkt('my_flow',rf_center_freq,rf_bandwidth,if_center_freq,False,_sensorinfo,[],_rfcapabilities,[])
+        pkt_str=FRONTEND.RFInfoPkt('my_flow',rf_center_freq,rf_bandwidth,if_center_freq,False,_sensorinfo,[],[],[],_rfcapabilities,[])
         request_cf = 9.95e6
         request_bw = 2e5
         alloc = frontend.createTunerAllocation(allocation_id='foo', center_frequency=request_cf, bandwidth=request_bw, sample_rate=0.0)
