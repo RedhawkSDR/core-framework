@@ -38,7 +38,7 @@ namespace ossie {
 namespace redhawk {
 
     class ApplicationDeployment;
-    class ComponentDeployment;
+    class GeneralDeployment;
 
     class DeploymentError : public std::runtime_error {
     public:
@@ -85,7 +85,7 @@ namespace redhawk {
     class UsesDeviceFailure : public DeploymentError {
     public:
         UsesDeviceFailure(const ApplicationDeployment& application, const std::vector<std::string>& ids);
-        UsesDeviceFailure(const ComponentDeployment* component, const std::vector<std::string>& ids);
+        UsesDeviceFailure(const GeneralDeployment* component, const std::vector<std::string>& ids);
 
         virtual ~UsesDeviceFailure() throw()
         {
@@ -154,7 +154,7 @@ namespace redhawk {
 
     class ComponentError : public DeploymentError {
     public:
-        ComponentError(const ComponentDeployment* deployment, const std::string& message);
+        ComponentError(const GeneralDeployment* deployment, const std::string& message);
 
         virtual ~ComponentError() throw ()
         {
@@ -179,7 +179,7 @@ namespace redhawk {
 
     class ExecuteError : public ComponentError {
     public:
-        ExecuteError(const ComponentDeployment* deployment, const std::string& message);
+        ExecuteError(const GeneralDeployment* deployment, const std::string& message);
 
         const boost::shared_ptr<ossie::DeviceNode>& device() const
         {
@@ -198,7 +198,7 @@ namespace redhawk {
 
     class PropertiesError : public ComponentError {
     public:
-        PropertiesError(const ComponentDeployment* deployment,
+        PropertiesError(const GeneralDeployment* deployment,
                          const CF::Properties& properties,
                          const std::string& message) :
             ComponentError(deployment, message),

@@ -36,7 +36,7 @@ UsesDeviceFailure::UsesDeviceFailure(const ApplicationDeployment&, const std::ve
 {
 }
 
-UsesDeviceFailure::UsesDeviceFailure(const ComponentDeployment* component, const std::vector<std::string>& ids) :
+UsesDeviceFailure::UsesDeviceFailure(const GeneralDeployment* component, const std::vector<std::string>& ids) :
     DeploymentError(CF::CF_ENOSPC, "failed to satisfy usesdevice dependencies"),
     _context("component '" + component->getInstantiation()->getID() + "'"),
     _ids(ids)
@@ -67,7 +67,7 @@ std::string ConnectionError::message() const
     return msg.str();
 }
 
-ComponentError::ComponentError(const ComponentDeployment* deployment, const std::string& message) :
+ComponentError::ComponentError(const GeneralDeployment* deployment, const std::string& message) :
     DeploymentError(CF::CF_EINVAL, message),
     _identifier(deployment->getInstantiation()->getID())
 {
@@ -87,7 +87,7 @@ std::string ComponentError::message() const
     return msg.str();
 }
 
-ExecuteError::ExecuteError(const ComponentDeployment* deployment, const std::string& message) :
+ExecuteError::ExecuteError(const GeneralDeployment* deployment, const std::string& message) :
     ComponentError(deployment, message),
     _device(deployment->getAssignedDevice())
 {
@@ -101,7 +101,9 @@ std::string ExecuteError::message() const
     std::ostringstream msg;
     msg << "Executing component " << identifier();
     msg << " implementation " << implementation();
-    msg << " failed on device " << device()->identifier;
+    if (device()) {
+        msg << " failed on device " << device()->identifier;
+    }
     msg << ": " << what();
     return msg.str();
 }

@@ -231,6 +231,10 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
     boost::recursive_mutex::scoped_lock lock(load_execute_lock);
     try
     {
+        if (loadKind == CF::LoadableDevice::CONTAINER) {
+            RH_WARN(_loadabledeviceLog, "Found a CONTAINER and changed it to EXECUTABLE")
+            loadKind = CF::LoadableDevice::EXECUTABLE;
+        }
         do_load(fs, fileName, loadKind);
         update_ld_library_path(fs, fileName, loadKind);
         update_octave_path(fs, fileName, loadKind);

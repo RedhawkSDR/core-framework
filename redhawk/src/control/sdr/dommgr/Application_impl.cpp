@@ -1,4 +1,3 @@
-
 /*
  * This file is protected by Copyright. Please refer to the COPYRIGHT file 
  * distributed with this source distribution.
@@ -22,6 +21,7 @@
 #include <stdexcept>
 #include <string>
 #include <sstream>
+#include <string>
 
 #include <boost/foreach.hpp>
 
@@ -225,12 +225,32 @@ void Application_impl::setLogLevel( const char *logger_id, const CF::LogLevel ne
         } catch (const CF::UnknownIdentifier& ex) {
         }
     }
+    BOOST_FOREACH(redhawk::ApplicationComponent component, _cluster) {
+        if (not component.isRegistered() or not component.isVisible())
+            continue;
+        CF::Resource_var resource_ref = component.getResourcePtr();
+        try {
+            resource_ref->setLogLevel(logger_id, newLevel);
+            return;
+        } catch (const CF::UnknownIdentifier& ex) {
+        }
+    }
     throw (CF::UnknownIdentifier());
 }
 
 CF::LogLevel Application_impl::getLogLevel( const char *logger_id ) throw (CF::UnknownIdentifier)
 {
     BOOST_FOREACH(redhawk::ApplicationComponent component, _components) {
+        if (not component.isRegistered() or not component.isVisible())
+            continue;
+        CF::Resource_var resource_ref = component.getResourcePtr();
+        try {
+            CF::LogLevel level = resource_ref->getLogLevel(logger_id);
+            return level;
+        } catch (const CF::UnknownIdentifier& ex) {
+        }
+    }
+    BOOST_FOREACH(redhawk::ApplicationComponent component, _cluster) {
         if (not component.isRegistered() or not component.isVisible())
             continue;
         CF::Resource_var resource_ref = component.getResourcePtr();
@@ -255,12 +275,27 @@ CF::StringSequence* Application_impl::getNamedLoggers()
             ossie::corba::push_back(retval, CORBA::string_dup(component_logger_list[i]));
         }
     }
+    BOOST_FOREACH(redhawk::ApplicationComponent component, _cluster) {
+        if (not component.isRegistered() or not component.isVisible())
+            continue;
+        CF::Resource_var resource_ref = component.getResourcePtr();
+        CF::StringSequence_var component_logger_list = resource_ref->getNamedLoggers();
+        for (unsigned int i=0; i<component_logger_list->length(); i++) {
+            ossie::corba::push_back(retval, CORBA::string_dup(component_logger_list[i]));
+        }
+    }
     return retval._retn();
 }
 
 void Application_impl::resetLog()
 {
     BOOST_FOREACH(redhawk::ApplicationComponent component, _components) {
+        if (not component.isRegistered() or not component.isVisible())
+            continue;
+        CF::Resource_var resource_ref = component.getResourcePtr();
+        resource_ref->resetLog();
+    }
+    BOOST_FOREACH(redhawk::ApplicationComponent component, _cluster) {
         if (not component.isRegistered() or not component.isVisible())
             continue;
         CF::Resource_var resource_ref = component.getResourcePtr();
@@ -856,6 +891,16 @@ CF::PortSet::PortInfoSequence* Application_impl::getPortSet ()
                 RH_ERROR(_baseLog, "Unhandled exception during getPortSet, application: " << _identifier << " comp:" << _component_iter->getIdentifier() << "/" << _component_iter->getNamingContext() );
             }
         }
+        for (ComponentList::iterator _component_iter=this->_cluster.begin(); _component_iter!=this->_cluster.end(); _component_iter++) {
+            try {
+                CF::Resource_var comp = _component_iter->getResourcePtr();
+                comp_portsets.push_back(comp->getPortSet());
+            } catch ( CORBA::COMM_FAILURE &ex ) {
+                RH_ERROR(_baseLog, "Component getPortSet failed, application: " << _identifier << " comp:" << _component_iter->getIdentifier() << "/" << _component_iter->getNamingContext() ); 
+            } catch ( ... ) {
+                RH_ERROR(_baseLog, "Unhandled exception during getPortSet, application: " << _identifier << " comp:" << _component_iter->getIdentifier() << "/" << _component_iter->getNamingContext() );
+            }
+        }
     }
 
     for (std::map<std::string, CORBA::Object_var>::iterator _port_val=_ports.begin(); _port_val!=_ports.end(); _port_val++) {
@@ -1015,7 +1060,22 @@ throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
                 _waveformContext->unbind(componentBindingName);
             } CATCH_RH_ERROR(_baseLog, "Unable to unbind component")
         }
-        RH_DEBUG(_baseLog, "Next component")
+    }
+    for (ClusterList::iterator ii = _cluster.begin(); ii != _cluster.end(); ++ii) {
+
+        if (ii->hasNamingContext()) {
+            const std::string& componentName = ii->getNamingContext();
+
+            // Unbind the component from the naming context. This assumes that the component is
+            // bound into the waveform context, and its name inside of the context follows the
+            // last slash in the fully-qualified name.
+            std::string shortName = componentName.substr(componentName.rfind('/')+1);
+            RH_TRACE(_baseLog, "Unbinding component " << shortName);
+            CosNaming::Name_var componentBindingName = ossie::corba::stringToName(shortName);
+            try {
+                _waveformContext->unbind(componentBindingName);
+            } CATCH_RH_ERROR(_baseLog, "Unable to unbind component")
+        }
     }
 
     terminateComponents();
@@ -1104,6 +1164,21 @@ void Application_impl::releaseComponents()
             ii->releaseObject();
         }
     }
+
+    for (ClusterList::iterator ii = _cluster.begin(); ii != _cluster.end(); ++ii) {
+        if (ii->getChildren().empty()) {
+            // Release "real" components first
+            ii->releaseObject();
+            break;
+        }
+    }
+
+    for (ClusterList::iterator ii = _cluster.begin(); ii != _cluster.end(); ++ii) {
+        if (!ii->getChildren().empty()) {
+            // Release "real" components first
+            ii->releaseObject();
+        }
+    }
 }
 
 
@@ -1125,12 +1200,32 @@ void Application_impl::terminateComponents()
         }
         ii->terminate();
     }
+    // Terminate any components that were executed on devices
+    for (ClusterList::iterator ii = _cluster.begin(); ii != _cluster.end(); ++ii) {
+        if ( !ii->getAssignedDevice() ) {
+            // no assigned device, try to resolve using device id
+            if ( _domainManager ) {
+                ossie::DeviceList _registeredDevices = _domainManager->getRegisteredDevices();
+                for (ossie::DeviceList::iterator _dev=_registeredDevices.begin(); _dev!=_registeredDevices.end(); _dev++) {
+                    if ( ii->getAssignedDeviceId() == (*_dev)->identifier) {
+                        ii->setAssignedDevice( *_dev );
+                        break;
+                    }
+                }
+            }
+        }
+        ii->terminate();
+    }
 }
 
 void Application_impl::unloadComponents()
 {
     // Terminate any components that were executed on devices
     for (ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
+        ii->unloadFiles();
+    }
+    // Terminate any components that were executed on devices
+    for (ClusterList::iterator ii = _cluster.begin(); ii != _cluster.end(); ++ii) {
         ii->unloadFiles();
     }
 }
@@ -1203,7 +1298,9 @@ throw (CORBA::SystemException)
             return result._retn();
         }
     }
-    convert_sequence(result, _components, to_pid_type);
+    std::list<redhawk::ApplicationComponent> comp_list = _components;
+    comp_list.insert(comp_list.end(), _cluster.begin(), _cluster.end());
+    convert_sequence(result, comp_list, to_pid_type);
     return result._retn();
 }
 
@@ -1220,7 +1317,9 @@ CF::Components* Application_impl::registeredComponents ()
         }
     }
     boost::mutex::scoped_lock lock(_registrationMutex);
-    convert_sequence_if(result, _components, to_component_type,
+    std::list<redhawk::ApplicationComponent> comp_list = _components;
+    comp_list.insert(comp_list.end(), _cluster.begin(), _cluster.end());
+    convert_sequence_if(result, comp_list, to_component_type,
                         std::mem_fun_ref(&redhawk::ApplicationComponent::isRegistered));
     return result._retn();
 }
@@ -1236,6 +1335,8 @@ bool Application_impl::haveAttribute(std::vector<std::string> &atts, std::string
 CF::Properties* Application_impl::metrics(const CF::StringSequence& components, const CF::StringSequence& attributes)
 throw (CF::Application::InvalidMetric, CORBA::SystemException)
 {
+    std::list<redhawk::ApplicationComponent> comp_list = _components;
+    comp_list.insert(_components.end(), _cluster.begin(), _cluster.end());
     CF::Properties_var result_ugly = new CF::Properties();
     // Make sure releaseObject hasn't already been called
     {
@@ -1275,7 +1376,7 @@ throw (CF::Application::InvalidMetric, CORBA::SystemException)
 
     std::map<std::string, redhawk::ApplicationComponent*> component_map;
     std::vector<std::string> component_list;
-    for (ComponentList::iterator _component_iter=this->_components.begin(); _component_iter!=this->_components.end(); _component_iter++) {
+    for (ComponentList::iterator _component_iter=comp_list.begin(); _component_iter!=comp_list.end(); _component_iter++) {
         if (_component_iter->isVisible()) {
             component_list.push_back(_component_iter->getName());
             component_map[_component_iter->getName()] = &(*_component_iter);
@@ -1482,7 +1583,9 @@ throw (CORBA::SystemException)
         }
     }
 
-    convert_sequence_if(result, _components, to_name_element,
+    std::list<redhawk::ApplicationComponent> comp_list = _components;
+    comp_list.insert(comp_list.end(), _cluster.begin(), _cluster.end());
+    convert_sequence_if(result, comp_list, to_name_element,
                         std::mem_fun_ref(&redhawk::ApplicationComponent::hasNamingContext));
     return result._retn();
 }
@@ -1501,7 +1604,9 @@ throw (CORBA::SystemException)
             return result._retn();
         }
     }
-    convert_sequence(result, _components, to_impl_element);
+    std::list<redhawk::ApplicationComponent> comp_list = _components;
+    comp_list.insert(comp_list.end(), _cluster.begin(), _cluster.end());
+    convert_sequence(result, comp_list, to_impl_element);
     return result._retn();
 }
 
@@ -1570,9 +1675,57 @@ bool Application_impl::checkConnectionDependency (Endpoint::DependencyType type,
     return false;
 }
 
+bool Application_impl::_checkPodRegistrations (std::set<std::string>& identifiers)
+{
+    for (ClusterList::iterator ii = _cluster.begin(); ii != _cluster.end(); ++ii) {
+        if (ii->isRegistered()) {
+            //If the registered component is a cluster type, poll and set pod's status
+            if (identifiers.find(ii->getIdentifier()) != identifiers.end() && ii->getIsCluster()) {
+                    if(!ii->getClusterManager()->pollStatusActive(ii->getIdentifier())) {
+                        RH_ERROR(_baseLog, "The component with identifier " << ii->getIdentifier() << " is not active!" )
+                    }
+            }
+
+            identifiers.erase(ii->getIdentifier());
+
+        } else if (ii->isTerminated()) {
+           throw redhawk::ComponentTerminated(ii->getIdentifier());
+        }
+    }
+    return identifiers.empty();
+}
+
+bool Application_impl::waitForCluster (std::set<std::string>& identifiers, int timeout)
+{
+    // Determine the current time, then add the timeout value to calculate when we should
+    // stop retrying as an absolute time.
+    boost::system_time end = boost::get_system_time() + boost::posix_time::seconds(timeout);
+
+    boost::mutex::scoped_lock lock(_registrationMutex);
+    while (!_checkPodRegistrations(identifiers)) {
+      RH_DEBUG(_baseLog, "Waiting for cluster....APP:" << _identifier << "  list " << identifiers.size() );
+
+        for (std::set<std::string>::iterator i = identifiers.begin(); i != identifiers.end(); i++) {
+            RH_DEBUG(_baseLog, "ID " << i->data())
+        }
+
+        if (!_registrationCondition.timed_wait(lock, end)) {
+            break;
+        }
+    }
+    return identifiers.empty();
+}
+
 bool Application_impl::_checkRegistrations (std::set<std::string>& identifiers)
 {
     for (ComponentList::iterator ii = _components.begin(); ii != _components.end(); ++ii) {
+        if (ii->isRegistered()) {
+            identifiers.erase(ii->getIdentifier());
+        } else if (ii->isTerminated()) {
+            throw redhawk::ComponentTerminated(ii->getIdentifier());
+        }
+    }
+    for (ComponentList::iterator ii = _cluster.begin(); ii != _cluster.end(); ++ii) {
         if (ii->isRegistered()) {
             identifiers.erase(ii->getIdentifier());
         } else if (ii->isTerminated()) {
@@ -1630,21 +1783,26 @@ redhawk::ApplicationComponent* Application_impl::getComponent(const std::string&
 
 void Application_impl::registerComponent (CF::Resource_ptr resource)
 {
+    static int i = 0;
+    i++;
+    RH_TRACE(_baseLog, "Component responded with an ior of " << ossie::corba::objectToString(resource) <<  " "<< i)
     std::string componentId;
     std::string softwareProfile;
+
+    RH_TRACE(_baseLog, "Calling back to component to set the component ID and software  " << i)
     try{
        componentId = ossie::corba::returnString(resource->identifier());
        softwareProfile = ossie::corba::returnString(resource->softwareProfile());
     }
     catch(...) {
-      throw CF::InvalidObjectReference();
+       throw CF::InvalidObjectReference();
     }
 
     boost::mutex::scoped_lock lock(_registrationMutex);
     redhawk::ApplicationComponent* comp = findComponent(componentId);
 
     if (!comp) {
-        RH_WARN(_baseLog, "Unexpected component '" << componentId
+        RH_TRACE(_baseLog, "Unexpected component '" << componentId
                  << "' registered with application '" << _appName << "'");
         comp = addComponent(componentId, softwareProfile);
     } else if (softwareProfile != comp->getSoftwareProfile()) {
@@ -1654,7 +1812,7 @@ void Application_impl::registerComponent (CF::Resource_ptr resource)
         comp->setSoftwareProfile(softwareProfile);
     }
 
-    RH_TRACE(_baseLog, "REGISTERING Component '" << componentId << "' software profile " << softwareProfile << " pid:" << comp->getProcessId());
+    RH_TRACE(_baseLog, "Component '" << componentId << "' software profile " << softwareProfile << " pid:" << comp->getProcessId() << " " << i);
     comp->setComponentObject(resource);
     _registrationCondition.notify_all();
 }
@@ -1684,6 +1842,11 @@ redhawk::ApplicationComponent* Application_impl::findComponent(const std::string
             return &(*ii);
         }
     }
+    for (ClusterList::iterator ii = _cluster.begin(); ii != _cluster.end(); ++ii) {
+        if (identifier == ii->getIdentifier()) {
+            return &(*ii);
+        }
+    }
 
     return 0;
 }
@@ -1698,7 +1861,17 @@ redhawk::ApplicationComponent* Application_impl::addComponent(const std::string&
     return component;
 }
 
-redhawk::ApplicationComponent* Application_impl::addContainer(const redhawk::ContainerDeployment* container)
+redhawk::ApplicationComponent* Application_impl::addCluster(const std::string& componentId,
+                                                              const std::string& softwareProfile)
+{
+    _cluster.push_back(redhawk::ApplicationComponent(componentId));
+    redhawk::ApplicationComponent* component = &(_cluster.back());
+    component->setSoftwareProfile(softwareProfile);
+    component->setLogger(_baseLog);
+    return component;
+}
+
+redhawk::ApplicationComponent* Application_impl::addContainer(const boost::shared_ptr<redhawk::GeneralDeployment> container)
 {
     const std::string& identifier = container->getIdentifier();
     if (findComponent(identifier)) {
@@ -1706,16 +1879,25 @@ redhawk::ApplicationComponent* Application_impl::addContainer(const redhawk::Con
     }
     const std::string& profile = container->getSoftPkg()->getSPDFile();
     RH_DEBUG(_baseLog, "Adding container '" << identifier << "' with profile " << profile);
-    redhawk::ApplicationComponent* component = addComponent(identifier, profile);
+    redhawk::ApplicationComponent* component;
+    if (container->getIsCluster()) {
+        component = addCluster(identifier, profile);
+    }
+    else {
+        component = addComponent(identifier, profile);
+    }
     component->setName(container->getInstantiation()->getID());
+    component->setIsCluster(container->getIsCluster());
     component->setImplementationId(container->getImplementation()->getID());
     // Hide ComponentHost instances from the CORBA API
     component->setVisible(false);
-    component->setAssignedDevice(container->getAssignedDevice());
+    if (!container->getIsCluster()) {
+        component->setAssignedDevice(container->getAssignedDevice());
+    }
     return component;
 }
 
-redhawk::ApplicationComponent* Application_impl::addComponent(const redhawk::ComponentDeployment* deployment)
+redhawk::ApplicationComponent* Application_impl::addComponent(const boost::shared_ptr<redhawk::GeneralDeployment> deployment)
 {
     const std::string& identifier = deployment->getIdentifier();
     if (findComponent(identifier)) {
@@ -1728,6 +1910,20 @@ redhawk::ApplicationComponent* Application_impl::addComponent(const redhawk::Com
     component->setImplementationId(deployment->getImplementation()->getID());
     component->setAssignedDevice(deployment->getAssignedDevice());
     return component;
+}
+
+redhawk::ApplicationComponent* Application_impl::addCluster(const boost::shared_ptr<redhawk::GeneralDeployment> deployment)
+{
+    const std::string& identifier = deployment->getIdentifier();
+    if (findComponent(identifier)) {
+        throw std::logic_error("cluster '" + identifier + "' is already registered");
+    }
+    const std::string& profile = deployment->getSoftPkg()->getSPDFile();
+    RH_DEBUG(_baseLog, "Adding cluster '" << identifier << "' with profile " << profile);
+    redhawk::ApplicationComponent* cluster = addCluster(identifier, profile);
+    cluster->setName(deployment->getInstantiation()->getID());
+    cluster->setImplementationId(deployment->getImplementation()->getID());
+    return cluster;
 }
 
 void Application_impl::componentTerminated(const std::string& componentId, const std::string& deviceId)

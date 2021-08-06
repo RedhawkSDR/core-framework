@@ -771,6 +771,8 @@ post_codeFileType ()
         return ossie::SPD::Code::KERNEL_MODULE;
     } else if (type == "Driver") {
         return ossie::SPD::Code::DRIVER;
+    } else if (type == "Container") {
+        return ossie::SPD::Code::CONTAINER;    
     } else {
         RH_WARN(spd::parserLog, "Invalid code type '" << type << "'");
         return ossie::SPD::Code::NONE;
