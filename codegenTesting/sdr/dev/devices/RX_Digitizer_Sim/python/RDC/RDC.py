@@ -462,12 +462,11 @@ class RDC_i(RDC_base):
         tuneFreq = self.convert_rf_to_if(request.center_frequency)
 
         # Check the CF
-
         if not(validateRequestSingle(self.MINFREQ,self.MAXFREQ,tuneFreq)):
             self._log.debug( "Center Freq Does not fit %s, %s, %s" %(tuneFreq, self.MINFREQ , self.MAXFREQ))
             return False         
-        # Check the BW/SR
 
+        # Check the BW/SR
         bw,sr,decimation = self.findBestBWSR(request.bandwidth,request.sample_rate)
         if not bw:
             self._log.debug( "Can't Satisfy BW and SR request")

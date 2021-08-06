@@ -335,8 +335,8 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
 
     def testInvalidAllocation(self):
         alloc = self._generateAlloc(cf=110e6,sr=2.5e6,bw=2e6)
-        retval = self.comp.allocateCapacity(alloc)
-        self.assertRaises(CF.Device.InvalidCapacity, self.comp.allocateCapacity,alloc)
+        retval = self.comp.allocate(alloc)
+        self.assertRaises(CF.Device.InvalidCapacity, self.comp.allocate,alloc)
 
     def testTuningException(self):
         alloc = self._generateAlloc(cf=111e6,sr=2.5e6,bw=2e6)

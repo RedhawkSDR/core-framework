@@ -102,6 +102,8 @@ class RX_Digitizer_Sim_i(RX_Digitizer_Sim_base):
                 invalidState = "SHUTTING_DOWN"
             raise CF.Device.InvalidState(invalidState)
 
+        if self._delegatedAllocations.get(allocation_id):
+            raise CF.Device.InvalidCapacity("Requested allocation_id already in use", local_props)
         for rdc in self.rdcs:
             result = rdc.allocate(local_props)
             if len(result) > 0:
