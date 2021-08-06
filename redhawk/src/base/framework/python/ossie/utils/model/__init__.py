@@ -1059,8 +1059,18 @@ class Device(Resource):
             destfile.close()
 
     def allocate(self, properties):
-        if self.ref:
-            return self.ref.allocate(properties)
+        #if self.ref:
+        #    return self.ref.allocate(properties)
+        if not self.ref:
+            return []
+        allocProps = self._capacitiesToAny(properties)
+        results = self.ref.allocate(allocProps)
+        if len(results) > 0:
+            if not hasattr(self, '_alloc'):
+                self._alloc = [properties]
+            else:
+                self._alloc.append(properties)
+        return results
 
     def deallocate(self, alloc_id):
         if self.ref:
