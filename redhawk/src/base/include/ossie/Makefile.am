@@ -78,8 +78,10 @@ nobase_pkginclude_HEADERS = internal/equals.h \
 	     internal/message_traits.h \
 	     logging/rh_logger.h \
 	     logging/LogConfigUriResolver.h \
-	     logging/loghelpers.h \
-	     debug/check.h \
+	     cluster/ClusterManagerResolver.h \
+             logging/loghelpers.h \
+	     cluster/clusterhelpers.h \
+             debug/check.h \
 	     debug/checked_allocator.h \
 	     debug/checked_iterator.h \
 	     shm/Allocator.h \

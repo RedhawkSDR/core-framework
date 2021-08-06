@@ -111,6 +111,9 @@ std::ostream& ossie::operator<<(std::ostream& out, SPD::Code::CodeType type)
     case SPD::Code::DRIVER:
         out << "Driver";
         break;
+    case SPD::Code::CONTAINER:
+        out << "Container";
+        break;
     default:
         break;
     }

@@ -43,4 +43,19 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     <processor name="x86"/>
     <processor name="x86_64"/>
   </implementation>
+  <!--
+  <implementation id="cpp">
+    <description>Deployable container for launching multiple components in the same process</description>
+    <code type="Container">
+      <localfile name="ComponentHost"/>
+      <entrypoint>ComponentHost::rh.componenthost</entrypoint>
+    </code>
+    <compiler name="/usr/bin/gcc" version="4.4.7"/>
+    <programminglanguage name="C++"/>
+    <humanlanguage name="EN"/>
+    <os name="Linux"/>
+    <processor name="x86"/>
+    <processor name="x86_64"/>
+  </implementation>
+  -->
 </softpkg>

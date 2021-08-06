@@ -28,8 +28,27 @@
 #include <ossie/debug.h>
 
 #include "PersistenceStore.h"
+#include "Application_impl.h"
 
 #define DEFAULT_STOP_TIMEOUT 3
+
+namespace redhawk {
+      class componentProcess {
+
+      public:
+        componentProcess();
+        componentProcess(int pid, std::string pname);
+        virtual ~componentProcess();
+
+        unsigned long getProcessId() const;
+        void setProcessId(unsigned long pid);
+
+      private:
+        unsigned long _processId;
+        std::string _processName;
+              // Change to enum of psssible pod statuses
+      };
+}
 
 namespace redhawk {
     class ApplicationComponent {
@@ -59,9 +78,12 @@ namespace redhawk {
 
         ApplicationComponent* getComponentHost();
         void setComponentHost(ApplicationComponent* componentHost);
+        void setIsCluster(bool isCluster);
+        bool getIsCluster();
 
         unsigned long getProcessId() const;
         void setProcessId(unsigned long processId);
+
 
         bool isResource() const;
         bool isTerminated() const;
@@ -94,7 +116,17 @@ namespace redhawk {
             _appComponentLog = log;
         };
 
+        void setClusterManager(ossie::cluster::ClusterManagerResolverPtr clusterMgr) {
+            _clusterMgr = clusterMgr;
+        }
+
+        ossie::cluster::ClusterManagerResolverPtr getClusterManager () {
+            return _clusterMgr;
+        }
+
     private:
+        ossie::cluster::ClusterManagerResolverPtr _clusterMgr;
+
         std::string _identifier;
         std::string _name;
         std::string _softwareProfile;
@@ -102,13 +134,15 @@ namespace redhawk {
         std::string _implementationId;
         bool _isVisible;
         std::vector<std::string> _loadedFiles;
-        unsigned long _processId;
+        //unsigned long _processId;
+        redhawk::componentProcess  _processId;
         CORBA::Object_var _componentObject;
         CF::Resource_var _resource;
         boost::shared_ptr<ossie::DeviceNode> _assignedDevice;
         std::string  _assignedDeviceId;
 
         ApplicationComponent* _componentHost;
+        bool _isCluster;
         std::vector<ApplicationComponent*> _children;
         rh_logger::LoggerPtr _appComponentLog;
     };

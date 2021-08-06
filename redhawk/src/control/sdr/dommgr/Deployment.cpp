@@ -167,6 +167,11 @@ void SoftPkgDeployment::load(redhawk::ApplicationComponent* appComponent, CF::Fi
     const std::string fileName = getLocalFile();
     RH_DEBUG(deploymentLog, "Loading file " << fileName
                 << " for soft package " << softpkg->getName());
+    // TODO: Remove Hack
+    if (codeType == CF::LoadableDevice::CONTAINER) {
+        codeType = CF::LoadableDevice::EXECUTABLE;
+    }
+
     try {
         device->load(fileSystem, fileName.c_str(), codeType);
     } catch (const CF::Device::InvalidState& exc) {
@@ -218,6 +223,8 @@ CF::LoadableDevice::LoadType SoftPkgDeployment::getCodeType() const
         return CF::LoadableDevice::EXECUTABLE;
     case SPD::Code::DRIVER:
         return CF::LoadableDevice::DRIVER;
+    case SPD::Code::CONTAINER:
+        return CF::LoadableDevice::CONTAINER;
     default:
         return CF::LoadableDevice::LoadType();
     }
@@ -240,19 +247,21 @@ bool SoftPkgDeployment::isExecutable() const
         return bool(implementation->getEntryPoint());
     case SPD::Code::SHARED_LIBRARY:
         return true;
+    case SPD::Code::CONTAINER:
+        return true;
     default:
         return false;
     }
 }
 
-ComponentDeployment::ComponentDeployment(const SoftPkg* softpkg,
-                                         const ComponentInstantiation* instantiation,
-                                         const std::string& identifier) :
+GeneralDeployment::GeneralDeployment(const SoftPkg* softpkg,
+                       const ComponentInstantiation* instantiation,
+                       const std::string& identifier) :
     SoftPkgDeployment(softpkg),
     instantiation(instantiation),
     identifier(identifier),
+    _isCluster(false),
     assemblyController(false),
-    container(0),
     appComponent(0)
 {
     std::string sadLoggingConfig;
@@ -319,57 +328,47 @@ ComponentDeployment::ComponentDeployment(const SoftPkg* softpkg,
     }
 }
 
-const std::string& ComponentDeployment::getIdentifier() const
+const std::string& GeneralDeployment::getIdentifier() const
 {
     return identifier;
 }
 
-const ComponentInstantiation* ComponentDeployment::getInstantiation() const
+const ComponentInstantiation* GeneralDeployment::getInstantiation() const
 {
     return instantiation;
 }
 
-void ComponentDeployment::setContainer(ComponentDeployment* container)
-{
-    this->container = container;
-}
-
-ComponentDeployment* ComponentDeployment::getContainer()
-{
-    return container;
-}
-
-bool ComponentDeployment::isResource() const
+bool GeneralDeployment::isResource() const
 {
     return softpkg->getDescriptor()->isResource();
 }
 
-bool ComponentDeployment::isConfigurable() const
+bool GeneralDeployment::isConfigurable() const
 {
     return softpkg->getDescriptor()->isConfigurable();
 }
 
-bool ComponentDeployment::isAssemblyController() const
+bool GeneralDeployment::isAssemblyController() const
 {
     return assemblyController;
 }
 
-void ComponentDeployment::setIsAssemblyController(bool state)
+void GeneralDeployment::setIsAssemblyController(bool state)
 {
     assemblyController = state;
 }
 
-void ComponentDeployment::setAssignedDevice(const boost::shared_ptr<DeviceNode>& device)
+void GeneralDeployment::setAssignedDevice(const boost::shared_ptr<DeviceNode>& device)
 {
     assignedDevice = device;
 }
 
-const boost::shared_ptr<DeviceNode>& ComponentDeployment::getAssignedDevice() const
+const boost::shared_ptr<DeviceNode>& GeneralDeployment::getAssignedDevice() const
 {
     return assignedDevice;
 }
 
-std::string ComponentDeployment::getEntryPoint()
+std::string GeneralDeployment::getEntryPoint()
 {
     const char* entryPoint = implementation->getEntryPoint();
     if (entryPoint) {
@@ -384,7 +383,7 @@ std::string ComponentDeployment::getEntryPoint()
     return std::string();
 }
 
-redhawk::PropertyMap ComponentDeployment::getOptions()
+redhawk::PropertyMap GeneralDeployment::getOptions()
 {
     // In prior versions, the options could be overridden, at least from the
     // perspective of ComponentInfo; this may need to be re-implemented
@@ -425,46 +424,46 @@ redhawk::PropertyMap ComponentDeployment::getOptions()
     return options;
 }
 
-void ComponentDeployment::setNicAssignment(const std::string& nic)
+void GeneralDeployment::setNicAssignment(const std::string& nic)
 {
     nicAssignment = nic;
 }
 
-bool ComponentDeployment::hasNicAssignment() const
+bool GeneralDeployment::hasNicAssignment() const
 {
     return !nicAssignment.empty();
 }
 
-const std::string& ComponentDeployment::getNicAssignment() const
+const std::string& GeneralDeployment::getNicAssignment() const
 {
     return nicAssignment;
 }
 
-void ComponentDeployment::setCpuReservation(float reservation)
+void GeneralDeployment::setCpuReservation(float reservation)
 {
     cpuReservation = reservation;
 }
 
-bool ComponentDeployment::hasCpuReservation() const
+bool GeneralDeployment::hasCpuReservation() const
 {
     return cpuReservation.isSet();
 }
 
-float ComponentDeployment::getCpuReservation() const
+float GeneralDeployment::getCpuReservation() const
 {
     return *cpuReservation;
 }
 
-redhawk::PropertyMap ComponentDeployment::getDeviceRequires() const {
+redhawk::PropertyMap GeneralDeployment::getDeviceRequires() const {
     return deviceRequires;
 }
 
-void ComponentDeployment::setDeviceRequires( const redhawk::PropertyMap &devReqs ) {
+void GeneralDeployment::setDeviceRequires( const redhawk::PropertyMap &devReqs ) {
     deviceRequires = devReqs;
 }
 
 
-redhawk::PropertyMap ComponentDeployment::getAllocationContext() const
+redhawk::PropertyMap GeneralDeployment::getAllocationContext() const
 {
     redhawk::PropertyMap properties;
     if (softpkg->getProperties()) {
@@ -485,7 +484,7 @@ redhawk::PropertyMap ComponentDeployment::getAllocationContext() const
     return properties;
 }
 
-redhawk::PropertyMap ComponentDeployment::getCommandLineParameters() const
+redhawk::PropertyMap GeneralDeployment::getCommandLineParameters() const
 {
    redhawk::PropertyMap properties;
    bool has_LOGGING_CONFIG_URI = false;
@@ -540,7 +539,7 @@ redhawk::PropertyMap ComponentDeployment::getCommandLineParameters() const
    return properties;
 }
 
-redhawk::PropertyMap ComponentDeployment::getInitialConfigureProperties() const
+redhawk::PropertyMap GeneralDeployment::getInitialConfigureProperties() const
 {
    redhawk::PropertyMap properties;
    if (softpkg->getProperties()) {
@@ -556,7 +555,7 @@ redhawk::PropertyMap ComponentDeployment::getInitialConfigureProperties() const
    return properties;
 }
 
-redhawk::PropertyMap ComponentDeployment::getInitializeProperties() const
+redhawk::PropertyMap GeneralDeployment::getInitializeProperties() const
 {
     redhawk::PropertyMap properties;
     if (softpkg->getProperties()) {
@@ -586,12 +585,12 @@ redhawk::PropertyMap ComponentDeployment::getInitializeProperties() const
     return properties;
 }
 
-void ComponentDeployment::overrideProperty(const std::string& id, const CORBA::Any& value)
+void GeneralDeployment::overrideProperty(const std::string& id, const CORBA::Any& value)
 {
     overrides[id] = value;
 }
 
-CF::DataType ComponentDeployment::getPropertyValue(const Property* property) const
+CF::DataType GeneralDeployment::getPropertyValue(const Property* property) const
 {
     if (property->canOverride()) {
         // Check for a runtime override first
@@ -609,7 +608,7 @@ CF::DataType ComponentDeployment::getPropertyValue(const Property* property) con
     return ossie::convertPropertyToDataType(property);
 }
 
-const ComponentProperty* ComponentDeployment::getPropertyOverride(const std::string& id) const
+const ComponentProperty* GeneralDeployment::getPropertyOverride(const std::string& id) const
 {
     BOOST_FOREACH(const ComponentProperty& override, instantiation->getProperties()) {
         if (override.getID() == id) {
@@ -619,7 +618,7 @@ const ComponentProperty* ComponentDeployment::getPropertyOverride(const std::str
     return 0;
 }
 
-redhawk::PropertyMap ComponentDeployment::getAffinityOptionsWithAssignment() const
+redhawk::PropertyMap GeneralDeployment::getAffinityOptionsWithAssignment() const
 {
     redhawk::PropertyMap options = affinityOptions;
     for (redhawk::PropertyMap::const_iterator prop = options.begin(); prop != options.end(); ++prop) {
@@ -634,23 +633,23 @@ redhawk::PropertyMap ComponentDeployment::getAffinityOptionsWithAssignment() con
     return options;
 }
 
-void ComponentDeployment::mergeAffinityOptions(const CF::Properties& properties)
+void GeneralDeployment::mergeAffinityOptions(const CF::Properties& properties)
 {
     // Update existing settings with new ones
     affinityOptions.update(properties);
 }
 
-void ComponentDeployment::setResourcePtr(CF::Resource_ptr resource)
+void GeneralDeployment::setResourcePtr(CF::Resource_ptr resource)
 {
     this->resource = CF::Resource::_duplicate(resource);
 }
 
-CF::Resource_ptr ComponentDeployment::getResourcePtr() const
+CF::Resource_ptr GeneralDeployment::getResourcePtr() const
 {
     return CF::Resource::_duplicate(resource);
 }
 
-void ComponentDeployment::load(CF::FileSystem_ptr fileSystem, CF::LoadableDevice_ptr device)
+void GeneralDeployment::load(CF::FileSystem_ptr fileSystem, CF::LoadableDevice_ptr device)
 {
     if (!appComponent) {
         throw std::logic_error("deployment is not assigned to an application component");
@@ -659,7 +658,7 @@ void ComponentDeployment::load(CF::FileSystem_ptr fileSystem, CF::LoadableDevice
 }
 
 
-redhawk::PropertyMap ComponentDeployment::getLoggingConfiguration() const
+redhawk::PropertyMap GeneralDeployment::getLoggingConfiguration() const
 {
     std::string logcfg_uri;
     std::string debug_level;
@@ -730,17 +729,17 @@ redhawk::PropertyMap ComponentDeployment::getLoggingConfiguration() const
     return ret;
 }
 
-redhawk::ApplicationComponent* ComponentDeployment::getApplicationComponent()
+redhawk::ApplicationComponent* GeneralDeployment::getApplicationComponent()
 {
     return appComponent;
 }
 
-void ComponentDeployment::setApplicationComponent(redhawk::ApplicationComponent* component)
+void GeneralDeployment::setApplicationComponent(redhawk::ApplicationComponent* component)
 {
     appComponent = component;
 }
 
-void ComponentDeployment::initializeProperties()
+void GeneralDeployment::initializeProperties()
 {
     redhawk::PropertyMap init_props = getInitializeProperties();
 
@@ -779,7 +778,7 @@ void ComponentDeployment::initializeProperties()
     }
 }
 
-void ComponentDeployment::initialize()
+void GeneralDeployment::initialize()
 {
     if (isConfigurable()) {
         initializeProperties();
@@ -798,6 +797,7 @@ void ComponentDeployment::initialize()
             }
             logmsg << " '" << error.errorMessages[index] << "'";
         }
+
         throw ComponentError(this, logmsg.str());
     } catch (const CORBA::SystemException& exc) {
         throw ComponentError(this, "initialize raised " + ossie::corba::describeException(exc));
@@ -808,7 +808,7 @@ void ComponentDeployment::initialize()
     }
 }
 
-void ComponentDeployment::configure()
+void GeneralDeployment::configure()
 {
     if (!softpkg->isScaCompliant()) {
         // If the component is non-SCA compliant then we don't expect anything beyond this

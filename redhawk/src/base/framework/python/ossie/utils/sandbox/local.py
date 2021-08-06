@@ -25,6 +25,9 @@ import time
 import copy
 import pydoc
 import warnings
+import subprocess
+import json
+import cluster
 
 from omniORB import CORBA
 from omniORB.any import to_any
@@ -235,6 +238,7 @@ class LocalLauncher(SandboxLauncher):
         # Execute the entry point, either on the virtual device or the Sandbox
         # component host
         entry_point = sdrroot.relativePath(comp._profile, impl.get_code().get_entrypoint())
+
         if impl.get_code().get_type() == 'SharedLibrary':
             if self._shared:
                 container = comp._sandbox._getComponentHost(_debugger = debugger)
@@ -242,7 +246,7 @@ class LocalLauncher(SandboxLauncher):
                 container = comp._sandbox._launchComponentHost(comp._instanceName, _debugger = debugger)
             container.executeLinked(entry_point, [], execparams, deps)
             process = container._process
-        else:
+        elif impl.get_code().get_type() == 'Executable':
             process = device.execute(entry_point, deps, execparams, debugger, window, self._stdout)
 
             # Set up a callback to notify when the component exits abnormally.
@@ -254,19 +258,28 @@ class LocalLauncher(SandboxLauncher):
                 elif status < 0:
                     print('Component %s (pid=%d) terminated with signal %d' % (name, pid, -status))
             process.setTerminationCallback(terminate_callback)
+        else:
+            process = device.executeContainer(entry_point, deps, execparams, debugger, window, self._stdout)
+            name = comp._instanceName
+            process.setTerminationCallback(process.terminate_callback)
 
         # Wait for the component to register with the virtual naming service or
         # DeviceManager.
-        if self._timeout is None:
+        if self._timeout is None and impl.get_code().get_type() not in "Container":
             # Default timeout depends on whether the debugger might increase
             # the startup time
             if debugger and debugger.modifiesCommand():
                 timeout = 60.0
             else:
                 timeout = 10.0
-        else:
+            sleepIncrement = 0.1
+        elif impl.get_code().get_type() not in "Container":
             timeout = self._timeout
-        sleepIncrement = 0.1
+            sleepIncrement = 0.1
+        else:
+            timeout = process.timeout()
+            sleepIncrement = process.sleepIncrement()
+        
         while self.getReference(comp) is None:
             if not process.isAlive():
                 raise RuntimeError("%s '%s' terminated before registering with virtual environment" % (self._getType(), comp._instanceName))
@@ -419,6 +432,7 @@ class LocalServiceLauncher(LocalLauncher):
 class ComponentHost(SandboxComponent):
     def __init__(self, *args, **kwargs):
         SandboxComponent.__init__(self, *args, **kwargs)
+        self._descriptor = None
 
     def _register(self):
         pass
@@ -464,6 +478,7 @@ class LocalSandbox(Sandbox):
         if not isinstance(_debugger, Valgrind):
             _debugger = None
         comp._launcher = LocalComponentLauncher(execparams, {}, True, {}, _debugger, None, None, False)
+        comp._descriptor = "ComponentHost"
         comp._kick()
         return comp
 

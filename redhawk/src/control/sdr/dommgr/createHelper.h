@@ -98,12 +98,16 @@ private:
 
     redhawk::ProfileCache _profileCache;
 
-    typedef std::vector<redhawk::ComponentDeployment*> DeploymentList;
-    typedef std::vector<redhawk::ContainerDeployment*> ContainerList;
+    typedef std::vector< boost::shared_ptr<redhawk::GeneralDeployment> > DeploymentList;
+    typedef std::vector< boost::shared_ptr<redhawk::GeneralDeployment> > ComponentList;
+    typedef std::vector< boost::shared_ptr<redhawk::GeneralDeployment> > ContainerList;
+    typedef std::vector< boost::shared_ptr<redhawk::GeneralDeployment> > ClusterList;
     typedef std::vector<std::string> ProcessorList;
     typedef std::vector<ossie::SPD::NameVersionPair> OSList;
     typedef std::vector<ossie::Reservation> ReservationList;
 
+    void configureK8sYaml(CF::ApplicationRegistrar_ptr registrar, const ClusterList& cluster, const char* name, ossie::cluster::ClusterManagerResolverPtr clusterMgr);
+    void configureSwarmYaml(CF::ApplicationRegistrar_ptr registrar, const ClusterList& cluster, const char* name, ossie::cluster::ClusterManagerResolverPtr clusterMgr);
     // createHelper helper methods
     void assignPlacementsToDevices(redhawk::ApplicationDeployment& appDeployment,
                                    const DeviceAssignmentMap& devices,
@@ -138,9 +142,9 @@ private:
     void _evaluateMATHinRequest(CF::Properties &request, const CF::Properties &configureProperties);
     void _castRequestProperties(CF::Properties& allocationProperties, const std::vector<ossie::PropertyRef> &prop_refs, unsigned int offset=0);
 
-    redhawk::PropertyMap _getComponentAllocations(const redhawk::ComponentDeployment* deployment);
+    redhawk::PropertyMap _getComponentAllocations(const boost::shared_ptr<redhawk::GeneralDeployment> deployment);
     std::string _getNicAllocationId(redhawk::PropertyMap& allocationProperties);
-    void _applyNicAllocation(redhawk::ComponentDeployment* deployment, const std::string& allocId, CF::Device_ptr device);
+    void _applyNicAllocation(boost::shared_ptr<redhawk::GeneralDeployment> deployment, const std::string& allocId, CF::Device_ptr device);
 
     // Supports allocation
     bool allocateUsesDevices(const std::vector<ossie::UsesDevice>& usesDevices,
@@ -151,11 +155,11 @@ private:
         const std::vector<ossie::UsesDevice>& component,
         const CF::Properties& configureProperties);
     void allocateComponent(redhawk::ApplicationDeployment& appDeployment,
-                           redhawk::ComponentDeployment* deployment,
+                           boost::shared_ptr<redhawk::GeneralDeployment> deployment,
                            const std::string& assignedDeviceId,
                            const std::map<std::string,float>& specialized_reservations);
 
-    ossie::AllocationResult allocateComponentToDevice(redhawk::ComponentDeployment* deployment,
+    ossie::AllocationResult allocateComponentToDevice(boost::shared_ptr<redhawk::GeneralDeployment> deployment,
                                                       const std::string& assignedDeviceId,
                                                       const std::string& appIdentifier,
                                                       const std::map<std::string,float>& specialized_reservations);
@@ -180,28 +184,38 @@ private:
     
     // Supports loading, executing, initializing, configuring, & connecting
     void loadAndExecuteContainers(const ContainerList& containers,
-                                  CF::ApplicationRegistrar_ptr _appReg);
+                                  CF::ApplicationRegistrar_ptr _appReg, const ossie::cluster::ClusterManagerResolverPtr clusterMgr);
     void waitForContainerRegistration(redhawk::ApplicationDeployment& appDeployment);
 
-    void loadAndExecuteComponents(const DeploymentList& deployments,
+    void loadAndExecuteComponents(const ComponentList& deployments,
                                   CF::ApplicationRegistrar_ptr _appReg);
-    void applyApplicationAffinityOptions(const DeploymentList& deployments);
+    void loadAndExecuteShared(const ComponentList& deployments, const ClusterList& cluster, const ossie::cluster::ClusterManagerResolverPtr clusterMgr,
+                                  CF::ApplicationRegistrar_ptr _appReg);
+    void applyApplicationAffinityOptions(const ComponentList& deployments);
 
-    void attemptComponentExecution(CF::ApplicationRegistrar_ptr registrar, redhawk::ComponentDeployment* deployment);
+    void attemptComponentExecution(CF::ApplicationRegistrar_ptr registrar, boost::shared_ptr<redhawk::GeneralDeployment> deployment);
+    void attemptClusterExecution (CF::ApplicationRegistrar_ptr registrar, boost::shared_ptr<redhawk::GeneralDeployment> deployment);
 
     void waitForComponentRegistration(redhawk::ApplicationDeployment& appDeployment);
-    void initializeComponents(const DeploymentList& deployments);
+    void waitForSharedRegistration(redhawk::ApplicationDeployment& appDeployment);
+    void initializeComponents(const ComponentList& deployments);
 
-    void configureComponents(const DeploymentList& deployments);
+    void loadAndExecuteCluster(const ClusterList& cluster,
+                                  CF::ApplicationRegistrar_ptr _appReg, const ossie::cluster::ClusterManagerResolverPtr clusterMgr,
+                                  const std::string & identifier);
+    void waitForClusterRegistration(redhawk::ApplicationDeployment& appDeployment);
+
+    void configureComponents(const ComponentList& deployments);
     void connectComponents(redhawk::ApplicationDeployment& appDeployment,
         std::vector<ossie::ConnectionNode>& connections, 
         std::string                         base_naming_context);
 
     int  resolveDebugLevel( const std::string &level_in );
-    void resolveLoggingConfiguration(redhawk::ComponentDeployment* deployment, redhawk::PropertyMap &execParams );
-    std::vector<std::string> getStartOrder(const DeploymentList& deployments);
+    void resolveLoggingConfiguration(boost::shared_ptr<redhawk::GeneralDeployment> deployment, redhawk::PropertyMap &execParams );
+    std::vector<std::string> getStartOrder(const ComponentList& deployments);
     void verifyNoCpuSpecializationCollisions(const ossie::SoftwareAssembly& sad, std::map<std::string,float> specialized_reservations);
     std::vector<std::string> getComponentUsageNames(redhawk::ApplicationDeployment& appDeployment);
+    std::vector<std::string> getClusterUsageNames(redhawk::ApplicationDeployment& appDeployment);
     std::vector<std::string> getHostCollocationsIds();
 
     // Cleanup - used when create fails/doesn't succeed for some reason

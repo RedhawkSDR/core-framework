@@ -229,15 +229,18 @@ public:
 
     // Set component state
     redhawk::ApplicationComponent* addComponent(const std::string& componentId, const std::string& softwareProfile);
-    redhawk::ApplicationComponent* addComponent(const redhawk::ComponentDeployment* deployment);
-    redhawk::ApplicationComponent* addContainer(const redhawk::ContainerDeployment* container);
+    redhawk::ApplicationComponent* addCluster(const std::string& componentId, const std::string& softwareProfile);
+    redhawk::ApplicationComponent* addComponent(const boost::shared_ptr<redhawk::GeneralDeployment> deployment);
+    redhawk::ApplicationComponent* addContainer(const boost::shared_ptr<redhawk::GeneralDeployment> container);
+    redhawk::ApplicationComponent* addCluster(const boost::shared_ptr<redhawk::GeneralDeployment> deployment);
 
     void releaseComponents();
     void terminateComponents();
     void unloadComponents();
 
     void componentTerminated(const std::string& componentId, const std::string& deviceId);
-
+    
+    bool waitForCluster(std::set<std::string>& identifiers, int timeout);
     bool waitForComponents(std::set<std::string>& identifiers, int timeout);
 
     CF::Application_ptr getComponentApplication();
@@ -265,7 +268,11 @@ public:
     // reset the loggers on all components on the waveform
     void resetLog();
 
+    std::string GetStdoutFromCommand(std::string cmd);
+    void poll(redhawk::ApplicationComponent& ii);
+
 private:
+
     Application_impl (); // No default constructor
     Application_impl(Application_impl&);  // No copying
 
@@ -289,6 +296,7 @@ private:
     void registerComponent(CF::Resource_ptr resource);
 
     bool _checkRegistrations(std::set<std::string>& identifiers);
+    bool _checkPodRegistrations(std::set<std::string>& identifiers);
 
     void _checkComponentConnections(redhawk::ApplicationComponent* component);
 
@@ -311,7 +319,9 @@ private:
     ApplicationRegistrar_impl* _registrar;
 
     typedef std::list<redhawk::ApplicationComponent> ComponentList;
+    typedef std::list<redhawk::ApplicationComponent> ClusterList;
     ComponentList _components;
+    ClusterList _cluster;
     CosNaming::NamingContext_var _domainContext;
 
     boost::mutex _registrationMutex;
@@ -335,4 +345,7 @@ private:
     friend class ApplicationRegistrar_impl;
 };
 
+//Method to poll for k8s pod status
+//void poll(redhawk::ApplicationComponent& ii);
+//std::string GetStdoutFromCommand(std::string cmd);
 #endif

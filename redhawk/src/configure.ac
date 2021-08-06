@@ -109,6 +109,10 @@ idldir=`pkg-config --variable=idldir omniORB4`
 AC_MSG_RESULT([$idldir])
 AC_SUBST(IDLDIR, [$idldir])
 
+AC_MSG_CHECKING([for yaml-cpp])
+PKG_CHECK_EXISTS([Yaml-cpp >= 0.5])
+AC_MSG_RESULT([yes])
+
 dnl Executable is named xsdcxx in Fedora epel repo, REDHAWK dep is named xsd
 AC_CHECK_PROGS([XSD], [xsdcxx xsd], [no])
 if test x"$XSD" = xno ; then
@@ -314,7 +318,8 @@ AC_CONFIG_FILES(Makefile \
                 base/parser/Makefile \
                 base/plugin/Makefile \
                 base/plugin/logcfg/Makefile \
-                idl/Makefile \
+                base/plugin/clustermgr/Makefile \
+		idl/Makefile \
                 xml/Makefile \
                 tools/Makefile )
 

@@ -24,16 +24,26 @@ if [ "X$OSSIEHOME" = X ] ; then
         PATH=:${PATH}
     fi
     export PATH=@bindir@${PATH}
-    if [ "X$LD_LIBRARY_PATH" != X ]; then
-        LD_LIBRARY_PATH=:${LD_LIBRARY_PATH}
-    fi
-    export LD_LIBRARY_PATH=@libdir@${LD_LIBRARY_PATH}
     if [ "X$PYTHONPATH" != X ]; then
         PYTHONPATH=:${PYTHONPATH}
     fi
     export PYTHONPATH=${OSSIEHOME}/lib64/python:${OSSIEHOME}/lib/python${PYTHONPATH}
 fi
+if [ "X$KUBECONFIG" = X ] ; then
+   export KUBECONFIG=$OSSIEHOME/.kube/config 
+fi
+if [ "X$AWS_SHARED_CREDENTIALS_FILE" = X ] ; then
+    export AWS_SHARED_CREDENTIALS_FILE=$OSSIEHOME/aws/credentials
+fi
+if [ "X$AWS_CONFIG_FILE" = X ] ; then
+    export AWS_CONFIG_FILE=$OSSIEHOME/aws/config
+fi
+if [ "X$AWS_PROFILE" = X ] ; then
+    export AWS_PROFILE=redhawk
+fi
 if [ "X$LD_LIBRARY_PATH" = X ] ; then
     export LD_LIBRARY_PATH=@libdir@
 fi
-
+if [ "X$LD_LIBRARY_PATH" != X ]; then
+    LD_LIBRARY_PATH=@libdir@:${LD_LIBRARY_PATH}
+fi

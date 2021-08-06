@@ -72,7 +72,8 @@ namespace ossie {
                     EXECUTABLE,
                     KERNEL_MODULE,
                     SHARED_LIBRARY,
-                    DRIVER
+                    DRIVER,
+                    CONTAINER
                 };
 
                 // Required

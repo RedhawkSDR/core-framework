@@ -184,8 +184,17 @@ void ApplicationValidator::validateImplementation(const SoftPkg* softpkg,
         if (!implementation.getEntryPoint()) {
             throw bad_implementation(softpkg, implementation, "has no entry point");
         }
-        std::string entry_point = _relativePath(softpkg, implementation.getEntryPoint());
+        std::string entry_point_image = _relativePath(softpkg, implementation.getEntryPoint());
+        std::string entry_point = entry_point_image;
+        std::string image;
+        std::string delim = "::";
+        if (entry_point_image.find(delim) != std::string::npos) {
+            std::size_t pos = entry_point_image.find(delim);
+            image = entry_point_image.substr(pos+2);
+            entry_point = entry_point_image.substr(0, (entry_point_image.length() - image.length() - delim.length()));
+        }
         RH_TRACE(_appFactoryLog, "Validating code entry point " << entry_point);
+
         if (!fileExists(entry_point)) {
             throw bad_implementation(softpkg, implementation, "missing entrypoint " + entry_point);
         }

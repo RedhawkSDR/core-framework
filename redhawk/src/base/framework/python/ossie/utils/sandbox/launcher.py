@@ -27,91 +27,16 @@ import tempfile
 import subprocess
 import platform
 import zipfile
+import cluster
+from process import LocalProcess
 
 from ossie.utils import log4py
 from ossie import parsers
 from ossie.utils.popen import Popen
 
-__all__ = ('LocalProcess', 'VirtualDevice')
+__all__ = ('VirtualDevice')
 
 log = logging.getLogger(__name__)
-
-
-class LocalProcess(object):
-    STOP_SIGNALS = ((signal.SIGINT, 1),
-                    (signal.SIGTERM, 5),
-                    (signal.SIGKILL, 0))
-
-    def __init__(self, command, arguments, environment=None, stdout=None):
-        self.__terminateRequested = False
-        self.__command = command
-        self.__arguments = arguments
-        log.debug('%s %s', command, ' '.join(arguments))
-        self.__process = Popen([command]+arguments, executable=command,
-                               cwd=os.getcwd(), env=environment,
-                               stdout=stdout, stderr=subprocess.STDOUT,
-                               preexec_fn=os.setpgrp)
-        self.__tracker = None
-        self.__callback = None
-        self.__children = []
-    
-    def setTerminationCallback(self, callback):
-        if not self.__tracker:
-            # Nothing is currently waiting for notification, start monitor.
-            name = 'process-%d-tracker' % self.pid()
-            self.__tracker = threading.Thread(name=name, target=self._monitorProcess)
-            self.__tracker.daemon = True
-            self.__tracker.start()
-        self.__callback = callback
-
-    def _monitorProcess(self):
-        try:
-            status = self.__process.wait()
-        except:
-            # If wait fails, don't bother with notification.
-            return
-        if self.__callback:
-            self.__callback(self.pid(), status)
-
-    def terminate(self):
-        for child in self.__children:
-            child.terminate()
-        self.__children = []
-
-        for sig, timeout in self.STOP_SIGNALS:
-            try:
-                log.debug('Killing process group %s with signal %s', self.__process.pid, sig)
-                os.killpg(self.__process.pid, sig)
-            except OSError:
-                pass
-            giveup_time = time.time() + timeout
-            while self.__process.poll() is None:
-                if time.time() > giveup_time:
-                    break
-                time.sleep(0.1)
-            if self.__process.poll() is not None:
-                break
-        self.__process.wait()
-        self.__process = None
-    
-    def requestTermination(self):
-        self.__terminateRequested = True
-    
-    def command(self):
-        return self.__command
-
-    def pid(self):
-        if self.__process:
-            return self.__process.pid
-        else:
-            return None
-
-    def isAlive(self):
-        return self.__process and self.__process.poll() is None
-
-    def addChild(self, process):
-        self.__children.append(process)
-
 
 class VirtualDevice(object):
     def __init__(self):
@@ -159,6 +84,7 @@ class VirtualDevice(object):
         # If the implementation has an entry point, make sure it exists too
         if impl.get_code().get_entrypoint():
             entry_point = impl.get_code().get_entrypoint()
+            entry_point = entry_point.split("::")[0]
             filename = sdrroot.relativePath(profile, entry_point)
             log.trace("Checking entrypoint '%s' ('%s')", entry_point, filename)
             if not os.path.exists(filename):
@@ -172,7 +98,7 @@ class VirtualDevice(object):
                 return impl
         raise RuntimeError("Softpkg '%s' has no usable implementation" % spd.get_name())
 
-    def execute(self, entryPoint, deps, execparams, debugger, window, stdout=None):
+    def getExecArgs(self, entryPoint, deps, execparams, debugger, window, stdout=None):        
         # Make sure the entry point exists and can be run.
         if not os.path.exists(entryPoint):
             raise RuntimeError("Entry point '%s' does not exist" % entryPoint)
@@ -224,8 +150,28 @@ class VirtualDevice(object):
         elif window_mode == 'direct':
             # Run the command directly in a window (typically, in the debugger).
             command, arguments = window.command(command, arguments)
+
+        return command, arguments, environment, stdout
+
+    def execute(self, entryPoint, deps, execparams, debugger, window, stdout=None):
+
+        command, arguments, environment, stdout = self.getExecArgs(entryPoint, deps, execparams, debugger, window, stdout)
+
         process = LocalProcess(command, arguments, environment, stdout)
 
+        return process
+
+    def executeContainer(self, entryPoint_image, deps, execparams, debugger, window, stdout=None):
+        image = ""
+        if "::" in entryPoint_image:
+            entryPoint = entryPoint_image.split("::")[0]
+            image      = entryPoint_image.split("::")[1]
+        else:
+            raise RuntimeError("No docker image was found in the spd file")
+
+        command, arguments, environment, stdout = self.getExecArgs(entryPoint, deps, execparams, debugger, window, stdout)
+        
+        process = cluster.executeCluster(command, arguments, image, environment, stdout)
         return process
 
     def _processDependency(self, environment, filename):

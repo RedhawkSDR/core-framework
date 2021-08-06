@@ -31,6 +31,9 @@
 #include <ossie/PropertyMap.h>
 #include <ossie/SoftwareAssembly.h>
 
+#include <ossie/cluster/ClusterManagerResolver.h>
+#include <ossie/cluster/clusterhelpers.h>
+
 #include "connectionSupport.h"
 #include "Deployment.h"
 
@@ -38,12 +41,21 @@ namespace redhawk {
 
     class ProfileCache;
 
+    class ComponentDeployment : public GeneralDeployment
+    {
+    public:
+        ComponentDeployment(  const ossie::SoftPkg* softpkg,
+                            const ossie::ComponentInstantiation* instantiation,
+                            const std::string& identifier);
+    };
+
     class ContainerDeployment : public ComponentDeployment
     {
     public:
         ContainerDeployment(const ossie::SoftPkg* softpkg,
                             ossie::ComponentInstantiation* instantiation,
                             const std::string& identifier);
+
 
     protected:
         // The instantiation does not appear in a SAD; take ownership here
@@ -55,8 +67,9 @@ namespace redhawk {
         ENABLE_LOGGING;
 
     public:
-        typedef std::vector<ComponentDeployment*> ComponentList;
-        typedef std::vector<ContainerDeployment*> ContainerList;
+        typedef std::vector< boost::shared_ptr< GeneralDeployment> > ComponentList;
+        typedef std::vector< boost::shared_ptr< GeneralDeployment> > ContainerList;
+        typedef std::vector< boost::shared_ptr< GeneralDeployment> > ClusterList;
         typedef std::map<std::string,float> CpuReservations;
 
         ApplicationDeployment(const ossie::SoftwareAssembly& sad,
@@ -72,20 +85,24 @@ namespace redhawk {
          */
         redhawk::PropertyMap getAllocationContext() const;
 
-        ComponentDeployment* getAssemblyController();
+        boost::shared_ptr<GeneralDeployment> getAssemblyController();
 
-        ComponentDeployment* createComponentDeployment(const ossie::SoftPkg* softpkg,
+        boost::shared_ptr<GeneralDeployment> createComponentDeployment(const ossie::SoftPkg* softpkg,
                                                        const ossie::ComponentInstantiation* instantiation);
 
+        void addDeploymentToCluster(boost::shared_ptr<GeneralDeployment> deployment);
+        void addDeploymentToComponent(boost::shared_ptr<GeneralDeployment> deployment);
+
         const ComponentList& getComponentDeployments();
-        ComponentDeployment* getComponentDeployment(const std::string& instantiationId);
-        ComponentDeployment* getComponentDeploymentByUniqueId(const std::string& identifier);
+        boost::shared_ptr<GeneralDeployment> getComponentDeployment(const std::string& instantiationId);
+        boost::shared_ptr<GeneralDeployment> getComponentDeploymentByUniqueId(const std::string& identifier);
 
         void applyCpuReservations(const CpuReservations& reservations);
 
         const ContainerList& getContainerDeployments();
-        ContainerDeployment* createContainer(redhawk::ProfileCache& cache,
-                                             const boost::shared_ptr<ossie::DeviceNode>& device);
+        const ClusterList& getClusterDeployments();
+        boost::shared_ptr<GeneralDeployment> createContainer(redhawk::ProfileCache& cache,
+                                             const std::string& deviceId, const std::string& deviceLabel);
 
         // Adapt interfaces for component and device search to support
         // ConnectionManager
@@ -100,22 +117,32 @@ namespace redhawk {
 
         void setLogger(rh_logger::LoggerPtr log) {
             _appDeploymentLog = log;
-        };
+        }
+
+        void setClusterManager(std::string app_id) {
+            clusterMgr = ossie::cluster::GetClusterManagerResolver(app_id);
+        }
+
+        ossie::cluster::ClusterManagerResolverPtr getClusterManager() {
+            return clusterMgr;
+        }
 
     protected:
-        void overrideAssemblyControllerProperties(ComponentDeployment* deployment);
-        void overrideExternalProperties(ComponentDeployment* deployment);
-        void overrideImpliedProperties(ComponentDeployment* deployment);
+        ossie::cluster::ClusterManagerResolverPtr clusterMgr;
+        void overrideAssemblyControllerProperties(boost::shared_ptr<GeneralDeployment> deployment);
+        void overrideExternalProperties(boost::shared_ptr<GeneralDeployment> deployment);
+        void overrideImpliedProperties(boost::shared_ptr<GeneralDeployment> deployment);
 
-        ContainerDeployment* getContainer(const std::string& deviceId);
+        boost::shared_ptr<GeneralDeployment> getContainer(const std::string& deviceId);
 
         const ossie::SoftwareAssembly& sad;
         const std::string identifier;
         const std::string instanceName;
         redhawk::PropertyMap initConfiguration;
+        ClusterList cluster;
         ComponentList components;
         ContainerList containers;
-        ComponentDeployment *ac;
+        boost::shared_ptr<redhawk::GeneralDeployment> ac;
         rh_logger::LoggerPtr _appDeploymentLog;
     };
 }

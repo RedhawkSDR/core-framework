@@ -20,6 +20,7 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/scoped_ptr.hpp>
+#include <iostream>
 
 #include "ComponentHost.h"
 
@@ -160,8 +161,11 @@ std::string ComponentHost::getRealPath(const std::string& path)
     // given by the launching device (or the Sandbox)
     fs::path realpath = fs::path(getDeploymentRoot()) / path;
     if (!fs::exists(realpath)) {
-        std::string message = "File " + path + " does not exist";
-        throw CF::InvalidFileName(CF::CF_EEXIST, message.c_str());
+        realpath = fs::path("/var/redhawk/sdr/dom") / path;
+        if (!fs::exists(realpath)) {
+            std::string message = "File " + path + " does not exist";
+            throw CF::InvalidFileName(CF::CF_EEXIST, message.c_str());
+        }
     }
     return realpath.string();
 }

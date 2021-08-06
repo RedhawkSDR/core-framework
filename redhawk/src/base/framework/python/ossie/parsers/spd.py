@@ -1583,7 +1583,7 @@ class code(GeneratedsSuper):
         # Validate type codeFileType, a restriction on xs:NMTOKEN.
         if value is not None and Validate_simpletypes_:
             value = str(value)
-            enumerations = ['Executable', 'KernelModule', 'SharedLibrary', 'Driver']
+            enumerations = ['Executable', 'KernelModule', 'SharedLibrary', 'Driver', 'Container']
             enumeration_respectee = False
             for enum in enumerations:
                 if value == enum:

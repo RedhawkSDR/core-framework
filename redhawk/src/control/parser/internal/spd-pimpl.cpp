@@ -411,6 +411,8 @@ post_codeFileType ()
         return ossie::SPD::Code::KERNEL_MODULE;
     } else if (type == "Driver") {
         return ossie::SPD::Code::DRIVER;
+    } else if (type == "Container") {
+        return ossie::SPD::Code::CONTAINER;    
     } else {
         RH_WARN(spd::parserLog, "Invalid code type '" << type << "'");
         return ossie::SPD::Code::NONE;
@@ -764,6 +766,24 @@ post_usesDevice ()
     return *_uses;
 }
 
+// aepcompliance_pimpl
+//
+
+void aepcompliance_pimpl::
+pre ()
+{
+}
+
+void aepcompliance_pimpl::
+post_aepcompliance ()
+{
+  const ::std::string& v (post_nmtoken ());
+  (void)v;
+
+  // TODO
+  //
+}
+
 // simpleref_pimpl
 //
 
@@ -973,22 +993,3 @@ void child_pimpl::
 post_child ()
 {
 }
-
-// aepcompliance_pimpl
-//
-
-void aepcompliance_pimpl::
-pre ()
-{
-}
-
-void aepcompliance_pimpl::
-post_aepcompliance ()
-{
-const ::std::string& v (post_nmtoken ());
-  (void)v;
-
-// TODO
-//
-}
-
