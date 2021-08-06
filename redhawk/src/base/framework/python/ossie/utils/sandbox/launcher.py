@@ -28,7 +28,7 @@ import subprocess
 import platform
 import zipfile
 import cluster
-from process import LocalProcess
+from .process import LocalProcess
 
 from ossie.utils import log4py
 from ossie import parsers
