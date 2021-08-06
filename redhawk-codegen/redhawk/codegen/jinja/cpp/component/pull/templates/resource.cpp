@@ -383,7 +383,7 @@ void ${className}::updateUsageState()
 ************************************************************************************************/
 int ${className}::serviceFunction()
 {
-    RH_DEBUG(this->_baseLog, "serviceFunction() example log message");
+    RH_TRACE(this->_baseLog, "serviceFunction() example log message");
     
     return NOOP;
 }

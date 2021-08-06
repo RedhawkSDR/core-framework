@@ -288,7 +288,7 @@ class ${className}(${baseClass}):
         """
 
         # TODO fill in your code here
-        self._baseLog.debug("process() example log message")
+        self._baseLog.trace("process() example log message")
         return NOOP
 
 #{% block fei_port_delegations %}

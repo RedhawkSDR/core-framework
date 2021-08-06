@@ -32,7 +32,7 @@ try:
             self.impl=options.impl
 
         def setOutputStream(self, stream):
-	    self.stream=stream
+            self.stream=stream
 
     class TestXunitPlugin(nose.plugins.xunit.Xunit):
         name="xunit"
