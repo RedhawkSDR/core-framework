@@ -311,7 +311,8 @@ AC_CONFIG_FILES(Makefile \
                 base/parser/Makefile \
                 base/plugin/Makefile \
                 base/plugin/logcfg/Makefile \
-                idl/Makefile \
+                base/plugin/clustermgr/Makefile \
+		idl/Makefile \
                 xml/Makefile \
                 tools/Makefile )
 

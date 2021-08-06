@@ -1056,7 +1056,8 @@ module CF {
         KERNEL_MODULE,
         DRIVER,
         SHARED_LIBRARY,
-        EXECUTABLE
+        EXECUTABLE,
+        CONTAINER
       };
       /* The InvalidLoadKind exception indicates that the Device is unable to load the type of file designated by the loadKind parameter. */
       exception InvalidLoadKind {

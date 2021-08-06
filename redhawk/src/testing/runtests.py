@@ -279,11 +279,16 @@ if __name__ == "__main__":
     if options.debug:
         import pdb
         pdb.run("runner.run(suite)")
+
+	test_end_time = datetime.now()
+	dur=    test_end_time - test_start_time
+	print "Completed Execution: End:", test_end_time.strftime("%m/%d/%Y %H:%M:%S"), " Duration: ", str(dur)
     else:
-        runner.run(suite)
+        result = runner.run(suite)
 
-    test_end_time = datetime.now()
-    dur=    test_end_time - test_start_time
-    print "Completed Execution: End:", test_end_time.strftime("%m/%d/%Y %H:%M:%S"), " Duration: ", str(dur)
+	test_end_time = datetime.now()
+	dur=    test_end_time - test_start_time
+	print "Completed Execution: End:", test_end_time.strftime("%m/%d/%Y %H:%M:%S"), " Duration: ", str(dur)
 
-    
+        print(result.wasSuccessful())
+        sys.exit(not result.wasSuccessful())
