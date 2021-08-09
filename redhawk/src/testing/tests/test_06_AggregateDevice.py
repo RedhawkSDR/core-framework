@@ -59,6 +59,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
     def _test_BasicAggregateDevice(self, node):
         self._setupDevices(node)
 
+        timeout = 3
         begin_time = time.time()
         while len(self._aggregateDevice._get_devices()) != 1 and time.time()-begin_time < timeout:
             time.sleep(0.5)
