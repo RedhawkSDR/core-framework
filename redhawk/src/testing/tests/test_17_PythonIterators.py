@@ -67,7 +67,7 @@ class Iterators(unittest.TestCase):
         self.assertEqual(allocvalue.allocationID, "")
         self.assertEqual(allocstatus, False)
 
-    def test_object_not_exist(self):
+    def _test_object_not_exist(self):
         # the list of allocations in the service is 50000 devices long
         mem_1 = self.get_memory_size(self.svc._pid)
         devlist, deviter = self.svc.listDevices(CF.AllocationManager.LOCAL_DEVICES, 10)
@@ -86,7 +86,7 @@ class Iterators(unittest.TestCase):
 
         self.assertRaises(CORBA.OBJECT_NOT_EXIST, deviter.next_n, 10)
 
-    def test_mem_dealloc(self):
+    def _test_mem_dealloc(self):
         # the list of allocations in the service is 50000 devices long
         # mem_1: initial memory
         mem_1 = self.get_memory_size(self.svc._pid)

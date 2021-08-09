@@ -56,7 +56,6 @@
 #include "ApplicationValidator.h"
 #include "DeploymentExceptions.h"
 
-
 namespace fs = boost::filesystem;
 using namespace ossie;
 using namespace std;
@@ -285,7 +284,6 @@ void createHelper::assignPlacementsToDevices(redhawk::ApplicationDeployment& app
     // Place the remaining components one-by-one
     BOOST_FOREACH(const ComponentPlacement& placement, _appFact._sadParser.getComponentPlacements()) {
         const SoftPkg* softpkg = _profileCache.loadProfile(placement.filename);
-        
         BOOST_FOREACH(const ComponentInstantiation& instantiation, placement.getInstantiations()) {
             boost::shared_ptr<redhawk::GeneralDeployment> deployment;
             // Even though the XML supports more than one instantiation per
@@ -296,19 +294,17 @@ void createHelper::assignPlacementsToDevices(redhawk::ApplicationDeployment& app
             if (device != devices.end()) {
                 assigned_device = device->second;
                 RH_TRACE(_createHelperLog, "Component " << instantiation.getID()
-                        << " is assigned to device " << assigned_device);
+                          << " is assigned to device " << assigned_device);
             }
-            
             deployment = appDeployment.createComponentDeployment(softpkg, &instantiation);
-            
             allocateComponent(appDeployment, deployment, assigned_device, specialized_reservations);
 
             // For components that run as shared libraries, create or reuse a
             // matching container deployment
             if (deployment->getImplementation()->getCodeType() == SPD::Code::SHARED_LIBRARY) {
                 RH_DEBUG(_createHelperLog, "Component " << deployment->getInstantiation()->getID()
-                        << "' implementation " << deployment->getImplementation()->getID()
-                        << " is a shared library");
+                          << "' implementation " << deployment->getImplementation()->getID()
+                          << " is a shared library");
                 boost::shared_ptr<redhawk::GeneralDeployment> container;
                 std::string deviceId = "test";
                 std::string deviceLabel = "test";
@@ -317,10 +313,12 @@ void createHelper::assignPlacementsToDevices(redhawk::ApplicationDeployment& app
                     deviceLabel = deployment->getAssignedDevice()->label;
                 }
                 container = appDeployment.createContainer(_profileCache, deviceId, deviceLabel);
-                if (!container->getAssignedDevice()) {
+                //if (!container->getAssignedDevice()) {
 
                     const redhawk::PropertyMap& devReqs = deployment->getDeviceRequires();
-                    if ( devReqs.size() ) container->setDeviceRequires(devReqs);
+                    if ( devReqs.size() ) {
+                        container->setDeviceRequires(devReqs);
+                    }
                     // Use whether the device is assigned as a sentinel to check
                     // whether the container was already created, and if not,
                     // allocate it to the device
@@ -332,7 +330,7 @@ void createHelper::assignPlacementsToDevices(redhawk::ApplicationDeployment& app
                     else {
                         appDeployment.addDeploymentToComponent(deployment);
                     }
-                }
+                //}
                 deployment->setContainer(container);
             }
             else {
@@ -590,6 +588,7 @@ void createHelper::_placeHostCollocation(redhawk::ApplicationDeployment& appDepl
                 devReq.second = deployment->getDeviceRequires();
                 RH_DEBUG(_createHelperLog, "Collocation contains devicerequires instance: " << devReq.first << " props :"  << devReq.second);
             }
+            appDeployment.addDeploymentToComponent(deployment);
         }
     }
 
@@ -1151,8 +1150,6 @@ CF::Application_ptr createHelper::create (
     loadAndExecuteShared(app_deployment.getComponentDeployments(), app_deployment.getClusterDeployments(), app_deployment.getClusterManager(), app_reg);
     waitForSharedRegistration(app_deployment);
 
-    
-
     // Check that the assembly controller is valid
     RH_TRACE(_createHelperLog, "Checking assembly controller");
     boost::shared_ptr<redhawk::GeneralDeployment> ac_deployment = app_deployment.getAssemblyController();
@@ -1381,14 +1378,12 @@ void  createHelper::_resolveAssemblyController( redhawk::ApplicationDeployment& 
     const ComponentPlacement *asm_placement = _appFact._sadParser.getAssemblyControllerPlacement();
     if ( asm_placement && asm_refid != "" and asm_refid.size() > 0 ) {
         const SoftPkg* softpkg = _profileCache.loadProfile(asm_placement->filename);
-
         const ComponentInstantiation *asm_inst = asm_placement->getInstantiation(asm_refid);
         if ( asm_inst ) {
             std::string inst_id = asm_inst->getID();
             RH_DEBUG(_createHelperLog, "Resolved ASSEMBLY CONTROLLER: " << asm_refid );
             boost::shared_ptr<redhawk::GeneralDeployment> cp  __attribute__((unused));
             cp = appDeployment.createComponentDeployment(softpkg, asm_inst);
-
             return;
         }
     }
@@ -2882,6 +2877,9 @@ void createHelper::waitForComponentRegistration(redhawk::ApplicationDeployment& 
     std::set<std::string> expected_components;
     const ComponentList& deployments = appDeployment.getComponentDeployments();
     for (ComponentList::const_iterator dep = deployments.begin(); dep != deployments.end(); ++dep) {
+        if ((*dep)->getCodeType() == CF::LoadableDevice::SHARED_LIBRARY) {
+            continue;
+        }
         if ((*dep)->getSoftPkg()->isScaCompliant()) {
             expected_components.insert((*dep)->getIdentifier());
         }
@@ -2971,7 +2969,7 @@ void createHelper::waitForSharedRegistration(redhawk::ApplicationDeployment& app
     std::set<std::string> expected_components;
     const ComponentList& deployments = appDeployment.getComponentDeployments();
     for (ComponentList::const_iterator dep = deployments.begin(); dep != deployments.end(); ++dep) {
-        if ((*dep)->getCodeType() == CF::LoadableDevice::SHARED_LIBRARY) {
+        if ((*dep)->getCodeType() != CF::LoadableDevice::SHARED_LIBRARY) {
             continue;
         }
         if ((*dep)->getSoftPkg()->isScaCompliant()) {
@@ -2980,7 +2978,7 @@ void createHelper::waitForSharedRegistration(redhawk::ApplicationDeployment& app
     }
     const ClusterList& cluster = appDeployment.getClusterDeployments();
     for (ClusterList::const_iterator dep1 = cluster.begin(); dep1 != cluster.end(); ++dep1) {
-        if ((*dep1)->getCodeType() == CF::LoadableDevice::SHARED_LIBRARY) {
+        if ((*dep1)->getCodeType() != CF::LoadableDevice::SHARED_LIBRARY) {
             continue;
         }
         if ((*dep1)->getSoftPkg()->isScaCompliant()) {
