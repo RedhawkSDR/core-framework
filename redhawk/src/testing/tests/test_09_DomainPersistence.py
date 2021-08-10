@@ -654,6 +654,7 @@ class DomainPersistenceTest(scatest.CorbaTestCase):
         # Verify that the connection is completed, and points to a device on
         # the first node.
         connections = device.runTest(0, [])
+        time.sleep(0.5)
         self.assertEqual(len(connections), 1)
         identifier = connections[0].value.value()
         self.assertNotEqual(identifier, None)
