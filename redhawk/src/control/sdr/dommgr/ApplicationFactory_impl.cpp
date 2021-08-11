@@ -1101,11 +1101,11 @@ CF::Application_ptr createHelper::create (
         verifyNoCpuSpecializationCollisions(_appFact._sadParser, specialized_reservations);
     }
 
-    // Allocate any usesdevice capacities specified in the SAD file
-    _handleUsesDevices(app_deployment, name);
-
     // Assign all components to devices
     assignPlacementsToDevices(app_deployment, deviceAssignments, specialized_reservations);
+
+    // Allocate any usesdevice capacities specified in the SAD file
+    _handleUsesDevices(app_deployment, name);
 
     // Fail immediately if there are no available devices to execute components
     if ( !executableDevicesPresent && 
