@@ -3,19 +3,19 @@ The DockerSwarm plugin is designed to run REDHAWK waveforms on Docker Swarm clus
 
 # Building and Installing the Plugin
 
-Application Factory
+Application Factory ("make install" command may need sudo)
 ```bash
 $ cd core-framework/redhawk/src/base/plugin/clustermgr/clustertype
-$ sudo ./build.py DockerSwarm
+$ ./build.py DockerSwarm
 $ ./reconf && ./configure && make && sudo make install
 ```
-Sandbox
+Sandbox ("make" command may need sudo)
 ```bash
 $ cd core-framework/redhawk/src/base/framework/python/ossie/utils/sandbox/clustertype
 $ make FILE=DockerSwarm
 ```
 
-This will compile and install the Application Factory and Sandbox plugins for the user. The plugins are built in a specific location in core-framework (`core-framework/redhawk/src/base/plugin/clustermgr/`and `core-framework/redhawk/src/base/framework/python/ossie/utils/sandbox/`) and are both installed to `/usr/local/redhawk/core/lib`
+This will compile and install the Application Factory and Sandbox plugins for the user. The plugins are built in a specific location in core-framework (`core-framework/redhawk/src/base/plugin/clustermgr/`and `core-framework/redhawk/src/base/framework/python/ossie/utils/sandbox/`) and are both installed to `${OSSIEHOME}/lib`
 
 # Plugin Specifics
 ## Dependencies
@@ -24,12 +24,12 @@ This will compile and install the Application Factory and Sandbox plugins for th
 ## The cluster.cfg file
 ```bash
 cd core-framework/redhawk/src/base/cfg
-sudo -E ./build.py --cluster DockerSwarm --registry <your-registry> --ssh_key <your-ssh-key> --server_user <your-server-username> --server_ip <your-server-ip-addr>
+sudo -E ./build.py --cluster DockerSwarm --registry <your-registry> --ssh_key <file-with-your-ssh-key> --server_user <your-server-username> --server_ip <your-server-ip-addr>
 ```
 OR
 ```bash
 cd core-framework/redhawk/src/base/cfg
-make DockerSwarm REGISTRY="<your-registry>" SSH_KEY="<your-ssh-key>" SERVER_USER="<your-server-username>" SERVER_IP="<your-server-ip-addr>"
+make DockerSwarm REGISTRY="<your-registry>" SSH_KEY="<file-with-your-ssh-key>" SERVER_USER="<your-server-username>" SERVER_IP="<your-server-ip-addr>"
 ```
 This will properly set the top section to use the DockerSwarm plugin and pass in the assortment of arguments to setup the cluster.cfg file.
 

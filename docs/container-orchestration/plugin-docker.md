@@ -5,19 +5,19 @@ The Docker plugin is designed to run REDHAWK waveforms on your local system's Do
 
 Both the Application Factory and Sandbox plugins for Docker are installed when core-framework is built and installed from source.
 
-Application Factory
+Application Factory ("make install" command may need sudo)
 ```bash
 $ cd core-framework/redhawk/src/base/plugin/clustermgr/clustertype
 $ ./build.py Docker
-$ ./reconf && ./configure && make && sudo make install
+$ ./reconf && ./configure && make && make install
 ```
-Sandbox
+Sandbox ("make" command may need sudo)
 ```bash
 $ cd core-framework/redhawk/src/base/framework/python/ossie/utils/sandbox
 $ make FILE=Docker
 ```
 
-This will compile and install the Application Factory and Sandbox plugins for the user. The plugins are built in a specific location in core-framework (`core-framework/redhawk/src/base/plugin/clustermgr/`and `core-framework/redhawk/src/base/framework/python/ossie/utils/sandbox/`) and are both installed to `/usr/local/redhawk/core/lib`
+This will compile and install the Application Factory and Sandbox plugins for the user. The plugins are built in a specific location in core-framework (`core-framework/redhawk/src/base/plugin/clustermgr/`and `core-framework/redhawk/src/base/framework/python/ossie/utils/sandbox/`) and are both installed to `${OSSIEHOME}/lib`
 
 # Plugin Specifics
 ## Dependencies

@@ -3,19 +3,19 @@ The EksKube plugin is designed to run REDHAWK waveforms on AWS EKS clusters.
 
 # Building and Installing the Plugin
 
-Application Factory
+Application Factory ("make install" command may need sudo)
 ```bash
 $ cd core-framework/redhawk/src/base/plugin/clustermgr/clustertype
-$ sudo ./build.py EksKube
-$ ./reconf && ./configure && make && sudo make install
+$ ./build.py EksKube
+$ ./reconf && ./configure && make && make install
 ```
-Sandbox
+Sandbox ("make" command may need sudo)
 ```bash
 $ cd core-framework/redhawk/src/base/framework/python/ossie/utils/sandbox/clustertype
 $ make FILE=EksKube
 ```
 
-This will compile and install the Application Factory and Sandbox plugins for the user. The plugins are built in a specific location in core-framework (`core-framework/redhawk/src/base/plugin/clustermgr/`and `core-framework/redhawk/src/base/framework/python/ossie/utils/sandbox/`) and are both installed to `/usr/local/redhawk/core/lib`
+This will compile and install the Application Factory and Sandbox plugins for the user. The plugins are built in a specific location in core-framework (`core-framework/redhawk/src/base/plugin/clustermgr/`and `core-framework/redhawk/src/base/framework/python/ossie/utils/sandbox/`) and are both installed to `${OSSIEHOME}/lib`
 
 # Plugin Specifics
 ## Dependencies
