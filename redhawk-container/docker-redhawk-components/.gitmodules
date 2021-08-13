@@ -1,0 +1,3 @@
+[submodule "gr-component_converter"]
+	path = gr-component_converter
+	url = https://github.com/Geontech/gr-component_converter.git

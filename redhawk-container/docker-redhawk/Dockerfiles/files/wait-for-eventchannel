@@ -1,0 +1,25 @@
+#!/bin/bash
+# wait-for-eventchannel.sh
+
+set -e
+
+cmd="$@"
+name_list=$(nameclt list) || true
+seconds="0"
+timeout="30"
+
+# Loop while no EventChannelFactory in response from omniserver
+until [[ $name_list == *"EventChannelFactory"* ]]; do
+  # Exit if timeout
+  if [ $seconds -ge $timeout ]; then
+    >&2 echo "EventChannelFactory timed out!"
+    exit
+  fi
+  # Sleep for 1 second
+  >&2 echo "EventChannelFactory is unavailable - sleeping"
+  sleep 1
+  name_list=$(nameclt list) || true
+done
+
+>&2 echo "EventChannelFactory is up - executing command"
+exec $cmd

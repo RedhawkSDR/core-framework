@@ -1,0 +1,25 @@
+#!/bin/bash
+# wait-for-domain.sh
+
+set -e
+
+cmd="$@"
+name_list=$(nameclt list) || true
+seconds="0"
+timeout="30"
+
+# Loop while no DOMAIN in response from omniserver
+until [[ $name_list == *"$DOMAINNAME"* ]]; do
+  # Exit if timeout
+  if [ $seconds -ge $timeout ]; then
+    >&2 echo "Domain timed out!"
+    exit
+  fi
+  # Sleep for 1 second
+  >&2 echo "Domain is unavailable - sleeping"
+  sleep 1
+  name_list=$(nameclt list) || true
+done
+
+>&2 echo "Domain is up - executing command"
+exec $cmd

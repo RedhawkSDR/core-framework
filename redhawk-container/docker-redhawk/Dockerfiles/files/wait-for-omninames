@@ -1,0 +1,24 @@
+#!/bin/bash
+# wait-for-omninames.sh
+
+set -e
+
+cmd="$@"
+seconds="0"
+timeout="3"
+
+# Loop while no response from omninames
+until nameclt list; do
+  # Exit if timeout
+  if [ $seconds -ge $timeout ]; then
+    >&2 echo "Omninames timed out!"
+    exit
+  fi
+  # Sleep for 1 second
+  >&2 echo "Omninames is unavailable - sleeping"
+  seconds=$((seconds+1))
+  sleep 1
+done
+
+>&2 echo "Omninames is up - executing command"
+exec $cmd

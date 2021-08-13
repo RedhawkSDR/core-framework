@@ -1,0 +1,16 @@
+--- nodeconfig.py	2017-11-06 16:35:16.261923921 -0500
++++ nodeconfig_new.py	2017-11-06 16:35:09.923077222 -0500
+@@ -210,7 +210,12 @@
+                 for simple in struct.get_simple():
+                     if simple.get_name() in self.props:
+                         simple.set_value(str(self.props[simple.get_name()]))
+-                               
++        
++        # Set simple parameters for the device
++        for simple in _prf.get_simple():
++            if simple.get_id() in self.cmdlineProps.keys():
++                simple.set_value(str(self.cmdlineProps[simple.get_id()]))
++                       
+         prf_out = open(prfpath, 'w')
+         prf_out.write(parsers.parserconfig.getVersionXML())
+         _prf.export(prf_out,0)

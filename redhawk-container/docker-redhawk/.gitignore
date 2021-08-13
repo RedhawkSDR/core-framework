@@ -1,0 +1,16 @@
+# Ignore processed templates
+Dockerfiles/*.Dockerfile
+
+# Ignore linked scripts
+bu353s4
+domain
+gpp
+login
+omniserver
+rhide
+rtl2832u
+sdrroot
+show-log
+usrp
+volume-manager
+webserver
