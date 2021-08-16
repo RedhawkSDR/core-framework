@@ -236,6 +236,10 @@ fi
 %exclude %{_prefix}/lib/python/ossie/apps/rhlauncher
 %{_libdir}/libomnijni.so.*
 %{_libdir}/libomnijni.so
+%{_libdir}/libossiecluster.so
+%{_libdir}/libossiecluster.so.*
+%{_libdir}/libossiecluster.a
+%{_libdir}/libossiecluster.la
 %{_libdir}/libossiecf.so.*
 %{_libdir}/libossiecfjni.so.*
 %{_libdir}/libossieidl.so.*
