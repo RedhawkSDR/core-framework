@@ -79,6 +79,7 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root,-)
 %{_bindir}/codegen_version
+%{_bindir}/fei3-generator
 %{_bindir}/createBinaryComponent
 %{_bindir}/createOctaveComponent
 %{_bindir}/createGPPplugin
