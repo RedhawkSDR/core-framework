@@ -409,6 +409,9 @@ if __name__ == '__main__':
         if implId in implList:
             generators.append(('Implementation: '+implName, generator))
 
+        # Reset overrides.template so we can pick the correct code generator
+        overrides.template = None
+
     # Run all generators.
     for header, generator in generators:
         path = generator.getOutputDir()
