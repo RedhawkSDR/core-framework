@@ -13,7 +13,7 @@ $ ./reconf && ./configure && make && make install
 ```
 Sandbox ("make" command may need sudo)
 ```bash
-$ cd core-framework/redhawk/src/base/framework/python/ossie/utils/sandbox
+$ cd core-framework/redhawk/src/base/framework/python/ossie/utils/sandbox/clustertype
 $ make FILE=Docker
 ```
 
