@@ -162,6 +162,16 @@ class MessagMarshalErrorTest(scatest.CorbaTestCase):
         self.assertEqual(number_warnings, 2)
         self.assertEqual(self.messages_passed, 101)
 
+    '''
+    At Redhawk 3.0, we switched from Java 1.8 to Java 11.  With Java 11,
+    the jdk/jre dropped support for CORBA.  We added Jacorb to get its
+    implementation of CORBA.
+    The Java 1.8 jdk had a maximum message size, and threw
+    org.omg.CORBA.MARSHAL if that was exceeded.  The Java 11 jdk does
+    not throw that exception.  Nor does it have a way for the client to
+    know that it's message is too large.  As a result, this test is
+    currently not useful.
+
     @scatest.requireJava
     def test_MessageMarshalJava(self):
         snk=sb.MessageSink('my_msg',MyMsg,self.filtering_callback)
@@ -201,6 +211,7 @@ class MessagMarshalErrorTest(scatest.CorbaTestCase):
         self.assertEqual(number_warnings_1, 1)
         self.assertEqual(number_warnings_2, 3)
         self.assertEqual(self.messages_passed, 101)
+    '''
 
 
     def test_MessageMarshalPython(self):
@@ -459,9 +470,11 @@ class EventPortConnectionsTest(scatest.CorbaTestCase):
     def test_EventChannelConnectionCpp(self):
         self._test_EventChannelConnection("/waveforms/MessageEventTest/MessageEventTest.sad.xml.cpp")
 
+    ''' See note at test_MessageMarshalJava().
     @scatest.requireJava
     def test_EventChannelConnectionJava(self):
         self._test_EventChannelConnection("/waveforms/MessageEventTest/MessageEventTest.sad.xml.java", 5)
+    '''
 
     def test_EventChannelConnectionPy(self):
         self._test_EventChannelConnection("/waveforms/MessageEventTest/MessageEventTest.sad.xml.py")

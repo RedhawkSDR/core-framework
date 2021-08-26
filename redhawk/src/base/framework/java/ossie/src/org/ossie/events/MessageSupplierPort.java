@@ -159,11 +159,7 @@ public class MessageSupplierPort extends QueryableUsesPort<EventChannelOperation
      */
     public void push(final Any data)
     {
-        try {
-            this._push(data,"");
-        } catch( final org.omg.CORBA.MARSHAL ex ) {
-            this.logger.warn("Could not deliver the message. Maximum message size exceeded");
-        }
+        this.push(data,"");
     }
 
     /**
@@ -176,15 +172,6 @@ public class MessageSupplierPort extends QueryableUsesPort<EventChannelOperation
      * @since 2.2
      */
     public void push(final Any data, String connectionId)
-    {
-        try {
-            this._push(data, connectionId);
-        } catch( final org.omg.CORBA.MARSHAL ex ) {
-            this.logger.warn("Could not deliver the message. Maximum message size exceeded");
-        }
-    }
-
-    public void _push(final Any data, String connectionId)
     {
         synchronized(this.updatingPortsLock) {
             if (!this.active) {
@@ -269,23 +256,10 @@ public class MessageSupplierPort extends QueryableUsesPort<EventChannelOperation
         for (StructDef message : messages) {
             properties[index++] = new CF.DataType(message.getId(), message.toAny());
         }
-        final Any any = ORB.init().create_any();
-        CF.PropertiesHelper.insert(any, properties);
-        try {
-            this._push(any, connectionId);
-        } catch( final org.omg.CORBA.MARSHAL ex ) {
-            // Sending them all at once failed, try send the messages individually
-            if (messages.size() == 1) {
-                this.logger.warn("Could not deliver the message. Maximum message size exceeded");
-            } else {
-                this.logger.warn("Could not deliver the message. Maximum message size exceeded, trying individually.");
-
-                for (CF.DataType prop : properties) {
-                    final Any a = ORB.init().create_any();
-                    CF.PropertiesHelper.insert(a, new CF.DataType[]{prop});
-                    this.push(a, connectionId);
-                }
-            }
+        for (CF.DataType prop : properties) {
+            final Any any = ORB.init().create_any();
+            CF.PropertiesHelper.insert(any, new CF.DataType[]{prop});
+            this.push(any, connectionId);
         }
     }
 
