@@ -283,11 +283,11 @@ module CF {
         /* The readonly fileName attribute contains the file name given to the FileSystem open/create operation. */
         readonly attribute string fileName;
         /* The readonly filePointer attribute contains the file position where the next read or write will occur. */
-        readonly attribute unsigned long filePointer;
+        readonly attribute unsigned long long filePointer;
         /* Applications require the read operation in order to retrieve data from remote files. */
         void read (
             out CF::OctetSequence data,
-            in unsigned long length
+            in unsigned long long length
             )
             raises (CF::File::IOException);
         /* The write operation writes data to the file referenced. */
@@ -296,14 +296,14 @@ module CF {
             )
             raises (CF::File::IOException);
         /* The sizeOf operation returns the current size of the file. */
-        unsigned long sizeOf ()
+        unsigned long long sizeOf ()
             raises (CF::FileException);
         /* The close operation releases any OE file resources associated with the component. */
         void close ()
             raises (CF::FileException);
         /* The setFilePointer operation positions the file pointer where next read or write will occur. */
         void setFilePointer (
-            in unsigned long filePointer
+            in unsigned long long filePointer
             )
             raises (CF::File::InvalidFilePointer,CF::FileException);
     };

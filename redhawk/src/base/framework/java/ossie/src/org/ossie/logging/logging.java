@@ -510,7 +510,7 @@ public class logging {
         CF.OctetSequenceHolder data = new CF.OctetSequenceHolder ();
         try {
             CF.File remoteFile = fileSystem.open(remotePath, true);
-            int size = remoteFile.sizeOf();
+            long size = remoteFile.sizeOf();
             remoteFile.read(data, size);
 
             String tempPath = remotePath;
@@ -567,7 +567,7 @@ public class logging {
         CF.File remoteFile = null;
         try {
             remoteFile = fileSystem.open(remotePath, true);
-            int size = remoteFile.sizeOf();
+            long size = remoteFile.sizeOf();
             remoteFile.read(data, size);
         } catch (Exception e){
             throw new Exception("error reading file contents");     

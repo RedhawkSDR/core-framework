@@ -54,7 +54,7 @@ public:
      * @throw CF::File::IOException
      * @throw CORBA::SystemException
      */
-    void read (CF::OctetSequence_out data, CORBA::ULong length);
+    void read (CF::OctetSequence_out data, CORBA::ULongLong length);
     /**
      * @throw CF::File::IOException
      * @throw CORBA::SystemException
@@ -70,16 +70,16 @@ public:
      * @throw CF::File::InvalidFilePointer
      * @throw CORBA::SystemException
      */
-    void setFilePointer (CORBA::ULong _filePointer);
+    void setFilePointer (CORBA::ULongLong _filePointer);
     /**
      * @throw CORBA::SystemException
      */
-    CORBA::ULong filePointer ();
+    CORBA::ULongLong filePointer ();
     /**
      * @throw CF::FileException
      * @throw CORBA::SystemException
      */
-    CORBA::ULong sizeOf ();
+    CORBA::ULongLong sizeOf ();
     void setIOR( const std::string &ior);
 
 private:
@@ -88,7 +88,7 @@ private:
     /**
      * @throw CF::FileException
      */
-    CORBA::ULong getSize ();
+    CORBA::ULongLong getSize ();
 
     std::string fName;
     std::string fullFileName;

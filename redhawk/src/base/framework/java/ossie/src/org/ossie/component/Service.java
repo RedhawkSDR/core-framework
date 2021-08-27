@@ -156,7 +156,7 @@ public abstract class Service  extends Logging
         CF.OctetSequenceHolder data = new CF.OctetSequenceHolder ();
         try {
             CF.File remoteFile = fileSystem.open(remotePath, true);
-            int size = remoteFile.sizeOf();
+            long size = remoteFile.sizeOf();
             remoteFile.read(data, size);
 
             String tempPath = remotePath;

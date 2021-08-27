@@ -92,7 +92,7 @@ char* File_impl::fileName ()
     return CORBA::string_dup(fName.c_str());
 }
 
-void File_impl::read (CF::OctetSequence_out data, CORBA::ULong length)
+void File_impl::read (CF::OctetSequence_out data, CORBA::ULongLong length)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
 
@@ -144,11 +144,11 @@ void File_impl::write (const CF::OctetSequence& data)
 }
 
 
-CORBA::ULong File_impl::sizeOf ()
+CORBA::ULongLong File_impl::sizeOf ()
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
 
-    CORBA::ULong size = getSize();
+    CORBA::ULongLong size = getSize();
 
     return size;
 }
@@ -196,7 +196,7 @@ void File_impl::close ()
 }
 
 
-CORBA::ULong File_impl::filePointer ()
+CORBA::ULongLong File_impl::filePointer ()
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
 
@@ -205,7 +205,7 @@ CORBA::ULong File_impl::filePointer ()
     return pos;
 };
 
-void File_impl::setFilePointer (CORBA::ULong _filePointer)
+void File_impl::setFilePointer (CORBA::ULongLong _filePointer)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
 
@@ -219,7 +219,7 @@ void File_impl::setFilePointer (CORBA::ULong _filePointer)
 
 }
 
-CORBA::ULong File_impl::getSize ()
+CORBA::ULongLong File_impl::getSize ()
 {
     struct stat filestat;
     if (fstat(fd, &filestat)) {
