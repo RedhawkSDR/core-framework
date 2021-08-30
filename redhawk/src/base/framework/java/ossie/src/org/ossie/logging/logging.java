@@ -466,6 +466,7 @@ public class logging {
     //
     public static String  GetDefaultConfig() {
         String cfg = "log4j.rootLogger=INFO,STDOUT\n " + 
+            "log4j.logger.org.jacorb=WARN,STDOUT\n" +
 	    "# Direct log messages to STDOUT\n" + 
 	    "log4j.appender.STDOUT=org.apache.log4j.ConsoleAppender\n" + 
 	    "log4j.appender.STDOUT.layout=org.apache.log4j.PatternLayout\n" +
