@@ -390,9 +390,7 @@ public class ${classname} extends ${baseclass} {
     }
 
     /**
-     * Set additional options for ORB startup. For example:
-     *
-     *   orbProps.put("com.sun.CORBA.giop.ORBFragmentSize", Integer.toString(fragSize));
+     * Set additional options for ORB startup.
      *
      * @param orbProps
      */
