@@ -259,6 +259,9 @@ class LocalLauncher(SandboxLauncher):
                     print('Component %s (pid=%d) terminated with signal %d' % (name, pid, -status))
             process.setTerminationCallback(terminate_callback)
         else:
+            component_path = os.path.dirname(comp._profile)
+            _sdrroot_path = os.path.dirname(component_path)
+            entry_point = '$SDRROOT/dom/components'+component_path[len(_sdrroot_path):]+'/'+impl.get_code().get_entrypoint()
             process = device.executeContainer(entry_point, deps, execparams, debugger, window, self._stdout)
             name = comp._instanceName
             process.setTerminationCallback(process.terminate_callback)

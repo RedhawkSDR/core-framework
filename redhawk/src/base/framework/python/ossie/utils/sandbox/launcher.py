@@ -27,7 +27,7 @@ import tempfile
 import subprocess
 import platform
 import zipfile
-import cluster
+from . import cluster
 from .process import LocalProcess
 
 from ossie.utils import log4py
@@ -78,17 +78,22 @@ class VirtualDevice(object):
         localfile = impl.get_code().get_localfile().get_name()
         filename = sdrroot.relativePath(profile, localfile)
         log.trace("Checking localfile '%s' ('%s')", localfile, filename)
-        if not os.path.exists(filename):
-            return False
+        if impl.get_code().get_type() not in "Container":
+            if not os.path.exists(filename):
+                return False
 
         # If the implementation has an entry point, make sure it exists too
         if impl.get_code().get_entrypoint():
-            entry_point = impl.get_code().get_entrypoint()
-            entry_point = entry_point.split("::")[0]
-            filename = sdrroot.relativePath(profile, entry_point)
+            entry_point = impl.get_code().get_entrypoint().split('::')[0]
+
+            if impl.get_code().get_type() not in "Container":
+                filename = sdrroot.relativePath(profile, entry_point)
+                if not os.path.exists(filename):
+                    return False
+            else:
+                # no way to check the content of the container without running it
+                pass
             log.trace("Checking entrypoint '%s' ('%s')", entry_point, filename)
-            if not os.path.exists(filename):
-                return False
 
         return True
 
@@ -98,12 +103,13 @@ class VirtualDevice(object):
                 return impl
         raise RuntimeError("Softpkg '%s' has no usable implementation" % spd.get_name())
 
-    def getExecArgs(self, entryPoint, deps, execparams, debugger, window, stdout=None):        
+    def getExecArgs(self, entryPoint, deps, execparams, debugger, window, stdout=None, isContainer=False):        
         # Make sure the entry point exists and can be run.
-        if not os.path.exists(entryPoint):
-            raise RuntimeError("Entry point '%s' does not exist" % entryPoint)
-        elif not os.access(entryPoint, os.X_OK|os.R_OK):
-            raise RuntimeError("Entry point '%s' is not executable" % entryPoint)
+        if not isContainer:
+            if not os.path.exists(entryPoint):
+                raise RuntimeError("Entry point '%s' does not exist" % entryPoint)
+            elif not os.access(entryPoint, os.X_OK|os.R_OK):
+                raise RuntimeError("Entry point '%s' is not executable" % entryPoint)
         log.trace("Using entry point '%s'", entryPoint)
 
         # Process softpkg dependencies and modify the child environment.
@@ -169,7 +175,7 @@ class VirtualDevice(object):
         else:
             raise RuntimeError("No docker image was found in the spd file")
 
-        command, arguments, environment, stdout = self.getExecArgs(entryPoint, deps, execparams, debugger, window, stdout)
+        command, arguments, environment, stdout = self.getExecArgs(entryPoint, deps, execparams, debugger, window, stdout, True)
         
         process = cluster.executeCluster(command, arguments, image, environment, stdout)
         return process

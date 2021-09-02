@@ -21,7 +21,6 @@ import logging
 import socket
 import os
 from   ossie.cf import CF
-import urlparse
 import time
 import subprocess
 import threading
@@ -29,8 +28,8 @@ import urllib
 import ossie.utils.log4py.config
 from   ossie.utils.log4py import RedhawkLogger
 from  omniORB import CORBA
-from process import LocalProcess as LocalProcess
-from clusterCfgParser import ClusterCfgParser
+from .process import LocalProcess as LocalProcess
+from .clusterCfgParser import ClusterCfgParser
 import shlex
 
 class DockerProcess(LocalProcess):
@@ -52,6 +51,7 @@ class DockerProcess(LocalProcess):
             for arg in arguments:
                 command = command + " " + arg
             dockerCmd = "docker run --rm -d --network host --name " + arguments[-1].replace(":", "") + mountCmd + " " + image
+            # dockerCmd = "docker run --rm --network host --name " + arguments[-1].replace(":", "") + mountCmd + " " + image
             dockerArgs = shlex.split(dockerCmd) + [command]
         else:
             dockerCmd = "docker run --rm -d --network host -P --name " + arguments[-1].replace(":", "") + mountCmd + " --entrypoint " + command + " " + image

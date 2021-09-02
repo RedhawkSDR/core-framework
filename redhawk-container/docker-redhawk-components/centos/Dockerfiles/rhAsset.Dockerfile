@@ -1,4 +1,5 @@
-FROM geontech/redhawk-development as builder
+FROM redhawk/framework-tests:develop-el7 as builder
+# FROM geontech/redhawk-development as builder
 
 ARG rh_asset
 

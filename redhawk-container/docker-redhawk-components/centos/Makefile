@@ -7,6 +7,8 @@ lc = $(subst A,a,$(subst B,b,$(subst C,c,$(subst D,d,$(subst E,e,$(subst F,f,$(s
 IMAGE_BUILD = docker build --rm \
 		-f ./Dockerfiles/$1.Dockerfile \
 		--build-arg $2="$3" \
+		--build-arg build_parent="$(BUILD_PARENT)" \
+		--build-arg runner_parent="$(RUNNER_PARENT)" \
 		-t $(call lc,$4):$(VERSION) \
 		./Dockerfiles && \
 		docker tag $(call lc,$4):$(VERSION) $(call lc,$4):latest
