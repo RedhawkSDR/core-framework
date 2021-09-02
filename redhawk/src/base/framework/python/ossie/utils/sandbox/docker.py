@@ -48,6 +48,7 @@ class DockerProcess(LocalProcess):
             for arg in arguments:
                 command = command + " " + arg
             dockerCmd = "docker run --rm -d --network host --name " + arguments[-1].replace(":", "") + mountCmd + " " + image
+            # dockerCmd = "docker run --rm --network host --name " + arguments[-1].replace(":", "") + mountCmd + " " + image
             dockerArgs = shlex.split(dockerCmd) + [command]
         else:
             dockerCmd = "docker run --rm -d --network host -P --name " + arguments[-1].replace(":", "") + mountCmd + " --entrypoint " + command + " " + image
