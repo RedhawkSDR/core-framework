@@ -9,7 +9,7 @@ RUN yum install -y epel-release && yum install -y git rpm-build automake gstream
 WORKDIR /root/core-framework/redhawk/src
 RUN /bin/bash -lc "./build.sh"
     
-FROM geontech/redhawk-runtime as runner
+FROM @@@BASE_IMAGE@@@ as runner
 COPY --from=builder /root/core-framework /root/core-framework
 WORKDIR /etc/redhawk/logging
 COPY logrotate.redhawk /etc/redhawk/logging/
