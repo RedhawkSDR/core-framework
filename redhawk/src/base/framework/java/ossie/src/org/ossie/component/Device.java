@@ -318,42 +318,7 @@ public abstract class Device extends Resource implements DeviceOperations {
      * 
      * @param clazz
      * @param args
-     * @param builtInORB
-     * @param fragSize
-     * @param bufSize
-     * @throws InstantiationException
-     * @throws IllegalAccessException
-     * @throws InvalidObjectReference 
-     * @throws NoSuchMethodException
-     * @throws InvocationTargetException
-     */
-    public static void start_device(final Class<? extends Device> clazz, final String[] args, final boolean builtInORB, final int fragSize, final int bufSize) 
-    throws InstantiationException, IllegalAccessException, InvalidObjectReference, ServantNotActive, WrongPolicy, NoSuchMethodException, InvocationTargetException
-    {
-        final Properties props = new Properties();
-        if (!builtInORB) {
-            props.put("org.omg.CORBA.ORBClass", "org.jacorb.orb.ORB");
-            props.put("org.omg.CORBA.ORBSingletonClass", "org.jacorb.orb.ORBSingleton");
-            props.put("jacorb.fragment_size", Integer.toString(fragSize));
-            props.put("jacorb.outbuf_size", Integer.toString(bufSize));
-            props.put("jacorb.maxManagedBufSize", "23");
-        } else {
-            props.put("com.sun.CORBA.giop.ORBFragmentSize", Integer.toString(fragSize));
-            props.put("com.sun.CORBA.giop.ORBBufferSize", Integer.toString(bufSize));
-        }
-        start_device(clazz, args, props);
-    }
-
-
-
-    /**
-     * Start-up function to be used from a main() function.
-     * 
-     * @param clazz
-     * @param args
-     * @param builtInORB
-     * @param fragSize
-     * @param bufSize
+     * @param props
      * @throws InstantiationException
      * @throws IllegalAccessException
      * @throws InvalidObjectReference 

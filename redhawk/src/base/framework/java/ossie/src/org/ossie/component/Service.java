@@ -179,23 +179,6 @@ public abstract class Service  extends Logging
     abstract protected Servant newServant(final POA p);
     abstract public void terminateService(); 
     
-    public static void start_service(final Class<? extends Service> clazz, final String[] args, final boolean builtInORB, final int fragSize, final int bufSize) 
-    throws InstantiationException, IllegalAccessException, InvalidObjectReference, IllegalArgumentException, SecurityException, InvocationTargetException, NoSuchMethodException 
-    {
-        final Properties props = new Properties();
-        if (!builtInORB) {
-            props.put("org.omg.CORBA.ORBClass", "org.jacorb.orb.ORB");
-            props.put("org.omg.CORBA.ORBSingletonClass", "org.jacorb.orb.ORBSingleton");
-            props.put("jacorb.fragment_size", Integer.toString(fragSize));
-            props.put("jacorb.outbuf_size", Integer.toString(bufSize));
-            props.put("jacorb.maxManagedBufSize", "23");
-        } else {
-            props.put("com.sun.CORBA.giop.ORBFragmentSize", Integer.toString(fragSize));
-            props.put("com.sun.CORBA.giop.ORBBufferSize", Integer.toString(bufSize));
-        }
-        start_service(clazz, args, props);
-    }
-    
 
     public static void start_service(final Class<? extends Service> clazz, final String[] args, final Properties props) 
     throws InstantiationException, IllegalAccessException, InvalidObjectReference, IllegalArgumentException, SecurityException, InvocationTargetException, NoSuchMethodException

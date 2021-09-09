@@ -1131,45 +1131,7 @@ public abstract class Resource extends Logging implements ResourceOperations, Ru
      * 
      * @param clazz
      * @param args
-     * @param builtInORB
-     * @param fragSize
-     * @param bufSize
-     * @throws InstantiationException
-     * @throws IllegalAccessException
-     * @throws InvalidObjectReference 
-     * @throws org.omg.CosNaming.NamingContextPackage.InvalidName 
-     * @throws CannotProceed 
-     * @throws NotFound 
-     * @throws WrongPolicy 
-     * @throws ServantNotActive 
-     * @throws NoSuchMethodException
-     * @throws InvocationTargetException
-     */
-    public static void start_component(final Class<? extends Resource> clazz, final String[] args, final boolean builtInORB, final int fragSize, final int bufSize) 
-	throws InstantiationException, IllegalAccessException, InvalidObjectReference, NotFound, CannotProceed, org.omg.CosNaming.NamingContextPackage.InvalidName, ServantNotActive, WrongPolicy, NoSuchMethodException, InvocationTargetException
-    {
-        final Properties props = new Properties();
-        if (!builtInORB) {
-            props.put("org.omg.CORBA.ORBClass", "org.jacorb.orb.ORB");
-            props.put("org.omg.CORBA.ORBSingletonClass", "org.jacorb.orb.ORBSingleton");
-            props.put("jacorb.fragment_size", Integer.toString(fragSize));
-            props.put("jacorb.outbuf_size", Integer.toString(bufSize));
-            props.put("jacorb.maxManagedBufSize", "23");
-        } else {
-            props.put("com.sun.CORBA.giop.ORBFragmentSize", Integer.toString(fragSize));
-            props.put("com.sun.CORBA.giop.ORBBufferSize", Integer.toString(bufSize));
-        }
-        start_component(clazz, args, props);
-    }
-
-    /**
-     * Start-up function to be used from a main() function.
-     * 
-     * @param clazz
-     * @param args
-     * @param builtInORB
-     * @param fragSize
-     * @param bufSize
+     * @param props
      * @throws InstantiationException
      * @throws IllegalAccessException
      * @throws InvalidObjectReference 
