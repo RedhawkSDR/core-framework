@@ -75,7 +75,7 @@ class DirectoryPackageDependency(SoftPackage):
 
         localfile = spd.localFile(name = self.implementation + "/share")
         code = spd.code(type_= "SharedLibrary", localfile = localfile)
-        compiler = spd.compiler(version="4.1.2", name="/usr/bin/gcc")
+        compiler = spd.compiler(version="9", name="devtoolset")
 
         implementation = spd.implementation(
             id_=self.implementation,

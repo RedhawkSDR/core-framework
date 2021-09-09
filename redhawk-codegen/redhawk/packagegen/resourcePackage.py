@@ -129,7 +129,7 @@ class ResourcePackage(SoftPackage):
             type_="Executable",
             localfile = localfile,
             entrypoint=self.implementation+"/"+self.name)
-        compiler = spd.compiler(version="4.1.2", name="/usr/bin/gcc")
+        compiler = spd.compiler(version="9", name="devtoolset")
         implementation = spd.implementation(
             id_ = self.implementation,
             code=code,
@@ -152,10 +152,10 @@ class ResourcePackage(SoftPackage):
         implementation = spd.implementation(
             id_ = self.implementation,
             code = code,
-            compiler = spd.compiler(version="1.5", name="/usr/bin/javac"),
+            compiler = spd.compiler(version="11", name="/usr/bin/javac"),
             programminglanguage = spd.programmingLanguage(name = "Java"),
             humanlanguage = spd.humanLanguage(name="EN"),
-            runtime = spd.runtime(name = "/usr/bin/java", version="1.5"))
+            runtime = spd.runtime(name = "/usr/bin/java", version="11"))
         os = spd.os(name="Linux")
         implementation.add_os(value=os)
 
