@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-from {{cluster_lower}} import {{cluster}}Process
+from .{{cluster_lower}} import {{cluster}}Process
 import time
 
 def executeCluster(command, arguments, image, environment, stdout):

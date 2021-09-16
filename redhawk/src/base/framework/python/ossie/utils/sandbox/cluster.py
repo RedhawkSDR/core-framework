@@ -17,10 +17,11 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
-from .docker import DockerProcess
+
+from .ekskube import EksKubeProcess
 import time
 
 def executeCluster(command, arguments, image, environment, stdout):
-    process = DockerProcess(command, arguments, image, environment, stdout)
+    process = EksKubeProcess(command, arguments, image, environment, stdout)
     time.sleep(3)
     return process

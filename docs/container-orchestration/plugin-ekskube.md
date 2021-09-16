@@ -25,11 +25,6 @@ This will compile and install the Application Factory and Sandbox plugins for th
 ## The cluster.cfg file
 ```bash
 cd core-framework/redhawk/src/base/cfg
-sudo -E ./build.py --cluster EksKube --registry <your-registry> --json `base64 -w0 ~/.docker/config.json`
-```
-OR
-```bash
-cd core-framework/redhawk/src/base/cfg
 make EksKube REGISTRY="<your-registry>" JSON="<your-json>"
 ```
 This will properly set the top section to use the EksKube plugin and pass in the assortment of arguments to setup the cluster.cfg file.
