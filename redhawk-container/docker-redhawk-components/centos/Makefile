@@ -41,6 +41,9 @@ rhAsset:
 rhAssetNewSource:
 	$(call IMAGE_BUILD,$@,rh_asset,${ASSET},rh.${ASSET})
 
+redhawkBuild:
+	$(call IMAGE_BUILD_2,$@,${repo_url},${branch_or_tag},rh.$@)
+
 componentHost:
 	$(call IMAGE_BUILD_2,$@,${repo_url},${branch_or_tag},rh.$@)
 
