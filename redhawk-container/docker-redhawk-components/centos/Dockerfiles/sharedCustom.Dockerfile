@@ -1,14 +1,15 @@
-FROM @@@BASE_IMAGE@@@ as builder
+FROM rh.redhawkbuild as builder
 
 ARG shared_asset
 
 COPY ./rhSharedLibrary/components/ /root/components
 WORKDIR /root/rpms
 RUN yum install -y git rpm-build automake && \
+    source /usr/local/redhawk/core/bin/redhawk-devtoolset-enable.sh && \
     yum install -y gstreamer-python libuuid-devel boost-devel cppunit-devel autoconf automake libtool expat-devel gcc-c++ java-1.8.0-openjdk-devel python-devel python-matplotlib-qt4 numpy PyQt4 log4cxx log4cxx-devel omniORB omniORB-devel omniORB-doc omniORB-servers omniORB-utils python-jinja2 xsd libsqlite3x libsqlite3x-devel && \
     for i in ${shared_asset}; do pushd /root/components/${i} && /bin/bash -lc "./build.sh rpm" && find /root/rpmbuild/RPMS -name "*.rpm" -exec cp {} /root/rpms \; && popd && /bin/bash -lc "yum install -y *rpm"; done
     
-FROM rh.componenthost as runner
+FROM rh.redhawkbuild as runner
 WORKDIR /root/rpms
 RUN rm -rf /root/rpms/*
 COPY --from=builder /root/rpms /root/rpms
