@@ -1,4 +1,4 @@
-FROM @@@BASE_IMAGE@@@ as builder
+FROM rh.redhawkbuild:latest as builder
 
 ARG custom_asset
 
@@ -10,7 +10,7 @@ RUN yum install -y rpm-build git && \
     mkdir /root/rpms && \
     find /root/rpmbuild/RPMS -name "*.rpm" -exec cp {} /root/rpms \;
 
-FROM @@@BASE_IMAGE@@@ as runner
+FROM rh.redhawkbuild:latest as runner
 WORKDIR /root/rpms
 COPY --from=builder /root/rpms /root/rpms
 RUN yum install -y /root/rpms/*.rpm
