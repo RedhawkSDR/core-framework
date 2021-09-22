@@ -69,7 +69,7 @@ EksKubeResolver::EksKubeResolver (std::string namespace_name) : ClusterManagerRe
 	wave_namespace.erase(std::remove(wave_namespace.begin(), wave_namespace.end(), '.'), wave_namespace.end());
 
         configureNamespace();
-        configureRegistrySecret();
+        //configureRegistrySecret();
 }
 
 void EksKubeResolver::configureRegistrySecret() {
@@ -163,7 +163,7 @@ void EksKubeResolver::openComponentConfigFile(redhawk::PropertyMap execParameter
 		yaml << YAML::Key << "args" << YAML::Value;
 		yaml << YAML::BeginSeq;
 		std::stringstream ss;
-		std::string full_entry = std::string(std::getenv("SDRROOT")) + "/dom" + entryPoint + " ";
+		std::string full_entry = "$SDRROOT/dom" + entryPoint + " ";
 		ss << full_entry;
 		ss << " NAMING_CONTEXT_IOR ";
 		ss << naming_context_ior;
@@ -179,7 +179,7 @@ void EksKubeResolver::openComponentConfigFile(redhawk::PropertyMap execParameter
 	else {
 		yaml << YAML::Key << "command" << YAML::Value;
 		yaml << YAML::BeginSeq;
-		std::string full_entry = std::string(std::getenv("SDRROOT")) + "/dom" + entryPoint;
+		std::string full_entry = "$SDRROOT/dom" + entryPoint;
 		yaml << full_entry;
 		yaml << "NAMING_CONTEXT_IOR";
 		yaml << naming_context_ior;
