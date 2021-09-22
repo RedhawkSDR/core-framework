@@ -27,7 +27,6 @@ import pydoc
 import warnings
 import subprocess
 import json
-import cluster
 
 from omniORB import CORBA
 from omniORB.any import to_any
@@ -35,6 +34,7 @@ from omniORB.any import to_any
 from ossie import parsers
 from ossie.cf import CF
 from ossie.utils.model.connect import ConnectionManager
+from ossie.utils.sandbox import cluster
 from ossie.utils.uuid import uuid4
 
 from .base import SdrRoot, Sandbox, SandboxLauncher, SandboxComponent
