@@ -116,7 +116,7 @@ In this entrypoint element, everything after the "::" is regarded as the desired
 The Domain Manager requires access to the images hosting the containerized components.
 The `cluster.cfg` file (installed in $OSSIEHOME/) contains information supporting generic containerized deployment like ssh management information.
 Technology-specific information is also included in this configuration file.
-For example, in the case of DockerSwarm, this file contains the image registry and tag.
+<!-- For example, in the case of DockerSwarm, this file contains the image registry and tag. -->
 
 If all components in a waveform are of `Container` code type, then no GPP is required in the Domain to run the waveform.
 Waveforms support "hybrid" deployments, where components with `Executable` or `SharedLibrary` code types are deployed in the same waveform as `Container` components.
@@ -139,13 +139,13 @@ $ sudo make install
 
 ### Build and Install Plugins
 No plugins are built and installed by default.
-Three plugins are currently included with REDHAWK:
-1. [Docker](plugin-docker.md)
-2. [DockerSwarm](plugin-dockerswarm.md)
-3. [EksKube](plugin-ekskube.md)
+Two plugins are currently included with REDHAWK:
+1. [Docker](plugin-docker.md) for running containers on the local system
+2. [EksKube](plugin-ekskube.md) for running containers on an AWS EKS cluster
+<!-- 3. [DockerSwarm](plugin-dockerswarm.md) -->
 
 ### The cluster.cfg file
-The `$OSSIEHOME/cluster.cfg` file contains sections named according to the cluster orchestration plugin technology (EKS, Docker Swarm, etc). Each plugin-specific section contains variables (key value pairs) used by the specific plugin. You should ensure the values set in this file are correct prior to running a waveform.
+The `$OSSIEHOME/cluster.cfg` file contains sections named according to the cluster orchestration plugin technology (e.g.: EKS). Each plugin-specific section contains variables (key value pairs) used by the specific plugin. You should ensure the values set in this file are correct prior to running a waveform.
 
 #### Install the Cluster Configuration File
 ```bash
@@ -158,7 +158,7 @@ This will render the template cluster.cfg file into your $OSSIEHOME/cluster.cfg 
 Possible values for the plugin name argument are:
 1. [EksKube](plugin-ekskube.md)
 2. [Docker](plugin-docker.md)
-3. [DockerSwarm](plugin-dockerswarm.md)
+<!-- 3. [DockerSwarm](plugin-dockerswarm.md) -->
 
 ### Networking
 Networking can get complicated quickly because it will vary depending on what you're trying to run in your cluster, what that cluster's networking setup looks like, and your local system's ability to send traffic to that cluster. Guiding rules of thumb are:
