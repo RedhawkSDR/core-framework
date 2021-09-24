@@ -125,6 +125,7 @@ Hybrid waveforms, or any waveform that uses `Executable` or `SharedLibrary` code
 ## Build and Install Plugins
 
 Plugins are used to bind a specific orchestration technology with REDHAWK.
+The use of plugins allows REDHAWK to interact with any container orchestration technology.
 Because plugins are not included as part of the standard REDHAWK build, they must be built from source.
 Plugin development source code is included as part of the REDHAWK source code distribution.
 The following sections describe how to build and install plugins to support a set of orchestration technologies.
