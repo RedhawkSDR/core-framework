@@ -37,12 +37,20 @@ The top section of the file should specify that the EksKube plugin is desired li
 [CLUSTER]
 name = EksKube
 ```
-| Variable         | Example Value                                                                                  | Description                                                                                                                                            |
-|------------------|------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| registry         | geontech                                                                                       | This value is concatenated with a "/" and then the image suffix found in the entrypoint of the component's spd.xml file. Shared across all components. |
-| tag              | latest                                                                                         | The image tag used. Shared across all components.                                                                                                      |
-| dockerconfigjson | UmVhbGx5IHJlYWxseSByZWVlZWVlZWVlZWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWx...Z2cgYXV0aCBrZXlzCg== | The auth field of your ~/.docker/config.json file that authorized docker pulls against the registry identified in the registry variable.               |
+| Variable         | Example Value | Description |
+|------------------|----------------|-------|
+| registry         | sample.amazonaws.com/my_context | Base URI for the container repository |
+| tag              | latest | The image tag used (common across components) |
+| dockerconfigjson |  | The auth field of your ~/.docker/config.json (may not be necessary) |
 
+
+In AWS, the registry is found in AWS Elastic Container Services->Repositories->URI.
+This is the image registry that EKS will use to find images to deploy as containers.
+
+The tag "latest" is added by default by the image creation Dockerfiles included with RH.
+
+The variable dockerconfigjson is not needed in most configurations.
+If deployment fails due to a docker authorization issue, populate this element with the auth field from the docker configuration json, otherwise leave an empty string as its value.
 
 ## Environment Variables
 Sourcing the `$OSSIHOME/etc/profile.d/redhawk.sh` file will set 4 environment variables Domain Manager will use to direct the control of the aws and kubectl binaries it invokes:
