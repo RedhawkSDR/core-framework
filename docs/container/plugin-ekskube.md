@@ -37,6 +37,10 @@ The top section of the file should specify that the EksKube plugin is desired li
 [CLUSTER]
 name = EksKube
 ```
+
+In the EksKube section, set the value for variables `registry`, `tag`, and `dockerconfigjson`.
+The following table describes the variable values:
+
 | Variable         | Example Value | Description |
 |------------------|----------------|-------|
 | registry         | sample.amazonaws.com/my_context | Base URI for the container repository |
