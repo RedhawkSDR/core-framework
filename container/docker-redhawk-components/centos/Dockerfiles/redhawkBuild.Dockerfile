@@ -110,43 +110,43 @@ RUN /bin/bash -lc "./reconf && \
     ./configure $configure_options && \
     make -j${num_threads}"
 USER root
-RUN make install -j${num_threads}
+RUN . /src/core-framework/redhawk/src/tools/redhawk-devtoolset-enable.sh && make install -j${num_threads}
 
 USER redhawk
 WORKDIR /src/core-framework/bulkioInterfaces
 RUN /bin/bash -lc "./reconf && \
-    . tools/redhawk-devtoolset-enable.sh && \
+    . redhawk-devtoolset-enable.sh && \
     ./configure $configure_options && \
     make -j${num_threads}"
 USER root
-RUN make install -j${num_threads}
+RUN . /src/core-framework/redhawk/src/tools/redhawk-devtoolset-enable.sh && make install -j${num_threads}
 
 USER redhawk
 WORKDIR /src/core-framework/burstioInterfaces
 RUN /bin/bash -lc "./reconf && \
-    . tools/redhawk-devtoolset-enable.sh && \
+    . redhawk-devtoolset-enable.sh && \
     ./configure $configure_options && \
     make -j${num_threads}"
 USER root
-RUN make install -j${num_threads}
+RUN . /src/core-framework/redhawk/src/tools/redhawk-devtoolset-enable.sh && make install -j${num_threads}
 
 USER redhawk
 WORKDIR /src/core-framework/frontendInterfaces
 RUN /bin/bash -lc "./reconf && \
-    . tools/redhawk-devtoolset-enable.sh && \
+    . redhawk-devtoolset-enable.sh && \
     ./configure $configure_options && \
     make -j${num_threads}"
 USER root
-RUN make install -j${num_threads}
+RUN . /src/core-framework/redhawk/src/tools/redhawk-devtoolset-enable.sh && make install -j${num_threads}
 
 USER redhawk
 WORKDIR /src/core-framework/GPP/cpp
 RUN /bin/bash -lc "./reconf && \
-    . tools/redhawk-devtoolset-enable.sh && \
+    . redhawk-devtoolset-enable.sh && \
     ./configure $configure_options && \
     make -j${num_threads}"
 USER root
-RUN make install -j${num_threads}
+RUN . /src/core-framework/redhawk/src/tools/redhawk-devtoolset-enable.sh && make install -j${num_threads}
 
 WORKDIR /src/core-framework/redhawk-codegen
 RUN python3 setup.py install --home=$OSSIEHOME
