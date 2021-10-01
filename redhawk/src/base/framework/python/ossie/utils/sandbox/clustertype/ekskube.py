@@ -42,7 +42,7 @@ from .clusterCfgParser import ClusterCfgParser
 
 class EksKubeProcess(LocalProcess):
     def __init__(self, command, arguments, image, environment=None, stdout=None):
-        print('image', image)
+        # print('image', image)
         self.namespace = 'redhawk-sandbox'
         self.tmp = tempfile.NamedTemporaryFile(prefix="k8s_component_config_", suffix=".yaml")
         
@@ -72,8 +72,8 @@ class EksKubeProcess(LocalProcess):
         self.__timeout = 600  #worst case scenario
         self.__sleepIncrement = 1
 
-        print("EksKubeProcess Constructor called")
-        print("Pod created: " + self.__file_name + "\n")
+        # print("EksKubeProcess Constructor called")
+        # print("Pod created: " + self.__file_name + "\n")
 
     def setTerminationCallback(self, callback):
         if not self.__tracker:
@@ -90,10 +90,10 @@ class EksKubeProcess(LocalProcess):
         # print(pod_name + "is, indeed, in a Running state\n")
 
         try:
-            output_byte = subprocess.check_output(command)
+            output_byte = subprocess.check_output(command, stderr=subprocess.STDOUT)
             output = output_byte.decode("utf-8")
-            print("Attempted to delete pod: " + pod_name + ":")
-            print(output)
+            # print("Attempted to delete pod: " + pod_name + ":")
+            # print(output)
         except:
             print("Unable to clean up component exit\n")
 
@@ -123,10 +123,10 @@ class EksKubeProcess(LocalProcess):
             command = ['kubectl', 'delete', '-f', self.__file_name]
 
             try:
-                output_byte = subprocess.check_output(command)
+                output_byte = subprocess.check_output(command, stderr=subprocess.STDOUT)
                 output = output_byte.decode("utf-8")
-                print("Deleting pod: " + self.__file_name + ":")
-                print(output)
+                # print("Deleting pod: " + self.__file_name + ":")
+                # print(output)
             except:
                 print("Failed to delete pod " + self.__file_name)
         self.tmp.close()
@@ -142,7 +142,7 @@ class EksKubeProcess(LocalProcess):
         error_retries = 5
         while error_retries >= 0:
             try:
-                self.__statbyte = subprocess.check_output(arguments)
+                self.__statbyte = subprocess.check_output(arguments, stderr=subprocess.STDOUT)
                 break
             except:
                 error_retries = error_retries - 1
@@ -160,7 +160,7 @@ class EksKubeProcess(LocalProcess):
     def poll(self, numRetries):
         arguments = ["kubectl", "get", "pod", self.__pod_name, "-n", self.namespace, "-o=jsonpath={.status.containerStatuses[0].state.waiting.reason}"]
         i = 0
-        print("ATTEMPTING POLL ", arguments)
+        # print("ATTEMPTING POLL ", arguments)
         if numRetries < 0:
             numRetries = 1
         error_retries = 5
@@ -168,7 +168,7 @@ class EksKubeProcess(LocalProcess):
             # Poll for pod status
             time.sleep(self.__sleepIncrement)
             try:
-                self.__statbyte = subprocess.check_output(arguments)
+                self.__statbyte = subprocess.check_output(arguments, stderr=subprocess.STDOUT)
             except:
                 error_retries = error_retries - 1
                 if error_retries <= 0:
@@ -194,7 +194,7 @@ class EksKubeProcess(LocalProcess):
 
         full_image = str(self.REGISTRY) + "/" + str(image) + ":" + str(self.TAG)
     
-        print("TEST: \""+command + "\" " + full_image)
+        # print("TEST: \""+command + "\" " + full_image)
         namespace_cfg = {'apiVersion': 'v1',
                          'kind': 'Namespace',
                          'metadata': {'name': self.namespace, 'labels': {'name': self.namespace}}}
@@ -210,7 +210,7 @@ class EksKubeProcess(LocalProcess):
         # if code.get_type().lower() == 'container':
         if True:  # TODO: for development/debuggin purposes
             # This will be the lone entry in 'containers'
-            print(arguments)
+            # print(arguments)
     
             output_file = '/tmp/k8s_component_config_' + arguments[-1].lower().replace(":", "") + '.yaml'
     
