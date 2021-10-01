@@ -48,7 +48,7 @@ The following table describes the variable values:
 | dockerconfigjson |  | The auth field of your ~/.docker/config.json (may not be necessary) |
 
 
-In AWS, the registry is found in AWS Elastic Container Services->Repositories->URI.
+In AWS, the registry is found in AWS Elastic Container Registry->Repositories->URI.
 This is the image registry that EKS will use to find images to deploy as containers.
 
 The tag "latest" is added by default by the image creation Dockerfiles included with RH.
