@@ -139,7 +139,16 @@ class EksKubeProcess(LocalProcess):
 
     def isAlive(self):
         arguments = ["kubectl", "get", "pod", self.__pod_name, "-n", self.namespace, "-o=jsonpath={.status.containerStatuses[0].state.waiting.reason}"]
-        self.__statbyte = subprocess.check_output(arguments)
+        error_retries = 5
+        while error_retries >= 0:
+            try:
+                self.__statbyte = subprocess.check_output(arguments)
+                break
+            except:
+                error_retries = error_retries - 1
+                if error_retries <= 0:
+                    break
+                time.sleep(self.__sleepIncrement)
         self.__status = self.__statbyte.decode("utf-8")
         # print("isAlive Status: " + str(self.__status))
 
@@ -154,14 +163,23 @@ class EksKubeProcess(LocalProcess):
         print("ATTEMPTING POLL ", arguments)
         if numRetries < 0:
             numRetries = 1
+        error_retries = 5
         while i < numRetries:
             # Poll for pod status
             time.sleep(self.__sleepIncrement)
-            self.__statbyte = subprocess.check_output(arguments)
+            try:
+                self.__statbyte = subprocess.check_output(arguments)
+            except:
+                error_retries = error_retries - 1
+                if error_retries <= 0:
+                    break
+                continue
             self.__status = self.__statbyte.decode("utf-8")
 
             if self.__status in self.badStatus:
-                break
+                error_retries = error_retries - 1
+                if error_retries <= 0:
+                    break
             elif self.__status == "":
                 break
             i = i + 1
