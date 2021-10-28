@@ -18,10 +18,20 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
+from .docker import DockerProcess
+from .dockerswarm import DockerSwarmProcess
 from .ekskube import EksKubeProcess
 import time
 
-def executeCluster(command, arguments, image, environment, stdout):
-    process = EksKubeProcess(command, arguments, image, environment, stdout)
+def executeCluster(command, arguments, image, environment, stdout, orchestrationType):
+    if (orchestrationType == "Docker"):
+        process = DockerProcess(command, arguments, image, environment, stdout)
+    elif (orchestrationType == "DockerSwarm"):
+        process = DockerSwarmProcess(command, arguments, image, environment, stdout)
+    elif (orchestrationType == "EksKube"):
+        process = EksKubeProcess(command, arguments, image, environment, stdout)
+    else:
+        print('Unknown orchestrationType = ' + str(orchestrationType))
+        process = None
     time.sleep(3)
     return process

@@ -125,7 +125,7 @@ class LocalSdrRoot(SdrRoot):
 
 
 class LocalLauncher(SandboxLauncher):
-    def __init__(self, execparams, initProps, initialize, configProps, debugger, window, timeout, shared, stdout=None):
+    def __init__(self, execparams, initProps, initialize, configProps, debugger, window, timeout, shared, stdout=None, orchestrationType=None):
         self._execparams = execparams
         self._debugger = debugger
         self._window = window
@@ -135,6 +135,7 @@ class LocalLauncher(SandboxLauncher):
         self._timeout = timeout
         self._shared = shared
         self._stdout = stdout
+        self._orchestrationType = orchestrationType
 
     def _getImplementation(self, spd, identifier):
         for implementation in spd.get_implementation():
@@ -262,7 +263,7 @@ class LocalLauncher(SandboxLauncher):
             component_path = os.path.dirname(comp._profile)
             _sdrroot_path = os.path.dirname(component_path)
             entry_point = '$SDRROOT/dom/components'+component_path[len(_sdrroot_path):]+'/'+impl.get_code().get_entrypoint()
-            process = device.executeContainer(entry_point, deps, execparams, debugger, window, self._stdout)
+            process = device.executeContainer(entry_point, deps, execparams, debugger, window, self._stdout, self._orchestrationType)
             name = comp._instanceName
             process.setTerminationCallback(process.terminate_callback)
 
@@ -515,7 +516,7 @@ class LocalSandbox(Sandbox):
         return True
 
     def _createLauncher(self, comptype, execparams, initProps, initialize, configProps, debugger,
-                        window, timeout, shared, stdout):
+                        window, timeout, shared, stdout, orchestrationType=None):
         if comptype == 'resource':
             clazz = LocalComponentLauncher
         elif comptype in ('device', 'loadabledevice', 'executabledevice'):
@@ -524,7 +525,7 @@ class LocalSandbox(Sandbox):
             clazz = LocalServiceLauncher 
         else:
             return None
-        return clazz(execparams, initProps, initialize, configProps, debugger, window, timeout, shared, stdout)
+        return clazz(execparams, initProps, initialize, configProps, debugger, window, timeout, shared, stdout, orchestrationType)
 
     def _refreshChildDevices(self):
         for comp in list(self.__components.values()):

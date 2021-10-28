@@ -27,7 +27,7 @@ import tempfile
 import subprocess
 import platform
 import zipfile
-from . import cluster
+from ossie.utils.sandbox.cluster import cluster
 from .process import LocalProcess
 
 from ossie.utils import log4py
@@ -167,7 +167,7 @@ class VirtualDevice(object):
 
         return process
 
-    def executeContainer(self, entryPoint_image, deps, execparams, debugger, window, stdout=None):
+    def executeContainer(self, entryPoint_image, deps, execparams, debugger, window, stdout=None, orchestrationType=None):
         image = ""
         if "::" in entryPoint_image:
             entryPoint = entryPoint_image.split("::")[0]
@@ -177,7 +177,7 @@ class VirtualDevice(object):
 
         command, arguments, environment, stdout = self.getExecArgs(entryPoint, deps, execparams, debugger, window, stdout, True)
         
-        process = cluster.executeCluster(command, arguments, image, environment, stdout)
+        process = cluster.executeCluster(command, arguments, image, environment, stdout, orchestrationType)
         return process
 
     def _processDependency(self, environment, filename):
