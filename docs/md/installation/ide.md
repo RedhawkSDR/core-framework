@@ -11,11 +11,6 @@ The following procedure explains how to install a stand-alone IDE.
     ```bash
     sudo yum install java-1.8.0-openjdk-devel PackageKit-gtk3-module libcanberra-gtk3 libwebkit2gtk
     ```  
-    On RHEL/CentOS 6:
-
-    ```bash
-    sudo yum install java-1.8.0-openjdk-devel PackageKit-gtk-module libcanberra-gtk2 webkitgtk
-    ```
 
 2.  Locate the appropriate archive from the REDHAWK release page on GitHub (<https://github.com/RedhawkSDR/redhawk/releases/>`<version>`). (Where `<version>` corresponds to the version of the REDHAWK IDE. For example, <https://github.com/RedhawkSDR/redhawk/releases/2.0.3>).
 
@@ -25,6 +20,6 @@ The following procedure explains how to install a stand-alone IDE.
     tar zxf redhawk-ide-<version>-linux.gtk.<arch>.tar.gz
     ```
 
-    Where `<version>` corresponds to the version of the REDHAWK IDE and `<arch>` is x86_64 for 64-bit systems.
+    Where `<version>` corresponds to the version of the REDHAWK IDE and `<arch>` is `x86_64`.
 
-4.  Start the IDE by running the eclipse executable in the eclipse directory.
+4.  Start the IDE by running the `eclipse` executable in the eclipse directory.

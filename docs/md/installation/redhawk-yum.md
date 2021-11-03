@@ -4,11 +4,11 @@ The following sections describe the REDHAWK packages and provided dependencies.
 
 
 > **NOTE**  
-> [External dependencies](../appendices/dependencies.html) are also necessary for development with REDHAWK and for building REDHAWK from source.  
+> [External dependencies](dependencies.html) are also necessary for development with REDHAWK and for building REDHAWK from source.  
 
 ## REDHAWK Yum Repository
 
-All of the REDHAWK packages are included in a yum repository, which can be configured as described in [Setting Up the REDHAWK Repository](../installation/_index.html#setting-up-the-redhawk-repository).
+All of the REDHAWK packages are included in a yum repository, which can be configured as described in [Setup the REDHAWK Repository](_index.html#setup-the-redhawk-repository).
 
 ### REDHAWK Yum Groups
 
@@ -48,37 +48,6 @@ The REDHAWK Development yum group includes the following packages:
 
 This section identifies the dependencies that are packaged with REDHAWK.
 
-#### Dependencies for RHEL/CentOS 6
-
-The following list of dependencies are required for RHEL/CentOS 6 systems.
-
-  - `libomniEvents2`
-  - `libomniEvents2-devel`
-  - `log4cxx`
-  - `log4cxx-devel`
-  - `omniEvents-bootscripts`
-  - `omniEvents-debuginfo`
-  - `omniEvents-doc`
-  - `omniEvents-server`
-  - `omniEvents-utils`
-  - `omniORBpy-debuginfo`
-  - `omniORBpy-devel`
-  - `omniORBpy-libs`
-  - `python-omniORB`
-  - `uhd`
-  - `uhd-debuginfo`
-  - `uhd-devel`
-  - `uhd-doc`
-  - `uhd-firmware`
-
-To install the dependencies for RHEL/CentOS 6, enter the following commands:
-
-```bash
-sudo yum install libomniEvents2 libomniEvents2-devel log4cxx \
-    log4cxx-devel omniEvents-bootscripts omniEvents-debuginfo omniEvents-doc \
-    omniEvents-server omniEvents-utils omniORBpy-debuginfo omniORBpy-devel \
-    omniORBpy-libs python-omniORB uhd uhd-debuginfo uhd-devel uhd-doc uhd-firmware
-```
 
 #### Dependencies for RHEL/CentOS 7
 

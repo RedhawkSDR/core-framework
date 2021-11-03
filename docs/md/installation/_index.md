@@ -2,7 +2,7 @@
 
 This chapter explains how to install the Core Framework (CF), the IDE, and the basic assets. The CF is the software back-end of REDHAWK. The IDE is a GUI for development and interaction with REDHAWK systems. The basic assets are a collection of <abbr title="See Glossary.">components</abbr>, <abbr title="See Glossary.">devices</abbr>, and <abbr title="See Glossary.">waveforms</abbr> that developers can use to create simple software-defined radio applications.
 
-To configure and install REDHAWK and associated dependencies, you must have root permissions. The REDHAWK installation is compatible with 64-bit versions of RHEL, CentOS 6, and CentOS 7.  The current REDHAWK release was tested against CentOS 6.9 (64-bit) and CentOS 7.4 (64-bit).
+To configure and install REDHAWK and associated dependencies, you must have root permissions. The REDHAWK installation is compatible with  CentOS 7.  The current REDHAWK release was tested against CentOS 7.9.
 
 ## Install REDHAWK from RPMs
 
@@ -15,7 +15,7 @@ This section provides step-by-step instructions for installing a REDHAWK release
 
 
 > **NOTE**  
-> Before beginning the installation process, if you are upgrading from a 1.8.x version of REDHAWK or for more information about external dependencies, refer to [External Dependencies](../appendices/dependencies.html).  
+> Before beginning the installation process, if you are upgrading from a 1.8.x version of REDHAWK or for more information about external dependencies, refer to [External Dependencies](dependencies.html).  
 
 ### Setup to Install EPEL Dependencies
 
@@ -27,23 +27,17 @@ For RHEL/CentOS 7:
 sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
 ```
 
-For RHEL/CentOS 6:
-
-```bash
-sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm
-```
-
 ### Download and Configure the Yum Repository
 
 The following conventions are used in the instructions that follow.
 
 | **Variable** | **Description**                                 | **Example**          |
 | :----------- | :---------------------------------------------- | :------------------- |
-| `<version>`  | REDHAWK version                                 | *2.0.3*              |
-| `<dist>`     | Linux distribution as represented by rpm macros | *el6* (for CentOS 6) |
-| `<arch>`     | host architecture                               | *x86\_64*            |
+| `<version>`  | REDHAWK version                                 | `3.0.0`              |
+| `<dist>`     | Linux distribution as represented by rpm macros | `el7` (for CentOS 7) |
+| `<arch>`     | host architecture                               | `x86_64`            |
 
-Adjust the variables to match the desired REDHAWK version, host Linux distribution, and host machine architecture. For example, for REDHAWK version 2.0.3, 64-bit CentOS 6, `redhawk-yum-2.0.3-el6-x86_64.tar.gz`.
+Adjust the variables to match the desired REDHAWK version, host Linux distribution, and host machine architecture. For example, for REDHAWK version 3.0.0, CentOS 7, `redhawk-yum-3.0.0-el7-x86_64.tar.gz`.
 
 #### Download the YUM Archive of REDHAWK
 
@@ -101,12 +95,11 @@ Use one of the following options to install the IDE, CF, and accompanying depend
     ```
 
 > **NOTE**  
-> If you want to be more selective about the packages you install, refer to [REDHAWK Yum Repository and Packages
-](../appendices/redhawk-yum.html) for a list of packages that can be installed. You can also [install a stand-alone IDE](../appendices/standalone-ide.html). Additionally, individual RPMs released in the REDHAWK Updates repository may be installed. For more information, refer to [Installing RPMs from the REDHAWK Updates Repository](../appendices/redhawk-yum.html#installing-rpms-from-the-redhawk-updates-repository).
+> If you want to be more selective about the packages you install, refer to [REDHAWK Yum Repository and Packages](redhawk-yum.html) for a list of packages that can be installed. You can also [install a stand-alone IDE](ide.html).  Additionally, individual RPMs released in the REDHAWK Updates repository may be installed. For more information, refer to [Installing RPMs from the REDHAWK Updates Repository](redhawk-yum.html#installing-rpms-from-the-redhawk-updates-repository).
 
 
 > **NOTE**  
-> For installation issues with the GPP, refer to [REDHAWK Installation Issues](../appendices/troubleshooting/installation.html).  
+> For installation issues with the GPP, refer to [REDHAWK Installation Issues](troubleshooting.html).  
 
 ### Setup the User Environment
 
@@ -148,27 +141,20 @@ supportBootstrapAgent = 1
 
     The first number is the IP address followed by a colon and a port number. `omniEvents` is the object key.
 
-2.  Enter the following command to start the `omniNames` and `omniEvents` services:
+1.  Enter the following command to start the `omniNames` and `omniEvents` services:
 
     ```bash
     sudo $OSSIEHOME/bin/cleanomni
     ```
 
-3.  For CentOS 6 systems, to have `omniNames` and `omniEvents` start automatically at system boot (recommended), enter the following commands:
-
-    ```bash
-    sudo /sbin/chkconfig --level 345 omniNames on
-    sudo /sbin/chkconfig --level 345 omniEvents on
-    ```
-
-4.  For CentOS 7 systems, to have `omniNames` and `omniEvents` start automatically at system boot (recommended), enter the following commands:
+1.  For CentOS 7 systems, to have `omniNames` and `omniEvents` start automatically at system boot (recommended), enter the following commands:
 
     ```bash
     sudo systemctl enable omniNames.service
     sudo systemctl enable omniEvents.service
     ```
 
-For more information about omniORB configuration file settings (`/etc/omniORB.cfg`), refer to Chapter 4 of the omniORB User's Guide (http://omniorb.sourceforge.net/omni41/omniORB/omniORB004.html) (CentOS 6) and (http://omniorb.sourceforge.net/omni42/omniORB/omniORB004.html) (CentOS 7) or on your local system at <file:///usr/share/doc/omniORB-devel-4.1.6/doc/omniORB/omniORB004.html> (CentOS 6) and at <file:///usr/share/doc/omniORB-devel-4.2.0/doc/omniORB/omniORB004.html> (CentOS 7).
+For more information about omniORB configuration file settings (`/etc/omniORB.cfg`), refer to Chapter 4 of the omniORB [User's Guide](http://omniorb.sourceforge.net/omni42/omniORB/omniORB004.html), or on your local system, [here](file:///usr/share/doc/omniORB-devel-4.2.0/doc/omniORB/omniORB004.html).
 
 ### Configure omniORB for Distributed Systems
 

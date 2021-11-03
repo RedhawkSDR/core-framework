@@ -1,6 +1,6 @@
 # External Dependencies
 
-The following sections explain how to install the dependencies from the Fedora Extra Packages for Enterpise Linux (EPEL) and Red Hat/CentOS repositories. Dependencies not available from either of those sources are [included with REDHAWK](../appendices/redhawk-yum.html#dependencies-packaged-with-redhawk).
+The following sections explain how to install the dependencies from the Fedora Extra Packages for Enterpise Linux (EPEL) and Red Hat/CentOS repositories. Dependencies not available from either of those sources are [included with REDHAWK](redhawk-yum.html#dependencies-packaged-with-redhawk).
 
 ## Installing the EPEL Repository
 
@@ -18,12 +18,6 @@ For RHEL/CentOS 7:
 
 ```bash
 sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
-```
-
-For RHEL/CentOS 6:
-
-```bash
-sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm
 ```
 
 ## Installing the Software Collections (SCL) Repository
@@ -47,46 +41,6 @@ sudo yum install centos-release-scl
 ## Runtime-only Dependencies
 
 The following dependencies are required for REDHAWK runtime installations.
-
-### Dependencies for RHEL/CentOS 6
-
-The following runtime-only dependencies are required for RHEL/CentOS 6 systems.
-
-  - `python-matplotlib`
-  - `gstreamer-python`
-  - `gstreamer-plugins-base`
-  - `util-linux`
-  - `numpy`
-  - `omniORB`
-  - `omniORB-devel`
-  - `omniORB-doc`
-  - `omniORB-servers`
-  - `omniORB-utils`
-  - `python-jinja2-26`
-  - `binutils`
-  - `numactl`
-  - `sqlite`
-  - `bash-completion`
-
-To install the dependencies for RHEL/CentOS 6, enter the following commands:
-
-```bash
-sudo yum install python-matplotlib \
-     gstreamer-python \
-     gstreamer-plugins-base \
-     util-linux \
-     numpy \
-     omniORB \
-     omniORB-devel \
-     omniORB-doc \
-     omniORB-servers \
-     omniORB-utils \
-     python-jinja2-26 \
-     binutils \
-     numactl \
-     sqlite \
-     bash-completion
-```
 
 ### Dependencies for RHEL/CentOS 7
 
@@ -125,46 +79,6 @@ sudo yum install gstreamer-python \
 ## Dependencies for Development and Building from Source
 
 The following dependencies are required for development with the REDHAWK Framework and building REDHAWK from source.
-
-### Dependencies for RHEL/CentOS 6
-
-The following dependencies are required for development on RHEL/CentOS 6 with the REDHAWK Framework and building REDHAWK from source.
-
-  - `libuuid-devel`
-  - `boost-devel`
-  - `autoconf automake libtool`
-  - `cppunit-devel`
-  - `expat-devel`
-  - `gcc-c++`
-  - `java-1.8.0-openjdk-devel`
-  - `junit4`
-  - `python-devel`
-  - `python-setuptools`
-  - `PyQt4`
-  - `python-jinja2-26`
-  - `xsd`
-  - `numactl-devel`
-  - `sqlite-devel`
-
-To install the dependencies for RHEL/CentOS 6, enter the following commands:
-
-```bash
-sudo yum install libuuid-devel \
-     boost-devel \
-     autoconf automake libtool \
-     cppunit-devel \
-     expat-devel \
-     gcc-c++ \
-     java-1.8.0-openjdk-devel \
-     junit4 \
-     python-devel \
-     python-setuptools \
-     PyQt4 \
-     python-jinja2-26 \
-     xsd \
-     numactl-devel \
-     sqlite-devel
-```
 
 ### Dependencies for RHEL/CentOS 7
 

@@ -9,7 +9,7 @@ This section describes how to build and install REDHAWK from source and use the 
 Building REDHAWK from source requires a few additional dependencies beyond those required to run REDHAWK.  The following procedure explains how to install the additional build dependencies.
 
 1.  First, ensure your system has the necessary [dependency software](dependencies.html) provided by RHEL / CentOS and Fedora EPEL.
-2.  Ensure the REDHAWK Yum repository is set up using the process described in [Setting Up the REDHAWK Repostiory](../installation/_index.html#setting-up-the-redhawk-repository).  Install the [dependencies](../appendices/redhawk-yum.html#dependencies-packaged-with-redhawk) distributed with the REDHAWK tarball.
+2.  Ensure the REDHAWK Yum repository is set up using the process described in [Setting Up the REDHAWK Repostiory](_index.html#setting-up-the-redhawk-repository).  Install the [dependencies](redhawk-yum.html#dependencies-packaged-with-redhawk) distributed with the REDHAWK tarball.
 
 ### Installing the Framework from Source
 
@@ -125,4 +125,4 @@ sudo cp /usr/local/redhawk/core/etc/profile.d/* /etc/profile.d
 
 ### Configuring omniORB
 
-Refer to [Configuring omniORB](../installation/_index.html#configuring-omniorb) for information on how to edit the omniORB configuration file (`/etc/omniORB.cfg`) to provide information about how to reach the CORBA <abbr title="See Glossary.">Event Service</abbr>.
+Refer to [Configuring omniORB](_index.html#configure-omniorb) for information on how to edit the omniORB configuration file (`/etc/omniORB.cfg`) to provide information about how to reach the CORBA <abbr title="See Glossary.">Event Service</abbr>.

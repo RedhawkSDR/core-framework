@@ -16,7 +16,7 @@ In the event of a 'Permission Denied' error, change the permissions with the fol
 sudo chmod g+rw /var/redhawk/sdr/dev/devices/GPP/GPP.prf.xml
 ```
 
-To provide a processor name, run the following command, where `<processor name>` is the host architecture (for example, *x86\_64*):
+To provide a processor name, run the following command, where `<processor name>` is the host architecture (for example, `x86_64`):
 
 ```bash
 ./gpp_setup --gppcfg --processorname <processor name>
