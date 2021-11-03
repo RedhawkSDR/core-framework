@@ -1,0 +1,3 @@
+# Running a Component
+
+To run a <abbr title="See Glossary.">component</abbr>, use one of the following mechanisms: the REDHAWK <abbr title="See Glossary.">sandbox</abbr> or the REDHAWK <abbr title="See Glossary.">domain</abbr>. When using the sandbox, a component is run from within a Python shell or a graphical environment, all operating on a single computer. When using the domain, a component is run in the context of an <abbr title="See Glossary.">application</abbr> that can be deployed over an arbitrarily large number of computers. The sandbox is useful for tasks such as signal processing development and analysis, component debugging, and data inspection.
