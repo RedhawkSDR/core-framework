@@ -10,7 +10,7 @@ Logger names follow the Java naming pattern, where the logger `abc.def.ghi` inhe
 
 All REDHAWK-generated resources, such as <abbr title="See Glossary.">components</abbr> and <abbr title="See Glossary.">devices</abbr>, contain a logger, `_baseLog`, that has the same name as the resource (for example, `my_component_1`) and is removed by one level from the root logger. Under this parent logger, three categories or namespaces are available by default: "system", "ports", and "user". These three logger namespaces are created automatically, and additional namespaces may be created programmatically under the "user" namespace. The "system" namespace is the parent for the REDHAWK system services, such as property management, that log framework-level activity. The "ports" namespace is a logger that is parent to all component <abbr title="See Glossary.">ports</abbr>, where the specific port logger has the same name as the port (for example, `my_component_1.ports.data_in`). Finally, the "user" namespace is a root for all logging specific to the component or device implementation. This hierarchy is shown in the following image:
 
-![Logger Hierarchy](images/LoggerHierarchy.png)
+![Logger Hierarchy](img/LoggerHierarchy.png)
 
 Loggers inherit their parent's settings. In other words, root logger settings are passed to all child loggers. Any change to the parent logger's settings (such as the log level) are automatically passed down to all its child loggers. This relationship is broken if a logger's settings are specifically changed. After a named logger's settings are changed, if the parent logger settings change, the changes are not propagated to the child with the altered settings.
 

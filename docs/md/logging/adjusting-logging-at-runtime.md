@@ -5,7 +5,7 @@ The logging level for the root logger of a <abbr title="See Glossary.">component
 1.  Right-click the running component or device and select **Logging > Log Level**.
 
     The Set Debug Level dialog displays the current logging level:
-    ![Set Debug Level](images/SetDebugLevel.png)
+    ![Set Debug Level](img/SetDebugLevel.png)
 
 2.  Select the new logging level you want to use and click **OK**.
 
@@ -17,7 +17,7 @@ After a component or device has been launched, its logging configuration can als
 
 2.  If a warning is displayed, click **Yes**. The Edit Log Config editor is displayed.
 
-    ![Edit Log Config Editor](images/logconfigeditor.png)
+    ![Edit Log Config Editor](img/logconfigeditor.png)
 
     The editor shows the resource's logging configuration. Saving changes to the editor performs a live update of the resource's logging configuration.
 

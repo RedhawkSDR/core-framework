@@ -36,4 +36,4 @@ Otherwise, the REDHAWK IDE provides support for the following operations using m
 
 When performing an operation on a multi-out port, if there is only one connection ID, it is used by the IDE. If there are multiple connection IDs in the connection table, the IDE displays the Multi-out Port Connection Wizard dialog with the option to either select a Connection ID from the entries in the connection table or input one manually.
 
-![Mult-out Port Connection Wizard](../images/Multiout.png)
+![Mult-out Port Connection Wizard](img/Multiout.png)

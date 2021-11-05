@@ -11,12 +11,12 @@ To inspect the current connections using the IDE:
 1.  In the <abbr title="See Glossary.">REDHAWK Explorer view</abbr>, right-click a Domain Manager and select **Connection Manager**.
 
     The Connection Manager view is displayed. If a green check mark is displayed in the Connected column, this indicates that the connection has been made; otherwise, it is pending.
-    ![Connection Manager](images/ConnectionManager.png)
+    ![Connection Manager](img/ConnectionManager.png)
 
 2.  To view the connection properties, select the connection in the Connection Manager view.
 
     The <abbr title="See Glossary.">Properties view</abbr> displays the connection properties.
-    ![Connection Manager Properties](images/ConnMgrPropertiesView.png)
+    ![Connection Manager Properties](img/ConnMgrPropertiesView.png)
 3.  To view the source (provides/out <abbr title="See Glossary.">port</abbr>) of a connection, from the Connection Manager view, right-click the connection and select **Find Source**.
 
     The source is highlighted in the REDHAWK Explorer view.

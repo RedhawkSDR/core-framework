@@ -33,7 +33,7 @@ Components, irrespective of which language is used for their implementation, con
 ### Generating Code for Components
 
 After a component project is created and appropriate details for the component are entered in the [SPD editor](../ide/editors-and-views/softpkg-editor.html), the IDE can generate skeleton code for the project. To begin the code generation process, click the **Generate All Implementations** button located in the top-right of the Overview panel of the SPD editor.
-![Generate All Implementations Button](images/Generate_Code_Highlighted.png)
+![Generate All Implementations Button](img/Generate_Code_Highlighted.png)
 
 When you click the **Generate All Implementations** button, the IDE:
 

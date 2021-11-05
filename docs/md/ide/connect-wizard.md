@@ -3,10 +3,10 @@
 The **Connect Wizard** enables users to manually create a connection between two <abbr title="See Glossary.">ports</abbr> of compliant types and create a custom Connection ID. The following procedure explains how to use the **Connect Wizard**.
 
 1.  To open the **Connect Wizard**, in the Chalkboard or the <abbr title="See Glossary.">REDHAWK Explorer</abbr>, right-click a port and select **Connect** from the context menu:
-    ![Port Context Menu in REDHAWK Explorer](images/portcontextmenuexplorer.png)
+    ![Port Context Menu in REDHAWK Explorer](img/portcontextmenuexplorer.png)
 
     The **Connect Wizard** is displayed:
-    ![Connect Wizard](images/connectwiz.png)
+    ![Connect Wizard](img/connectwiz.png)
 
 2.  Under **Source**, select a uses (output) port.
 

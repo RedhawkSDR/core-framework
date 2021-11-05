@@ -2,14 +2,14 @@
 
 The <abbr title="See Glossary.">Node Editor</abbr> presents all the content that can be found within the `dcd.xml` file in an editing environment designed for ease of use.
 
-![Node Editor](../images/dcdDiagram.png)
+![Node Editor](img/dcdDiagram.png)
 
 To open the Node Editor, double-click a Device Configuration Descriptor (DCD) file from the <abbr title="See Glossary.">Project Explorer view</abbr>. The **Node Editor** contains an **Overview**, **<abbr title="See Glossary.">Devices</abbr>**, **Diagram**, and a raw XML tab, which contains the DCD file content.
 
 ### Overview Tab
 The Overview tab provides general information about the <abbr title="See Glossary.">node</abbr> with hyperlinks to additional node-related sections within the IDE.
 
-![Node Editor Overview Tab](../images/dcdOverview.png)
+![Node Editor Overview Tab](img/dcdOverview.png)
 
 In the top-right corner, the **Generate Node** button is used to generate supporting files for the node. To produce an RPM spec file for the node, click the button.
 
@@ -21,7 +21,7 @@ In the top-right corner, the **Generate Node** button is used to generate suppor
 ### Devices/Services Tab
 The Devices/Services tab enables a user to add <abbr title="See Glossary.">devices</abbr> and <abbr title="See Glossary.">services</abbr> from the SDRROOT into the node and to configure the <abbr title="See Glossary.">properties</abbr> for the devices and services. When a property is set or changed here, it is specific to this node and does not impact other nodes or instances of this device or service.
 
-![Node Editor Devices/Services Tab](../images/dcdDevices.png)
+![Node Editor Devices/Services Tab](img/dcdDevices.png)
 
 The following steps explain how to add a device to the node:
 
@@ -36,7 +36,7 @@ Use the table in the **Details** section to configure the properties of the devi
 ### Diagram Tab
 The Diagram tab enables a user to add devices and services from the SDRROOT into the node, configure the properties for the devices and services, and make connections.
 
-![Node Editor Diagram Tab](../images/dcdDiagram.png)
+![Node Editor Diagram Tab](img/dcdDiagram.png)
 
 
 > **NOTE**  
@@ -51,7 +51,7 @@ The following steps explain how to add a device to the node and configure its pr
 
 3.  Open the **Properties view** and verify the Properties tab is selected.
 
-![Properties View](../images/nodeproperties.png)
+![Properties View](img/nodeproperties.png)
 
 4.  From the Properties view, change the desired properties.
 
@@ -71,7 +71,7 @@ The following steps explain how to edit the `deployerrequires` set.
 1.  On the Diagram tab of the Node, select the Device
 2.  In the Properties view, verify the Requirements tab is selected.
 
-![Properties View Requirements](../images/noderequirementstab.png)
+![Properties View Requirements](img/noderequirementstab.png)
 
 3.  To add an ID and value, click + and add the ID and value. The ID and value can be any alphanumeric string value. This assigns a `devicerequires` key/value pair to the Node.
 4.  To remove an ID and value, select the ID and click X.
@@ -85,7 +85,7 @@ Connections may be made from input to output <abbr title="See Glossary.">ports</
 #### Start Order
 The Diagram tab also displays the start order of devices and services in the waveform.  Start order represents the order in which its `start()` method is called by the <abbr title="See Glossary.">Device Manager</abbr> on startup, and the order in which its `stop()` method is called by the Device Manager on shutdown.
 
-![Devices/Services Start Order](../images/dcd_start_order.png)
+![Devices/Services Start Order](img/dcd_start_order.png)
 
 Each of the devices/services within the node contains a number with a circle around it, which represents that device's/service's start order. The start order `0` is called first. Start order is optional and may be changed by right-clicking a device/service and selecting **Move Start Order Earlier** or **Move Start Order Later** from the context menu. Devices/services without a start order will not be started or stopped automatically.
 

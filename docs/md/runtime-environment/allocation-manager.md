@@ -114,14 +114,14 @@ To inspect the current allocations using the IDE:
 
     The Allocation Manager view is displayed. The following figure displays the Allocation Manager view based on the results of following the instructions in [Inspecting Allocations through the Python Sandbox](#inspecting-allocations-through-the-python-sandbox)
 
-    ![Allocation Manager](images/AllocationManager.png)
+    ![Allocation Manager](img/AllocationManager.png)
 2.  To view the allocation properties associated with an allocation, select the allocation in the Allocation Manager view.
 
     The Properties view displays the allocation properties.
 
     The following figure displays the allocation properties from an FEI device allocation.
 
-    ![Allocation Manager Properties](images/AllocMgrPropertiesView.png)
+    ![Allocation Manager Properties](img/AllocMgrPropertiesView.png)
 3.  To view the device associated with an allocation, from the Allocation Manager view, right-click the allocation and select **Find Device**.
 
     The device is highlighted in the REDHAWK Explorer view.

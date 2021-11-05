@@ -56,17 +56,17 @@ To demonstrate how throughput is affected by the configuration of omniORB and da
 
 
 The figure below shows the supported data rate in Giga-bytes per second at different transfer sizes when using the loopback interface (the default setting for omniORB). Data rates on the experiment platform plateau when transfer size approaches approximately 500 kB. Using higher transfer sizes, data rate does not improve, while latency increases. The value at which data rates plateau is system-specific.
-![Throughput for BulkIO When Using the Loopback Interface](../images/loopback.jpg)
+![Throughput for BulkIO When Using the Loopback Interface](img/loopback.jpg)
 
 Another result derived from this experiment is that there is a substantial impact when the number of <abbr title="See Glossary.">component</abbr> pairs transferring data increases.
 
 By following the steps in [Configuring omniORB](#configuring-omniorb), it is possible to achieve higher data rates. The following figure shows the same experiment as the one shown above, but with omniORB configured for Unix domain sockets. The sustained data rates on the computer used in this experiment are roughly four times higher when using Unix domain sockets compared to using the loopback interface. Even when heavily loaded, the Unix domain socket configuration is as fast or faster than the lightly-loaded loopback configuration.
-![Throughput for BulkIO When Using Unix Domain Sockets](../images/linux_domain_sockets.jpg)
+![Throughput for BulkIO When Using Unix Domain Sockets](img/linux_domain_sockets.jpg)
 
 ## Messaging Latency
 
 Much like BulkIO, messaging is subject to performance issues as the transfer size changes. Testing was performed to determine the impact of <abbr title="See Glossary.">message</abbr> size on the latency per message. The size of the message was modified and the latency per message was measured. The average latency was measured for sets of 1000 messages. The two figures below show the latency results when using the loopback interface and when using Unix domain sockets. Latency is a function of the size of the message, where the measured latency ranges between 40-150 microseconds and 50-160 microseconds for Unix domain sockets and loopback interface, respectively.
-![Message Latency When Using the Loopback Interface](../images/loop_msg.jpg)
-![Message Latency When Using Unix Domain Sockets](../images/lds_msg.jpg)
+![Message Latency When Using the Loopback Interface](img/loop_msg.jpg)
+![Message Latency When Using Unix Domain Sockets](img/lds_msg.jpg)
 
 Note that in both figures latency is linear as a function of the message size. Furthermore, the number of concurrent messaging components has no discernible impact on the message latency. Finally, the difference shown between Unix domain socket performance and loopback interface performance is, while measurable, relatively small.

@@ -14,7 +14,7 @@ There are two primary methods for changing perspectives:
 
   - Click **Open Perspective** from the top right of the workbench.
 
-    ![Open Perspective](images/REDHAWK_Open_Perspective.png)
+    ![Open Perspective](img/REDHAWK_Open_Perspective.png)
 
   - Select **Window > Open Perspective > Other**.
 
@@ -39,10 +39,10 @@ The following five Eclipse-provided views are in the REDHAWK perspective:
 The following two REDHAWK-specific views are in the REDHAWK perspective:
 
   - <abbr title="See Glossary.">REDHAWK Explorer view</abbr>: Allows a user to [navigate the contents of a REDHAWK domain](../exploring-domain/_index.html). It provides capabilities for viewing the contents of the <abbr title="See Glossary.">domain</abbr>, configuring instantiated resources, and launching <abbr title="See Glossary.">applications</abbr> in a <abbr title="See Glossary.">Target SDR</abbr> environment. It also provides access to the <abbr title="See Glossary.">sandbox</abbr>, which is an environment for running <abbr title="See Glossary.">components</abbr> and applications without a <abbr title="See Glossary.">Domain Manager</abbr> or a <abbr title="See Glossary.">Device Manager</abbr>.
-    ![REDHAWK Explorer View](images/REDHAWK_Explorer_View.png)
+    ![REDHAWK Explorer View](img/REDHAWK_Explorer_View.png)
 
   - <abbr title="See Glossary.">CORBA Name Browser</abbr> view: Maps names to specific CORBA Servants. The CORBA Name Browser view is used to examine the current contents of the <abbr title="See Glossary.">Naming Service</abbr> as well as perform basic manipulation of that context. The view displays all currently bound name contexts (folders) and objects.
-    ![CORBA Name Browser View](images/REDHAWK_Name_Browser.png)
+    ![CORBA Name Browser View](img/REDHAWK_Name_Browser.png)
 
 ### Programming Language Specific Perspectives
 

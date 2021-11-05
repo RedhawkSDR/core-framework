@@ -216,7 +216,7 @@ If the read is successful, `data.data` will be a `bitbuffer` instance containing
 Within REDHAWK IDE, packed bit ports can be monitored and plotted just like any other BulkIO type.
 By default, plotting a packed bit port automatically brings up a raster plot.
 
-![Packed Bit Raster](../images/PackedBitPlot.png)
+![Packed Bit Raster](img/PackedBitPlot.png)
 
 General IDE plot use is described in [REDHAWK Plot View](../../ide/editors-and-views/redhawk-plot-view.html).
 

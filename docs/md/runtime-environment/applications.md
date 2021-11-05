@@ -41,7 +41,7 @@ Each waveform has only one Assembly Controller that serves as the starting point
   - `query()`
 
 By default, the first component added to a waveform is the Assembly Controller. However, the Assembly Controller can be changed to any component in the waveform by right-clicking on the component in the waveform diagram and selecting **Set As Assembly Controller** from the context menu.
-![Assembly Controller Assignment](images/assembly_controller.png)
+![Assembly Controller Assignment](img/assembly_controller.png)
 
 In the waveform diagram, the circled number in the component indicates the component's designated start order. This is the order that the `start()` function is called on the components within the waveform.
 
@@ -54,7 +54,7 @@ To modify the start order:
 1.  In the waveform diagram, right-click the component for which you want to change the start order.
 2.  Select **Move Start Order Earlier** to start the component earlier.
 3.  Select **Move Start Order Later** to start the component later.
-![Start Order Assignment](images/start_order.png)
+![Start Order Assignment](img/start_order.png)
 
 ### Host Collocation
 
@@ -64,14 +64,14 @@ To collocate components in the IDE:
 
 1.  Open the **Advanced** section of the Palette.
 2.  Select **Host Collocation**.
-![Select Host Collocation  ](images/select_host_collocation.png)
+![Select Host Collocation  ](img/select_host_collocation.png)
 3.  Drag **Host Collocation** onto the Diagram.
     The collocation area is displayed.
-![Collocation](images/collocation.png)
+![Collocation](img/collocation.png)
 4.  Add desired components to the collocated area.
-![Add Components to Host Collocation](images/add_components.png)
+![Add Components to Host Collocation](img/add_components.png)
 5.  Finalize other component connections.
-![Finalize Other Component Connections](images/final_collocation.png)
+![Finalize Other Component Connections](img/final_collocation.png)
 
 ### External Ports
 
@@ -92,7 +92,7 @@ A Find By represents an object within a REDHAWK domain that will be available at
 To find a resource in the domain by name:
 
 1.  From the **Palette**, in the **Find By** folder, select **Find By Name** and drag it onto the diagram.  The **Find By Name** dialog is displayed.
-![Find By Name](images/FindByName.png)
+![Find By Name](img/FindByName.png)
 2.  Enter the name of the component you want to find.
 3.  Optionally, enter the component's ports names that you want to use. For Provides ports, enter the name and click **+** next to **Provides Port**. For Uses ports, enter the name and click **+** next to **Uses Port**.
 4.  Click **Finish**.
@@ -104,7 +104,7 @@ To find a resource in the domain by name:
 To find a service in the domain:
 
 1.  From the **Palette**, in the **Find By** folder, select **Service** and drag it onto the diagram. The **Find By Service** dialog is displayed.
-![Find By Service](images/Findbyservice.png)
+![Find By Service](img/Findbyservice.png)
 2.  If you want to search for a service Name, select the **Service Name** radio button and enter the service Name you want to find.
 3.  If you want to search for a service Type, select the **Service Type** radio button and enter the service Type you want to find. The service Type indicates the interface provided by the service. Click **Browse** to select an interface type the IDE recognizes.
 4.  Optionally, enter the component's ports names that you want to use. For Provides ports, enter the name and click **Add Provides Port**. For Uses ports, enter the name and click **Add Uses Port**.
@@ -119,7 +119,7 @@ To find an event channel in the domain:
 1.  From the **Palette**, in the **Find By** folder, select **Event Channel** and drag it onto the diagram.
 
     The **Event Channel** dialog is displayed.
-![Event Channel](images/NewEventChannel.png)
+![Event Channel](img/NewEventChannel.png)
 2.  Enter the name of the event channel you want to find and click **OK**.
 
     The **Event Channel** is displayed in the diagram.
@@ -198,11 +198,11 @@ To add a *usesdevice* to or remove a *usesdevice* from a host collocation:
 
     The **Edit Host Collocation** dialog is displayed.
 
-    ![Edit Host Collocation](images/EditHostCollocation.png)
+    ![Edit Host Collocation](img/EditHostCollocation.png)
 
 2.  To add a Device, under **Available uses devices**, select the Device, click **Add**, and click **Finish**. The Device is added to the host collocation.
 
-    ![Host Collocation Including a usesdevice](images/hostcollocationusesdeviceref.png)
+    ![Host Collocation Including a usesdevice](img/hostcollocationusesdeviceref.png)
 
 3.  To remove a Device, under **Collocated uses devices**, select the Device, click **Remove**, and click **Finish**. The Device is removed.
-    ![Host Collocation without a usesdevice](images/hostcollocationwithoutusesdevice.png)
+    ![Host Collocation without a usesdevice](img/hostcollocationwithoutusesdevice.png)

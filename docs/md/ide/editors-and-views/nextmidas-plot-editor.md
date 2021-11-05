@@ -2,7 +2,7 @@
 
 The NeXtMidas Plot Editor displays Midas BLUE files. In the <abbr title="See Glossary.">workspace</abbr>, if a file with the extensions `.prm` or `.tmp` is opened, the NeXtMidas Plot Editor is displayed.
 
-![NeXtMidas Plot Editor](../images/plotEditor.png)
+![NeXtMidas Plot Editor](img/plotEditor.png)
 
 The NeXtMidas Framework has an in plot menu system and mouse zoom functionality that may be used within the plot window. The full use and features of the plotting menus are beyond the scope of this guide and are explained within the official NeXtMidas documentation.
 

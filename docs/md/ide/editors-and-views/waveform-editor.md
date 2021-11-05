@@ -2,7 +2,7 @@
 
 The <abbr title="See Glossary.">Waveform Editor</abbr> presents all the content that can be found within the `sad.xml` file in an editing environment designed for ease of use.
 
-![Waveform Editor](../images/sadDiagram.png)
+![Waveform Editor](img/sadDiagram.png)
 
  To open the Waveform Editor, double-click a Software Assembly Descriptor (SAD) file from the <abbr title="See Glossary.">Project Explorer view</abbr>. The Waveform Editor contains an **Overview**, **<abbr title="See Glossary.">Properties</abbr>**, **<abbr title="See Glossary.">Components</abbr>**, **Diagram**, and a raw XML tab, which contains the SAD file content.
 
@@ -10,7 +10,7 @@ The <abbr title="See Glossary.">Waveform Editor</abbr> presents all the content 
 
 The **Overview** tab provides general information about the <abbr title="See Glossary.">waveform</abbr> and hyperlinks to additional waveform-related sections within the IDE.
 
-![Waveform Editor Overview Tab](../images/sadOverview.png)
+![Waveform Editor Overview Tab](img/sadOverview.png)
 
 The **Overview** tab contains the following sections:
 
@@ -28,7 +28,7 @@ The **Overview** tab contains the following sections:
 
     2.  Enter a new value for the name.
 
-    ![Renaming External Ports](../images/external_port_rename.png)
+    ![Renaming External Ports](img/external_port_rename.png)
 
     3.  Press **Enter**.
 
@@ -40,7 +40,7 @@ The **Overview** tab contains the following sections:
 
 The **Properties** tab provides access to the component's properties within the waveform.
 
-![Waveform Editor Properties Tab](../images/sadProperties.png)
+![Waveform Editor Properties Tab](img/sadProperties.png)
 
 Within the **Properties** tab, you can:
 
@@ -63,13 +63,13 @@ To make a property external:
 
 The following sample **Properties** tab displays several properties with assigned external IDs and several properties with SAD values set to override their PRF values.
 
-![Waveform External Properties](../images/external_property.png)
+![Waveform External Properties](img/external_property.png)
 
 ### Diagram Tab
 
 The **Diagram** tab is used to place components into a waveform, connect components together, set waveform-specific properties for components, make a [port external](../../runtime-environment/applications.html#external-ports), and add a [usesdevice relationship](../../devices/associating-a-waveform.html) to a FrontEnd Tuner <abbr title="See Glossary.">device</abbr>.
 
-![Waveform Editor Diagram Tab](../images/sadDiagram.png)
+![Waveform Editor Diagram Tab](img/sadDiagram.png)
 
 
 > **NOTE**  
@@ -99,7 +99,7 @@ To make a port external:
 
 3.  Select **Mark External Port**.
 
-![Mark External Ports](../images/external_port.png)
+![Mark External Ports](img/external_port.png)
 
 From the **Diagram** tab, a user may also use the [**Find By** feature](../../runtime-environment/applications.html#using-the-find-by-feature). The **Find By** feature enables a user to find a resource by name, a <abbr title="See Glossary.">service</abbr> by name or type, or an <abbr title="See Glossary.">event channel</abbr> by name.
 
@@ -109,17 +109,17 @@ To add a dependency on a FrontEnd Tuner device that the waveform needs to use at
 
 1.  From the **Palette**, in the **Advanced** folder, select **Use FrontEnd Tuner Device** and drag it onto the diagram. The **Allocate Tuner** dialog is displayed.
 
-![Select Target Device](../images/Selecttargetdevice.png)
+![Select Target Device](img/Selecttargetdevice.png)
 
 2.  Select the FrontEnd Tuner device you want to use. This will complete some of the information in the subsequent wizard pages. Alternatively, select **Generic FrontEnd Device** for defaults. Click **Next**.
 
-![Allocate Tuner](../images/AllocateTuner.png)
+![Allocate Tuner](img/AllocateTuner.png)
 
 3.  Enter the **Uses Device ID** and optionally, enter the **Device Model**, and then click **Next**.
 
 4.  Enter the appropriate information and click **Next**. For more information, refer to [**Allocating a FrontEnd Tuner**](../../devices/interacting-with-hardware/using-fei-device-ide.html#allocating-a-frontend-tuner).
 
-![Identify Ports](../images/IdentifyPorts.png)
+![Identify Ports](img/IdentifyPorts.png)
 
 5.  Enter the names of any uses and provides ports that you want to use from the target device and click **Finish**. The **Use FrontEnd Tuner Device** is displayed in the diagram. When you launch the waveform, the FrontEnd Tuner device must be available in order for the waveform to run.
 

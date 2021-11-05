@@ -9,38 +9,38 @@ The **REDHAWK Front End Device Project** wizard enables users to quickly create 
 1.  To open the wizard and create a new device, select **File > New > Other**.
 
     The **Select a wizard** page is displayed:
-![Select a Wizard Page](../images/NewFEIDeviceWizard1.png)
+![Select a Wizard Page](img/NewFEIDeviceWizard1.png)
 2.  Select **REDHAWK Front End Device Project** and click **Next**.
 
     The **Create a REDHAWK Device Project** page is displayed:
-![Create a REDHAWK Device Project Page](../images/NewFEIDeviceWizard2.png)
+![Create a REDHAWK Device Project Page](img/NewFEIDeviceWizard2.png)
 3.  In the **Project name** field, enter a project name and click **Next**.
 
     The **New Implementation** page is displayed:
-![New Implementation Page](../images/NewFEIDeviceWizard3.png)
+![New Implementation Page](img/NewFEIDeviceWizard3.png)
 4.  Select the programming language; enter a description for this implementation; and click **Next**.
 
     The **Setup Code Generation** page is displayed:
-![Setup Code Generation Page](../images/NewFEIDeviceWizard4.png)
+![Setup Code Generation Page](img/NewFEIDeviceWizard4.png)
 5.  Click **Next**.
 
     The **FrontEnd Interfaces Device Type Selection** page is displayed:
-![FrontEnd Interfaces Device Type Selection Page](../images/NewFEIDeviceWizard5.png)
+![FrontEnd Interfaces Device Type Selection Page](img/NewFEIDeviceWizard5.png)
 6.  Select the appropriate aspects of the device (needs GPS data or produces GPS data) and its general usage (receive/transmit, scanning capability). Click **Next**.
 
     The **FrontEnd Interface Tuner Options** page is displayed:
-![FrontEnd Interface Tuner Options Page](../images/NewFEIDeviceWizard6.png)
+![FrontEnd Interface Tuner Options Page](img/NewFEIDeviceWizard6.png)
 7.  Specify the types of inputs and outputs that the device supports (analog, digital float) and click **Next**.
 
     The **FrontEnd Interfaces Tuner Status Customization** page is displayed:
-![FrontEnd Interfaces Tuner Status Customization Page](../images/NewFEIDeviceWizard7.png)
+![FrontEnd Interfaces Tuner Status Customization Page](img/NewFEIDeviceWizard7.png)
 
       - To add an optional tuner status properties, click **+**, select the checkboxes for the properties, and click **OK**.
       - To remove optional tuner status properties, under **Tuner Status Property Selection**, select the properties to remove, and click **X**. If a required property is selected, the **X** button is disabled.
       - Click **Finish** to exit this wizard.
 
 Upon exiting this wizard,the FEI device project to is created, and the Overview tab of the project is displayed:
-![FEI Device Overview Tab](../images/FEIDevOverview.png)
+![FEI Device Overview Tab](img/FEIDevOverview.png)
 
 #### Editing an FEI Device Project
 
@@ -66,12 +66,12 @@ This section describes how to generate and customize the source code for an FEI 
 1.  On the **Overview** tab for the project, click the **Generate All Implementations** icon to generate the source code.
 
     The **Regenerate Files** dialog is displayed:
-![Regenerate Files Dialog](../images/FEIRegenFiles.png)
+![Regenerate Files Dialog](img/FEIRegenFiles.png)
 
 2.  Select the files to be generated and click **OK**.
 
     Files are generated that define the classes for the FEI device. In C++, the FEI base class inherits from the `frontend::FrontendTunerDevice` class  (or `frontend::FrontendScanningTunerDevice` for a scanner) to provide much of the FEI capability. The generated FEI device class must be modified to interact with the target device. During generation, intentional compiler warnings are inserted in the main class to indicate where code should be modified to reflect the behavior of the device. The output of the make command for a C++ device, including the compiler warnings, is displayed in the <abbr title="See Glossary.">Console view</abbr>:
-![FEI Device Compiler Warnings](../images/FEICompilerWarns.png)
+![FEI Device Compiler Warnings](img/FEICompilerWarns.png)
 
     There are five functions that contain a default implementation that should be modified to match the desired behavior. These functions are `constructor`, `deviceEnable`, `deviceDisable`, ` deviceSetTuning`, and `deviceDeleteTuning`. The `constructor` function is called when the device is instantiated. During allocation of an FEI device, `deviceSetTuning` is called and, if successful, `deviceEnable` is called. During deallocation, `deviceDisable` is called followed by a call to `deviceDeleteTuning`.
 
@@ -181,7 +181,7 @@ To test-run the device, follow these steps:
 3.  Right-click the device's output Port (probably called `dataShort_out`) and select **Plot Port Data**.
 
 4.  Right-click the running device and and select **Allocate**. The **Allocate Tuner** wizard is displayed.
-![Allocate Tuner Wizard](../images/TunerAllocationPage.png)
+![Allocate Tuner Wizard](img/TunerAllocationPage.png)
 5.  Enter any arbitrary number in the **Center Frequency**, **Bandwidth**, and **Sample Rate** fields.
 6.  To have the wizard perform the allocation as a background job, check the Run in background checkbox. If this checkbox is not checked, the wizard does not close until the allocation is complete.
 

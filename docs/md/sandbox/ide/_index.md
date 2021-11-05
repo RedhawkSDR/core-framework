@@ -18,17 +18,17 @@ The following procedures explain how to launch a component in the IDE sandbox.
 
     If the component has multiple implementations, the Select Implementation dialog of the Launch wizard is displayed. Select the implementation and click Next.
 
-    ![Select Implementation Dialog](../images/SelectImplementationlaunch.png)
+    ![Select Implementation Dialog](img/SelectImplementationlaunch.png)
 
     The Assign Initial Properties dialog of the Launch wizard is displayed.
 
-    ![Assign Initial Properties Dialog](../images/AssignInitialProperties.png)
+    ![Assign Initial Properties Dialog](img/AssignInitialProperties.png)
 
 2.  Enter the Properties information and click Next.
 
     The Launch Configuration Options dialog is displayed.
 
-    ![Launch Configuration Options Dialog](../images/LaunchConfigurationOptions.png)
+    ![Launch Configuration Options Dialog](img/LaunchConfigurationOptions.png)
 
 3.  Specify the launch options and click Finish.
 
@@ -102,13 +102,13 @@ The following procedures explain how to launch a waveform in the IDE sandbox.
 
     The Assign Initial Properties dialog of the Launch waveform wizard is displayed.
 
-    ![Assign Initial Properties Dialog](../images/WaveformInitProp.png)
+    ![Assign Initial Properties Dialog](img/WaveformInitProp.png)
 
 2.  Enter the Properties information and click Next.
 
     The Launch Configuration Options dialog of the Launch waveform wizard is displayed.
 
-    ![Launch Configuration Options Dialog](../images/WaveformLaunchConfigOptions.png)
+    ![Launch Configuration Options Dialog](img/WaveformLaunchConfigOptions.png)
 
 3.  Specify the launch options and click Finish.
 

@@ -33,7 +33,7 @@ The persona role is responsible for defining the hardware load and any interface
 ### REDHAWK Devices
 
 The programmable and persona roles can be implemented via REDHAWK devices. Representing these roles as their own independent devices allows for more granular control and for a more precise representation of each role without needing to shoe-horn the two independent roles together into a single, complex entity.
-![Relationship between Programmable Devices and Persona Devices](../images/personadiagram.png)
+![Relationship between Programmable Devices and Persona Devices](img/personadiagram.png)
 
 #### REDHAWK Programmable Device
 
@@ -50,7 +50,7 @@ REDHAWK programmable devices also implement functionality to instantiate REDHAWK
 A REDHAWK persona device is simply the XML representation of one specific behavior that may be assigned to a programmable device. This XML representation may include unique <abbr title="See Glossary.">properties</abbr> and/or <abbr title="See Glossary.">ports</abbr> that are only relevant to the persona. Each persona device is visible in the REDHAWK <abbr title="See Glossary.">domain</abbr>, which allows for run-time configuration of persona devices in a standardized way.
 
 REDHAWK persona devices may be built as shared objects rather than executables, therefore, allowing persona devices to exist within the same process space as a programmable device.
-![Dynamic Loading of Persona Devices onto a Programmable Device](../images/persona_load.png)
+![Dynamic Loading of Persona Devices onto a Programmable Device](img/persona_load.png)
 
 ### Associating Programmable/Persona Devices
 
@@ -105,7 +105,7 @@ In the following example DCD file, the `compositepartofdevice` tag is used to as
 <abbr title="See Glossary.">Hardware-accelerated components</abbr> are REDHAWK <abbr title="See Glossary.">components</abbr> that are proxies into only a portion of hardware. An example for FPGAs is having multiple demodulator components within the fabric that all have their own register sets and data IO channels. Each individual register set and/or data IO channel may be represented within a single REDHAWK component that has a dependency on a specific behavior or persona.
 
 The pattern used for hardware-accelerated components is very similar to the pattern used for persona devices. These components may be built as shared libraries and share state the same way programmable and persona devices share state.
-![Dynamic Loading of Hardware-Accelerated Components to a Persona Device](../images/full_load.png)
+![Dynamic Loading of Hardware-Accelerated Components to a Persona Device](img/full_load.png)
 
 ## IDE and Code-Generation Support
 

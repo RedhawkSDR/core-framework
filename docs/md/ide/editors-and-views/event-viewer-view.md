@@ -3,7 +3,7 @@
 The Event Viewer view is used to listen to any <abbr title="See Glossary.">event channel</abbr> (for example, the default **IDM_Channel** or **ODM_Channel** for a <abbr title="See Glossary.">domain</abbr>) as well as <abbr title="See Glossary.">message</abbr> events emitted by **MessageEvent** <abbr title="See Glossary.">ports</abbr>. It also provides a means of filtering, sorting, and exporting the event traffic collected.
 
 The following figure displays the **Event Viewer view** for the Outgoing Domain Management (ODM) channel.
-    ![Event Viewer View for ODM Channel](../images/eventViewer.png)
+    ![Event Viewer View for ODM Channel](img/eventViewer.png)
 
 To listen to a channel from the <abbr title="See Glossary.">REDHAWK Explorer view</abbr>:
 
@@ -34,7 +34,7 @@ To listen to message events emitted by a uses (out) port from the Diagram tab:
 The controls in the upper right of the Event Viewer view provide the following functionality:
 
   - To view details for events, click the **See Details** icon. The Properties tab is displayed with the all of the details for the selected event.
-  ![Properties tab with Event Details for the ODM Channel](../images/eventviewer2.png)
+  ![Properties tab with Event Details for the ODM Channel](img/eventviewer2.png)
 
   - To stop listening to a channel, click the **Disconnect** icon.
   - To clear the logs, click the **Clear** icon.

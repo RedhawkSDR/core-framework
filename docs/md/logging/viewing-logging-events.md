@@ -4,7 +4,7 @@ A live view of events logged by <abbr title="See Glossary.">components</abbr> or
 
 1.  Right-click the running component or device and select **Logging > Tail Log**. The Specify logging details dialog is displayed:
 
-    ![Specify Logging Details Dialog](images/loggingdetails.png)
+    ![Specify Logging Details Dialog](img/loggingdetails.png)
 
 2.  Select the logging level.
 

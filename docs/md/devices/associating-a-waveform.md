@@ -13,13 +13,13 @@ To create a usesdevice relationship artifact on the waveform:
 
 2.  Find and place the usesdevice relationship artifact, which is located under the Advanced tab:
 
-    ![FrontEnd Tuner Device Artifact](images/Uses_Step_1.png)
+    ![FrontEnd Tuner Device Artifact](img/Uses_Step_1.png)
 
     When the artifact is dragged onto the canvas, a menu of target devices is shown. The devices shown are the result of a scan of `$SDRROOT`.
 
 3.  Either select the desired device or select the **Generic FrontEnd device**, which does not have any <abbr title="See Glossary.">ports</abbr> (so a connection cannot be defined), but it allows an allocation to be associated with the deployment.
 
-    ![Select Target Device](images/Uses_Step_2.png)
+    ![Select Target Device](img/Uses_Step_2.png)
 
     After selecting a device, a series of wizards are displayed. In the wizards, define the usesdevice relationship ID to use and the parameters for the allocation itself.
 
@@ -28,5 +28,5 @@ To create a usesdevice relationship artifact on the waveform:
 
 4.  If the device has ports, connect them to the appropriate component:
 
-    ![Create a Connection Between the FEI Device and a Component](images/Uses_Step_3.png)
+    ![Create a Connection Between the FEI Device and a Component](img/Uses_Step_3.png)
 

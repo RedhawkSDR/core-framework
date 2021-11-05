@@ -3,10 +3,10 @@
 The **Plot Port Wizard** enables users to choose the settings for a plot before opening the Plot view. The following procedure explains how to use the **Plot Port Wizard**.
 
 1.  In the <abbr title="See Glossary.">REDHAWK Explorer</abbr> or any running diagram (Chalkboard or <abbr title="See Glossary.">Waveform</abbr> running on a <abbr title="See Glossary.">Domain</abbr>), to open the **Plot Port Wizard**, select an output <abbr title="See Glossary.">port</abbr>, then right-click the selected port and select **Plot Port ...** from the context menu:
-    ![Port Context Menu](images/BothPortContext.png)
+    ![Port Context Menu](img/BothPortContext.png)
 
     The **Plot Port Wizard** is displayed:
-    ![Plot Port Wizard](images/NewPlotPortWizard.png)
+    ![Plot Port Wizard](img/NewPlotPortWizard.png)
 
 2.  Select a **Type**. The following types are available:
 

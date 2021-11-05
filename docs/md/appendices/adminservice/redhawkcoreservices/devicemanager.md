@@ -17,10 +17,10 @@ A sample configuration is created, which requires the `DOMAIN_NAME` and `NODE_NA
 #### Creating a Device Service Configuration Using the REDHAWK IDE
 
 1. In the REDHAWK IDE, to create a configuration file, click the Generate Node button in the Device Configuration Descriptor (DCD) editor.
-![Generate Node Button](../../../images/GenerateNodeButton.png)
+![Generate Node Button](img/GenerateNodeButton.png)
 
 2. In the Regenerate Files dialog, check the checkbox next to the .ini file to generate it. If the .spec file is also checked, the generated .spec file will include the installation of the .ini file.
-![Generate Node File Selection](../../../images/GenerateNodeSelectIni.png)
+![Generate Node File Selection](img/GenerateNodeSelectIni.png)
 
 
 ### Displaying a Configuration

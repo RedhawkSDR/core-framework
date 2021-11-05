@@ -67,7 +67,7 @@ The `metrics` function takes two arguments, the list of components to report and
 
 To display metrics in the IDE, select a running waveform, and in the <abbr title="See Glossary.">Properties view</abbr>, select the **Metrics** tab.
 
-![Waveform Metrics](images/Metrics.png)
+![Waveform Metrics](img/Metrics.png)
 
 #### Monitoring Computing Resources per GPP
 
@@ -178,7 +178,7 @@ A non-reservation strategy with a deployment pattern where multiple waveforms ar
 
 To mitigate this issue, the GPP maintains a reservation-based strategy to properly forecast the CPU load for each component it manages. During initial waveform deployment, the forecasted load for each component of the waveform is reserved against the current system's available CPU capacity. As components are moved to the `start` state, the forecasted load is tabled, and the actual load or a minimum utilitization load (whichever is greater), is used for determining the system load, and thus, the available CPU capacity. The available CPU capacity is one of the system resources that will directly determine the system's `usageState`, (i.e., `IDLE`, `ACTIVE`, or `BUSY` ). The GPP's `utilization.subscribed` property maintains the runtime value of the total reservation for the system.
 
-![Example Reservation Schema](images/reservation_schema.png)
+![Example Reservation Schema](img/reservation_schema.png)
 
 In the figure above, an example of the reservation schema is shown where actual usage is shown in green, reserved capacity is shown in blue, and the maximum for the host is shown in orange. In the figure shown, the GPP's capacity calculation is affected by the components deployed and whether or not its host application is started.
 
@@ -228,7 +228,7 @@ Alternatively, the reservation can be made in the IDE by selecting a host colloc
 4.  Add `rh.SigGen` to the host collocation.
 5.  Select the host collocation.
 6.  Open the Properties view, select the **Reservations** tab.
-![Properties View Reservations Tab](images/propertiesreservationstab.png)
+![Properties View Reservations Tab](img/propertiesreservationstab.png)
 7.  Click the **+** button.
 8.  Set the **Kind** and **Value** to match the XML (`cpucores` and `3`, respectively).
 

@@ -16,12 +16,12 @@ The following steps explain how to set the Assembly Controller and describe the 
 
 1.  On the Overview tab of the Waveform, from the **Controller** drop-down menu, ensure `SigGen_1` is selected.
 2.  In the **Description** field, enter a description for the waveform.
-![Waveform Overview Tab](images/REDHAWK_Waveform_Overview_Tab.png)
+![Waveform Overview Tab](img/REDHAWK_Waveform_Overview_Tab.png)
 
 ### Components Tab
 
 The Components tab displays the individual component instantiation elements and their associated details, which can be modified.
-![Waveform Components Tab](images/Components_Tab.png)
+![Waveform Components Tab](img/Components_Tab.png)
 
 The All Components section displays all components currently in the waveform as well as Add... and Remove buttons, which can be used to add or remove selected components from the waveform.
 
@@ -47,7 +47,7 @@ The following steps explain how to edit the properties of a component in a wavef
 
 1.  On the Diagram tab of the waveform, select the component.
 2.  In the <abbr title="See Glossary.">Properties view</abbr>, verify the Properties tab is selected.
-![Properties View](images/properties.png)
+![Properties View](img/properties.png)
 3.  Select the property you want to set, and edit the value.
 
 #### Editing the `devicerequires` Set in a Waveform
@@ -58,7 +58,7 @@ The following steps explain how to edit the `devicerequires` set.
 
 1.  On the Diagram tab of the waveform, select the component.
 2.  In the Properties view, verify the Requirements tab is selected.
-![ Properties View Requirements Tab](images/requirementstab.png)
+![ Properties View Requirements Tab](img/requirementstab.png)
 3.  To add an ID and value, click + and add the ID and value. The ID and value can be any alphanumeric string value. This assigns a `devicerequires` key/value pair to the component.
 4.  To remove an ID and value, select the ID and click X.
 
@@ -91,7 +91,7 @@ Two options can be set for applications in the SAD file:
 
 To set the application options from the SAD File Overview Tab in the IDE:
 
-![SAD File Overview Tab](images/sad_options.png)
+![SAD File Overview Tab](img/sad_options.png)
 
   - To add an option, expand the waveform Options section, click Add, and enter the value.
   - To edit an option, expand the waveform Options section, select the option and edit the value.

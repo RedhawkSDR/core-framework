@@ -5,27 +5,27 @@ The **Octave Wizard** enables users to import existing Octave M-files for easy c
 1.  To open the **Octave Wizard**, select **File > New > Other**.
 
     The **Select a wizard** page is displayed:
-    ![Select a Wizard Dialog](images/selectawizardDiag.png)
+    ![Select a Wizard Dialog](img/selectawizardDiag.png)
 
 2.  Select **REDHAWK Octave Project** and click **Next**.
 
     The **Create a REDHAWK Component Project** page is displayed:
-    ![Create a REDHAWK Component Project Page](images/NewCompProjDiag.png)
+    ![Create a REDHAWK Component Project Page](img/NewCompProjDiag.png)
 
 3.  In the **Project name** field, enter a project name and click **Next**.
 
     The **New Implementation** page is displayed:
-    ![New Implementation Page](images/NewImplDiag.png)
+    ![New Implementation Page](img/NewImplDiag.png)
 
 4.  Enter an ID and a description for this component implementation and click **Next**.
 
     The **New M-File** page is displayed:
-    ![New M-File Page](images/NewM-FileDiag.png)
+    ![New M-File Page](img/NewM-FileDiag.png)
 
 5.  In the **Primary M-file** field, enter the location of the Octave M-file you want to import or click **Browse** and navigate to the file. If the primary M-file depends on non-standard methods, select **Primary M-file depends on non-standard M-files** and select the dependent M-files. Click **Next**.
 
     The **Map M-file** page is displayed:
-    ![Map M-file Page](images/MapMfileDiag.png)
+    ![Map M-file Page](img/MapMfileDiag.png)
 
 6.  The **Map M-file** page enables the user to map the Octave inputs and outputs to REDHAWK ports or properties. The **Name/id** field contains the names contained in the M-file. You have the following options for both **Inputs** and **Outputs**:
 

@@ -13,18 +13,18 @@ A <abbr title="See Glossary.">message</abbr> consumer may be created when creati
 2.  From the Component Editor, select the Properties tab.
 
     The Component Editor Properties tab is displayed.
-    ![Component Editor Properties Tab](../images/propertiestab.png)
+    ![Component Editor Properties Tab](img/propertiestab.png)
 
 3.  To add a `struct` <abbr title="See Glossary.">property</abbr>, click Add Struct.
 
     The Struct Property section of the Properties tab is displayed.
-    ![Struct Property Section of Properties Tab](../images/structprop.png)
+    ![Struct Property Section of Properties Tab](img/structprop.png)
 
 4.  In the Struct Property section, enter the name of the message you want the component to consume. The ID defaults to the name you enter.
 5.  From the Kind drop-down, select `message`.
 6.  In the All Properties section, select the `struct` property you added. By default, a `simple` member  already exists. You can modify it and create additional members for the `struct` property. For more information about property structures, kinds, and types, refer to [Managing and Defining Properties](../../component-structure/managing-defining-properties.html).
 After you modify and/or create them, the members of the structure and corresponding property information is displayed.
-  ![Struct Property and Members](../images/message.png)
+  ![Struct Property and Members](img/message.png)
 
 7.  Select the Ports tab, click Add, and in the Name field, enter a name.
 
@@ -37,7 +37,7 @@ After you modify and/or create them, the members of the structure and correspond
 10. From the list of interfaces displayed, select `ExtendedEvent> MessageEvent` and click OK.
 
     The message consumer port information is displayed.
-    ![Message Consumer Port](../images/consumerportstab.png)
+    ![Message Consumer Port](img/consumerportstab.png)
 
 11.  Regenerate the component.
 

@@ -3,10 +3,10 @@
 The Signal Related Information (SRI) view enables the user to view the [SRI data](../../connections/bulkio/sri.html) from a particular <abbr title="See Glossary.">port</abbr>.  The following procedure explains how to open the SRI view.
 
 1.  To open the SRI view, right-click the port of a started <abbr title="See Glossary.">component</abbr> and select **Display SRI** from the context menu:
-    ![Port Context Menu with Display SRI Selected](../images/SRIMenu.png)
+    ![Port Context Menu with Display SRI Selected](img/SRIMenu.png)
 
     The SRI view is opened:
-    ![SRI View](../images/SRIView.png)
+    ![SRI View](img/SRIView.png)
 
 2.  The following options are available in the SRI view.
 

@@ -1,7 +1,7 @@
 # Plot Settings Dialog
 
 The **Plot Settings** dialog enables the user to adjust certain plot settings.
-![Plot Settings Dialog](../images/plotsettings.png)
+![Plot Settings Dialog](img/plotsettings.png)
 
 ### Plot
 
@@ -17,14 +17,14 @@ Selecting Plot in the left-hand navigation pane displays the **Plot** section. T
 ### Output Port Name
 
 Selecting the Output <abbr title="See Glossary.">Port</abbr> Name in the left-hand navigation pane displays the Output Port Settings dialog:
-![Output Port Settings Dialog](../images/outportset.png)
+![Output Port Settings Dialog](img/outportset.png)
 
 The Output Port Settings enable you to modify how the source is being displayed.
 
   - The **Show** checkbox enables you to turn the plotting of individual data streams on and off.
   - The **Stream ID** displays the Stream ID for each data stream in the plot.
   - Clicking on **Color** brings up the Color Palette dialog, which enables you to select a color for the specified stream on the plot.
-![Color Palette Dialog](../images/colorpal.png)
+![Color Palette Dialog](img/colorpal.png)
   - **Framesize**: Enables you to override the displayed default frame size.
   - The **IF** and **RF** radio buttons enable you to toggle between Intermediate Frequency (IF) and RF values for the x-axis on FFT plots.
   - **Center Freq**: Enables you to override the center frequency value for RF plots. This field is grayed out for IF plots.
@@ -34,7 +34,7 @@ Expanding the Output Port Name in the left-hand navigation pane makes the Bulk I
 ### BulkIO
 
 Selecting BULKIO in the left-hand navigation pane displays the **BULKIO** Settings dialog:
-![BULKIO Settings Dialog](../images/bulkioset.png)
+![BULKIO Settings Dialog](img/bulkioset.png)
 
 The **BULKIO** Settings dialog enables you to modify how the data is received via the CORBA Bulk Data.
 
@@ -49,7 +49,7 @@ The **BULKIO** Settings dialog enables you to modify how the data is received vi
 ### FFT
 
 Selecting FFT in the left-hand navigation pane displays the **FFT** Settings dialog:
-![FFT Settings Dialog](../images/fftset.png)
+![FFT Settings Dialog](img/fftset.png)
 
 The **FFT** section enables you to change various settings on the FFT primitive.
 

@@ -9,10 +9,10 @@ You can also [launch a domain and Device Manager from the command line](../runti
 The following procedure explains how to launch and connect to a domain through the IDE.
 
 1.  In the <abbr title="See Glossary.">**REDHAWK Explorer** view</abbr>, right-click **<abbr title="See Glossary.">Target SDR</abbr>** and select **Launch Domain...**
-![Launching a Domain](images/REDHAWK_Launch_domain.png)
+![Launching a Domain](img/REDHAWK_Launch_domain.png)
 
     The **Launch Domain Manager** window is displayed:
-![Launch Domain Manager Window](images/SelectDomMgr.png)
+![Launch Domain Manager Window](img/SelectDomMgr.png)
 
 2.  In the **Domain Name** field, enter a name.
 
@@ -34,17 +34,17 @@ The following procedure explains how to launch and connect to a domain through t
     2.  The new domain, within a short amount of time, is connected and this connection is indicated to the right of the domain name within the **REDHAWK Explorer** view.
 
     3.  At least one new <abbr title="See Glossary.">Console view</abbr> (within the IDE) has been created. One contains a `nodeBooter` instance for the Domain Manager that launched and one `nodeBooter` instance for each Device Manager.
-![Console Showing the Domain Manager Start Up](images/REDHAWK_Domain_Console.png)
+![Console Showing the Domain Manager Start Up](img/REDHAWK_Domain_Console.png)
 
 ### Connecting to a Running Domain
 
 To connect to a running domain through the IDE use the following procedure:
 
 1.  Click the **New Domain Connection** button (i.e. the plus symbol) in the upper right of the **REDHAWK Explorer** view.
-![New Domain Connection Button](images/NewDomainConnection.png)
+![New Domain Connection Button](img/NewDomainConnection.png)
 
     The **New Domain Manager** dialog is displayed:
-![New Domain Manager Dialog](images/REDHAWK_New_Domain_Wizard.png)
+![New Domain Manager Dialog](img/REDHAWK_New_Domain_Wizard.png)
 
 2.  Enter the <abbr title="See Glossary.">**Name Service**</abbr>. This is the CORBA URI of the Naming Service where the domain is registered. By default, this is populated with the value from the IDE's preferences (set by selecting **Window > Preferences**, **REDHAWK > Domain Connections**, **Default Naming Service**).
 

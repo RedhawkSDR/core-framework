@@ -12,7 +12,7 @@ The following example plots the data from a component as a line plot:
 
 Before displaying data, plots must be started either by calling their `start()` method or by calling `sb.start()`. If the sandbox is already started when the plot is created, then the plot's initial state is started.
 
-![Example of LinePlot](../images/LinePlot.png)
+![Example of LinePlot](img/LinePlot.png)
 
 #### Frame Size
 
@@ -36,7 +36,7 @@ Plots that display the Power Spectral Density (PSD) of input data use a default 
 
 The frame size defaults to the FFT size, but can be overridden with `frameSize`. It may be smaller than the FFT size; however, it cannot exceed the FFT size. If the frame size is smaller than the FFT size, the data is zero-padded.
 
-![Example of LinePSD](../images/LinePSD.png)
+![Example of LinePSD](img/LinePSD.png)
 
 #### Line Plots
 
@@ -71,7 +71,7 @@ All raster plots allow configuration of the image size at creation time. The def
 ```python
 >>> plot = sb.RasterPSD(imageHeight=512, imageWidth=768)
 ```
-![Example of RasterPSD](../images/RasterPSD.png)
+![Example of RasterPSD](img/RasterPSD.png)
 
 The plot X and Y ranges are fixed based on the FFT or frame size (X) and image height (Y). The Z range (magnitude) can be set at creation time or changed dynamically with the `zmin` and `zmax` attributes:
 
@@ -94,4 +94,4 @@ By default, the plot is centered at the origin, and both the X and Y ranges are 
 >>> plot = sb.XYPlot(xmin=-2.0, xmax=2.0)
 >>> plot.ymin, plot.ymax = -2.0, 2.0
 ```
-![Example of XYPlot](../images/XYPlot.png)
+![Example of XYPlot](img/XYPlot.png)

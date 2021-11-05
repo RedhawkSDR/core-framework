@@ -5,7 +5,7 @@
 > It is strongly recommended that for BulkIO data in C++ and Python, you use the Bulk Input/Output (BulkIO) stream API, which provides a high-level interface to sending and receiving data via BulkIO <abbr title="See Glossary.">ports</abbr>. For more information, refer to [Stream API](../bulkio/stream-api.html) and the Shared Address information in the [Technical Notes](<https://redhawksdr.github.io/technical-notes/>).  
 
 Data transfers happen through the `pushPacket()` method call of a REDHAWK <abbr title="See Glossary.">component</abbr>'s <abbr title="See Glossary.">port</abbr> object. This method transfers the data from the uses-side port to the corresponding connected provides-side port. The data is marshaled by the middleware (omniORB) and placed on a queue for processing by the receiving component. The implementations of the `pushPacket()` methods are maximized for the efficiency of data throughput while providing network-accessible ingest/egress of data and minimizing the complexity of the implementation.
-![BulkIO Data Flow via pushPacket()](../images/REDHAWK_bulkio_dataflow.png)
+![BulkIO Data Flow via pushPacket()](img/REDHAWK_bulkio_dataflow.png)
 
 Each implementation maintains the required behavior of providing an Signal Related Information (SRI) object before receiving any data transfers. This is accomplished by calling the `pushSRI()` method of the port with an SRI object. In most cases, a component takes the ingest SRI object received from an input port, makes any required modifications as necessary, and passes this object down stream over its output port. If a component does not provide an SRI object before its first `pushPacket()`, the port creates a default SRI object with nominal values to pass out the port.
 

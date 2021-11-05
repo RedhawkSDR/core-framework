@@ -2,7 +2,7 @@
 
 The <abbr title="See Glossary.">SoftPkg Editor</abbr> presents all the content that can be found within the `spd.xml` file in an editing environment designed for ease of use.
 
-![SoftPkg Editor](../images/spdOverview.png)
+![SoftPkg Editor](img/spdOverview.png)
 
 To open the SoftPkg Editor, double-click a Software Package Descriptor (SPD) file from the <abbr title="See Glossary.">Project Explorer view</abbr>. If the SPD file references a Properties File (PRF) or Software Component Descriptor (SCD) file, additional tabs are made available that represent these files in similar fashion.
 
@@ -42,7 +42,7 @@ The Overview tab is a representation of content found in the SPD file and contai
 
 The Properties tab provides a view of all of the [properties](../../components/creating-a-component.html#properties) defined for a component or <abbr title="See Glossary.">device</abbr>.
 
-![SoftPkg Editor Properties Tab](../images/spdProperties.png)
+![SoftPkg Editor Properties Tab](img/spdProperties.png)
 
 Within the **Properties** tab, the **All Properties** section displays all of the properties defined for the selected component or device.
 
@@ -96,7 +96,7 @@ The struct definition appears as a child of the struct sequence in the **All Pro
 
 The Ports tab provides the ability to add, edit, and view port information.
 
-![SoftPkg Editor Ports Tab](../images/spdPorts.png)
+![SoftPkg Editor Ports Tab](img/spdPorts.png)
 
 Click **Add** to create a new port with default values. The **Port Details** section shows the new port, which can be modified as needed:
 
@@ -123,7 +123,7 @@ To remove a port, select it from the **All Ports** section and click the **Remov
 
 The Implementations tab is a representation of content found in the SPD file. It describes the programming language implementations that are generated and the hardware dependencies required for this resource.
 
-![SoftPkg Editor Implementations Tab](../images/spdImplementation.png)
+![SoftPkg Editor Implementations Tab](img/spdImplementation.png)
 
 During the **New Project Wizard**, the initial programming language and code generation template were selected. In the **All Implementations** section there is the option to add additional programming language implementations.
 

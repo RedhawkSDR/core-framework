@@ -27,7 +27,7 @@ To add <abbr title="See Glossary.">components</abbr> to this waveform:
 4.  Drag a connection between the `SigGen_1` **dataFloat_out** <abbr title="See Glossary.">port</abbr> and the `HardLimit_1` **dataFloat_in** port
 
 5.  The waveform looks like :
-    ![Demo Waveform](images/Demo_waveform.png)
+    ![Demo Waveform](img/Demo_waveform.png)
 
 6.  If `SigGen_1` does not have a yellow 0, right-click the component and select **Set As <abbr title="See Glossary.">Assembly Controller</abbr>**
 

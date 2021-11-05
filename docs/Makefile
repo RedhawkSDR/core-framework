@@ -1,28 +1,23 @@
-markdown := $(shell find md -name '*.md')  # get list of markdown files
-images := $(shell find md -name images)  # get list of image directories
+md_files := $(shell find md -name '*.md')  # get list of markdown files
+img_dirs := $(shell find md -name img)  # get list of image directories
 
 all:    tree-of-files.html \
-        $(patsubst md/%.md, html/%.html, $(markdown)) \
-        $(patsubst md/%images, html/%images, $(images))
+        $(patsubst md/%img, html/%img, $(img_dirs)) \
+        $(patsubst md/%.md, html/%.html, $(md_files))
 	$(RM) tree-of-files.html
-
-# Convert .md files to .html
-html/%.html: md/%.md py/convert_md_to_html.py py/generate_tree_of_files.html.py
-	py/convert_md_to_html.py $< $@
-
-# Link to the md/images directory.
-html/images: md/images
-	mkdir -p $(@D)
-	ln -frs $< $@
-
-# Link to the other images directories.
-html/%images: md/%images
-	mkdir -p $(@D)
-	ln -frs $< $@
 
 # Always generate tree-of-files.html.
 tree-of-files.html: FORCE
 	py/generate_tree_of_files.html.py
+
+# Create a symlink to the main image directory.
+html/%img: md/%img
+	mkdir -p $(@D)
+	cp -d $< $@
+
+# Convert .md files to .html
+html/%.html: md/%.md py/convert_md_to_html.py py/generate_tree_of_files.html.py
+	py/convert_md_to_html.py $< $@
 
 FORCE:
 

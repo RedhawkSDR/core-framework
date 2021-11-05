@@ -24,7 +24,7 @@ nodeBooter -D -logcfgfile logconfiguration.cfg
 
 - Added to the component instance in a Software Assembly Descriptor (SAD) file
 
-    ![Add Logging Configuration to a Component](images/LoggingApp.png)
+    ![Add Logging Configuration to a Component](img/LoggingApp.png)
 
 - Passed at runtime through the [logging API](adjusting-logging-at-runtime.html)
 

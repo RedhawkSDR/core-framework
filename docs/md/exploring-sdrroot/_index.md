@@ -112,4 +112,4 @@ To view the details about an error condition:
 2.  From the **Properties** view, select the **Advanced** tab
 3.  Select the status row. This causes the **Details** key to appear.
 4.  Press the **Details** button to bring up a detailed dialog of the current error conditions
-![Error Event Details Dialog](images/REDHAWK_Property_View_Error_Dialog.png)
+![Error Event Details Dialog](img/REDHAWK_Property_View_Error_Dialog.png)

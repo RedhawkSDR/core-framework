@@ -6,7 +6,7 @@ The **REDHAWK Node Project** in the REDHAWK IDE provides a mechanism for generat
 
 The node project has multiple tabs: Overview, Devices, Diagram, and the DCD file tab (see [Node Editor](../ide/editors-and-views/node-editor.html) for additional information). The most intuitive tab is the Diagram tab, which allows a developer to drag devices available in `$SDRROOT` into the node, as shown below.  Once the set of members for a particular node is determined, save the project and drag it to <abbr title="See Glossary.">**Target SDR**</abbr> to install it.
 
-![Node Design Diagram](images/NodeDesign.png)
+![Node Design Diagram](img/NodeDesign.png)
 
 To launch this new node:
 

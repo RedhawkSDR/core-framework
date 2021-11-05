@@ -33,7 +33,7 @@ Below is a description of how to connect producers through point-to-point and th
 
     1.  In the waveform Diagram, under **Palette > Find By:**
           - Select **EventChannel** and drag it onto the diagram. The **New Event Channel** dialog is displayed.
-            ![New Event Channel](../images/NewEventChannel.png)
+            ![New Event Channel](img/NewEventChannel.png)
           - Enter the event channel you want to find and click **OK**. The **EventChannel** is displayed in the diagram.
     2.  Connect the Uses (Output) `MessageEvent` port of the sending component, `message_out` in this example, to the event channel.
     3.  Connect the Uses (Output) `MessageEvent` port of the receiving component, `message_in`, to the event channel. This is the **black** output port that must be connected to the event channel.

@@ -2,7 +2,7 @@
 
 The REDHAWK Plot view displays a NeXtMidas Plot when a user plots a <abbr title="See Glossary.">port</abbr>.
 
-![REDHAWK Plot View](../images/plot.png)
+![REDHAWK Plot View](img/plot.png)
 
 Within the REDHAWK Plot view, users can manipulate the plot as follows:
 
@@ -38,7 +38,7 @@ The REDHAWK IDE contains the following controls for interacting with the active 
 > The red icon next to the Change Plot type arrow is a toggle button that when clicked, changes the active plot to display either the Line or the Raster plot.  
 
   - The View menu contains the following options:
-![View Menu](../images/REDHAWK_Plot_Menu.png)
+![View Menu](img/REDHAWK_Plot_Menu.png)
 
       - **New Plot View**: Displays an identical plot view. This option is useful to view both the Line and Raster plots of the same data simultaneously.
       - **Plot Type**: Changes the plot type. Plot types include: Dot, Line, Point and Raster.

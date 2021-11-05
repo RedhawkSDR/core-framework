@@ -11,7 +11,7 @@ When a node is running, several attributes about the node, can be viewed in the 
 3.  Expand **DevMgr_\<localhost\>.localdomain**.
 4.  Select **GPP_\<localhost\>_localdomain**.
 5.  Select the <abbr title="See Glossary.">**Properties** view</abbr> tab. The **Properties** view displays all the <abbr title="See Glossary.">properties</abbr> for this device, such as the operation system name, amount of available memory, and other important information, as seen below:
-![Properties View of a Running GPP](images/GPPProps.png)
+![Properties View of a Running GPP](img/GPPProps.png)
 
 ### Creating a Component that Consumes Resources
 

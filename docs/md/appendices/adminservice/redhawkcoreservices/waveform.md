@@ -15,10 +15,10 @@ A sample configuration is created, which requires the `DOMAIN_NAME` and `WAVEFOR
 #### Creating a Waveform Service Configuration Using the REDHAWK IDE
 
 1. In the REDHAWK IDE, to create a configuration file, click the Generate Waveform button in the Software Assembly Descriptor (SAD) editor.
-![Generate Waveform Button](../../../images/GenerateWaveformButton.png)
+![Generate Waveform Button](img/GenerateWaveformButton.png)
 
 2. In the Regenerate Files dialog, check the checkbox next to the .ini file to generate it. If the .spec file is also checked, the generated .spec file will include the installation of the .ini file.
-![Generate Waveform File Selection](../../../images/GenerateWaveformSelectIni.png)
+![Generate Waveform File Selection](img/GenerateWaveformSelectIni.png)
 
 ### Displaying a Configuration
 

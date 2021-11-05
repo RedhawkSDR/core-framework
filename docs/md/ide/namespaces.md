@@ -11,12 +11,12 @@ The following procedure explains how to rename a project to include a namespace.
 1.  In <abbr title="See Glossary.">Project Explorer</abbr>, right-click the project, select **Rename**.
 
     The Rename Resource dialog is displayed:
-    ![Rename Resource Dialog](images/Rename_Resource_dialog.png)
+    ![Rename Resource Dialog](img/Rename_Resource_dialog.png)
 
 2.  Enter the new project namespace and click **Preview**.
 
     The Rename Resource window is displayed:
-    ![Rename Resource Window](images/Rename_Resource_window.png)
+    ![Rename Resource Window](img/Rename_Resource_window.png)
 
 3.  Click **OK**.
 

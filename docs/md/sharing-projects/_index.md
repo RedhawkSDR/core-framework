@@ -13,13 +13,13 @@ To view all of the files using the **Navigator** view:
 1.  Select **Window > Show View > Other...**.
 
     The **Show View** dialog is displayed:
-    ![Show View Dialog](images/showView.png)
+    ![Show View Dialog](img/showView.png)
 
 2.  Expand **General** and select **Navigator**.
 3.  Click **OK**.
 
     The **Navigator** view is displayed:
-    ![Navigator View](images/navigator.png)
+    ![Navigator View](img/navigator.png)
 
 The set of metadata files found in a project varies depending on the type of project. At a minimum, all projects contain a `.project` file.
 
@@ -43,13 +43,13 @@ To export a project as an archive:
 1.  Select **File > Export...**.
 
     The **Export Select** dialog is displayed:
-    ![Export Select Dialog](images/exportselect.png)
+    ![Export Select Dialog](img/exportselect.png)
 
 2.  Expand **General** and select **Archive File**
 3.  Click **Next**.
 
     The **Export Archive file** dialog is displayed:
-    ![Export Archive File Dialog](images/exportarchive.png)
+    ![Export Archive File Dialog](img/exportarchive.png)
 
 4.  Select the projects or files to include in the archive.
 
@@ -70,13 +70,13 @@ To import existing projects:
 1.  Select **File > Import...**.
 
     The **Import Select** dialog is displayed:
-    ![Import Select Dialog](images/importselect.png)
+    ![Import Select Dialog](img/importselect.png)
 
 2.  Expand **General** and select **Existing Projects into Workspace**.
 3.  Click **Next**.
 
     The **Import Projects** dialog is displayed:
-    ![Import Projects Dialog](images/importprojects.png)
+    ![Import Projects Dialog](img/importprojects.png)
 
 4.  Select the location of the projects to import.
 
@@ -103,14 +103,14 @@ To import incomplete projects:
 1.  Select **File > Import...**.
 
     The **Import Select** dialog is displayed:
-    ![Import Select Dialog](images/importselect2.png)
+    ![Import Select Dialog](img/importselect2.png)
 
 2.  Expand **REDHAWK Development** and select **Redhawk Import Wizard**.
 
 3.  Click **Next**.
 
     The **Import Projects** dialog is displayed:
-    ![Import Projects Dialog](images/importprojects2.png)
+    ![Import Projects Dialog](img/importprojects2.png)
 
 4.  Select the location of the projects to import.
 
@@ -150,7 +150,7 @@ To share a project:
 1.  Right-click the project to share and select **Team > Share Project...**.
 
     The **Share Project** dialog is displayed:
-    ![Share Project Dialog](images/shareproject.png)
+    ![Share Project Dialog](img/shareproject.png)
 
 2.  Choose the appropriate version-control system (e.g. CVS, Git, etc.)
 3.  Follow the steps for sharing the project as described in the relevant documentation.
@@ -187,13 +187,13 @@ To export a project as a deployable REDHAWK project:
 1.  Select **File > Export...**.
 
     The **Export Select** dialog is displayed:
-    ![Export Select Dialog](images/exportselect2.png)
+    ![Export Select Dialog](img/exportselect2.png)
 
 2.  Expand **REDHAWK Development** and select **Deployable REDHAWK Project**.
 3.  Click **Next**.
 
     The **Deployable REDHAWK Project** dialog is displayed:
-    ![Deployable REDHAWK Project Dialog](images/deployredhawk.png)
+    ![Deployable REDHAWK Project Dialog](img/deployredhawk.png)
 
 4.  Select the projects to export.
 5.  Select the export destination.

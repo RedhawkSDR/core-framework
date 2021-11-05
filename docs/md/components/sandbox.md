@@ -96,7 +96,7 @@ The following procedure provides an example of launching and interacting with a 
 
     1. Double-click the **Chalkboard**.
 
-      ![Open Chalkboard](images/REDHAWK_Example_HardLimit_Chalkboard_Highlighted.png)
+      ![Open Chalkboard](img/REDHAWK_Example_HardLimit_Chalkboard_Highlighted.png)
 
 1. From the **Chalkboard**:
 
@@ -111,17 +111,17 @@ The following procedure provides an example of launching and interacting with a 
 
     1. Right-click the `SigGen` component, and select **Start**.
 
-        ![Start Component](images/REDHAWK_Example_chalkboard_Start_Comp.png)
+        ![Start Component](img/REDHAWK_Example_chalkboard_Start_Comp.png)
 
     1. Left-click the **dataFloat_out** port to select it, then right-click the port to open the port context menu, and select **Plot Port Data**.
 
-        ![Plot Port Data](images/REDHAWK_Example_chalkboard_Plot_Port.png)
+        ![Plot Port Data](img/REDHAWK_Example_chalkboard_Plot_Port.png)
 
     1. Open the <abbr title="See Glossary.">Properties view</abbr> and change the following signal properties:
         - frequency: 100
         - magnitude: 10
 
-        ![Change Property Value](images/REDHAWK_Example_chalkboard_Prop_Change.png)
+        ![Change Property Value](img/REDHAWK_Example_chalkboard_Prop_Change.png)
 
     1. Select the palette on the right, drag the `HardLimit` component onto the **Chalkboard**.
 
@@ -129,7 +129,7 @@ The following procedure provides an example of launching and interacting with a 
 
     1. Connect the **dataFloat_out** port on the `SigGen` component to the **dataFloat_in** port on the `HardLimit` component by clicking and dragging from the solid black output port to the input port.
 
-        ![Connect Ports](images/REDHAWK_Example_chalkboard_Connect_Comp.png)
+        ![Connect Ports](img/REDHAWK_Example_chalkboard_Connect_Comp.png)
 
     1. Right-click the **dataFloat_out** port on the `HardLimit` component, click **Plot Port Data**
 

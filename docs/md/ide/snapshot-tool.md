@@ -3,10 +3,10 @@
 The Snapshot Tool enables users to save data from any Bulk Input/Output (BulkIO) <abbr title="See Glossary.">port</abbr> to a file. The following procedure explains how to use the Snapshot Tool.
 
 1.  To open the **Snapshot Wizard**, right-click an output port in the Chalkboard or the <abbr title="See Glossary.">REDHAWK Explorer</abbr> and select **Snapshot** from the context menu:
-    ![Output Port Context Menu](images/snapshotContextMenu.png)
+    ![Output Port Context Menu](img/snapshotContextMenu.png)
 
     The **Snapshot Wizard** is displayed:
-    ![Snapshot Wizard](images/snapshotWizard.png)
+    ![Snapshot Wizard](img/snapshotWizard.png)
 
 2.  To specify how much data is captured, select the capture mode from the first combo box. The following capture modes are supported:
 
@@ -27,10 +27,10 @@ The Snapshot Tool enables users to save data from any Bulk Input/Output (BulkIO)
 
       - To save the file to a location other than the <abbr title="See Glossary.">workspace</abbr>, deselect the **Save to Workspace** checkbox, click **Browse**, navigate to the desired location, and click **OK**.
       - To save the file in the workspace, select the **Save to Workspace** checkbox and select the file or directory in the displayed tree of workspace files and folders. Saving the file in the workspace automatically refreshes the project, and the files can be accessed in the IDE.
-        ![Snapshot Save to Workspace Navigation Tree](images/snapshotWizard5.png)
+        ![Snapshot Save to Workspace Navigation Tree](img/snapshotWizard5.png)
 
         To add folders to the workspace, right-click the existing folder where the new folder is desired. A **New Folder** window is displayed. Enter the name of the folder and click **Finish**.
-        ![Snapshot New Folder Window](images/newFolder.png)
+        ![Snapshot New Folder Window](img/newFolder.png)
 
         To delete files from the workspace, right-click the item you want to delete and select **Delete**. When prompted, verify the deletion request.
 
@@ -39,14 +39,14 @@ The Snapshot Tool enables users to save data from any Bulk Input/Output (BulkIO)
 7.  Click **Finish**.
 
     The Progress view is displayed. To stop a snapshot prematurely, click **Cancel Operation** (the red square icon) next to the job in the Progress view.
-    ![Snapshot - Progress View](images/progressView.png)
+    ![Snapshot - Progress View](img/progressView.png)
 
     When the snapshot completes, the completed job is shown in the Progress view:
 
-    ![Snapshot - Completed Job](images/progressViewDone.png)
+    ![Snapshot - Completed Job](img/progressViewDone.png)
 
 8.  To view the results of the snapshot, click **Finished**. The following output message is displayed:
-    ![Snapshot - Results Dialog](images/results.png)
+    ![Snapshot - Results Dialog](img/results.png)
 
     If only a few files are written, then the output message lists all the files created by the snapshot. If a large number of files are written, the output message lists the base name of the files and the number of each type of file made.
 

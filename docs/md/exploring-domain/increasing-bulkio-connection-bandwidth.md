@@ -6,7 +6,7 @@ In the presence of high data rates, plots of Bulk Input/Output (BulkIO) <abbr ti
 
     The **Preferences** dialog is displayed:
 
-    ![Preferences Dialog](images/bulkioprefs.png)
+    ![Preferences Dialog](img/bulkioprefs.png)
 
 2.  Expand **REDHAWK**.
 

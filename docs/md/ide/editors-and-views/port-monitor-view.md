@@ -3,10 +3,10 @@
 The Port Monitor view enables you to monitor the amount of data flowing out of or into a particular <abbr title="See Glossary.">port</abbr>. These statistics are helpful when debugging and can help identify which <abbr title="See Glossary.">component</abbr> is slowing down or dropping information during data processing.
 
 To open the Port Monitor view, right-click the port of a started component and select **Monitor Ports** from the context menu:
-![Port Context Menu](../images/MonitorPortMenu.png)
+![Port Context Menu](img/MonitorPortMenu.png)
 
 The Port Monitor view is opened:
-![Port Monitor View](../images/portMonitorView.png)
+![Port Monitor View](img/portMonitorView.png)
 
 The view displays the following information:
 
@@ -25,7 +25,7 @@ The following actions are available in the Port Monitor view.
       - From the View menu, select Configure.
 
     The Port Monitor Configuration dialog box is displayed.
-![Port Monitor Configuration Dialog](../images/configuration.png)
+![Port Monitor Configuration Dialog](img/configuration.png)
 
     The following options can be configured:
 
