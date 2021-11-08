@@ -215,39 +215,9 @@ sed -i '1s/^/# Exploring Domain\n/' $PDF/exploringDomain.md
 
 cd $PDF/appendices
 echo "-->  $(pwd)"
-files="optimization.md"
+files="optimization.md fei.md persona-device-pattern.md shared-memory.md"
 sed -i 's,\(^#\)\([# ]\),#\1\2,g' $files  # Decrease heading levels so table of contents will be correct.
 pandoc -t markdown -o $PDF/appendices.md $files
-cd $PDF/appendices/adminservice
-echo "-->  $(pwd)"
-files="_index.md"
-sed -i 's,\(^#\)\([# ]\),#\1\2,g' $files  # Decrease heading levels so table of contents will be correct.
-pandoc -t markdown -o $PDF/appendicesAdmin.md $files
-cd $PDF/appendices/adminservice/adminservice
-echo "-->  $(pwd)"
-files="_index.md serviceconfigurations.md servicelifecycle.md"
-sed -i 's,\(^#\)\([# ]\),#\1\2,g' $files  # Decrease heading levels so table of contents will be correct.
-pandoc -t markdown -o $PDF/appendicesAdminAdmin.md $files
-cd $PDF/appendices/adminservice/redhawkcoreservices
-echo "-->  $(pwd)"
-files="_index.md domainmanager.md devicemanager.md waveform.md domains.md"
-sed -i 's,\(^#\)\([# ]\),#\1\2,g' $files  # Decrease heading levels so table of contents will be correct.
-pandoc -t markdown -o $PDF/appendicesAdminRedhawk.md $files
-cd $PDF/appendices/adminservice/configuration
-echo "-->  $(pwd)"
-files="_index.md adminservice.md domainmanager.md devicemanager.md waveform.md"
-sed -i 's,\(^#\)\([# ]\),#\1\2,g' $files  # Decrease heading levels so table of contents will be correct.
-pandoc -t markdown -o $PDF/appendicesAdminConfig.md $files
-cd $PDF/appendices/adminservice
-echo "-->  $(pwd)"
-files="rhadmin.md support-files.md"
-sed -i 's,\(^#\)\([# ]\),#\1\2,g' $files  # Decrease heading levels so table of contents will be correct.
-pandoc -t markdown -o $PDF/appendicesAdmin2.md $files
-cd $PDF/appendices
-echo "-->  $(pwd)"
-files="fei.md persona-device-pattern.md shared-memory.md"
-sed -i 's,\(^#\)\([# ]\),#\1\2,g' $files  # Decrease heading levels so table of contents will be correct.
-pandoc -t markdown -o $PDF/appendices2.md $files
 cd $PDF/appendices/troubleshooting
 echo "-->  $(pwd)"
 files="omni.md connections.md _index.md"
@@ -259,7 +229,7 @@ files="logging-config-plugin.md"
 sed -i 's,\(^#\)\([# ]\),#\1\2,g' $files  # Decrease heading levels so table of contents will be correct.
 pandoc -t markdown -o $PDF/appendices3.md $files
 # Combine the appendices files.
-pandoc -t markdown -o $PDF/appendicesFinal.md $PDF/appendices.md $PDF/appendicesAdmin.md $PDF/appendicesAdminAdmin.md $PDF/appendicesAdminRedhawk.md $PDF/appendicesAdminConfig.md $PDF/appendicesAdmin2.md $PDF/appendices2.md $PDF/appendicesTroubleshooting.md $PDF/appendices3.md
+pandoc -t markdown -o $PDF/appendicesFinal.md $PDF/appendices.md $PDF/appendicesTroubleshooting.md $PDF/appendices3.md
 sed -i '1s/^/# Appendices\n/' $PDF/appendicesFinal.md
 
 cd $PDF
