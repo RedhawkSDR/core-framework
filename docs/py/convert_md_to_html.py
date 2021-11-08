@@ -78,7 +78,7 @@ def rewrite_html(html, toc, title):
         if line.strip().startswith('<title>'):
             fp.write('  <title>{}</title>\n'.format(title))
             dotdots = '../' * (fpath_md.count('/') - os.getcwd().count('/') - 1)
-            fp.write('<link rel="shortcut icon" href="{}md/images/favicon.png" type="image/x-icon">\n'.format(dotdots))
+            fp.write('<link rel="shortcut icon" href="{}md/img/favicon.png" type="image/x-icon">\n'.format(dotdots))
             # add js files before css files
             for js_file in js_files:
                 js_line = '  <script src="{}{}"></script>'.format(dotdots, js_file)

@@ -11,6 +11,11 @@ tree-of-files.html: FORCE
 	py/generate_tree_of_files.html.py
 
 # Create a symlink to the main image directory.
+html/img: md/img
+	mkdir -p $(@D)
+	cp -d $< $@
+
+# Create other symlinks to the main image directory.
 html/%img: md/%img
 	mkdir -p $(@D)
 	cp -d $< $@
