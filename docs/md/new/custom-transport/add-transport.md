@@ -2,7 +2,7 @@
 
 In the context of REDHAWK, a component's implementation is not solely tied to a single process or thread running on a microprocessor. Its main functionality could be targeted for an FPGA. In the case of a single component running on an FPGA, the role of the component is to manage the bitfile load, provide command-and-control information to the embedded device, and perform data ingress and egress to and from embedded hardware.  In the case where multiple components are targeted for the same FPGA, the role of the components is to manage their FPGA loads, provide command-and-control information to their respective processing elements, and manage data ingress and egress to the embedded hardware's endpoints.  Connections, data ingress, and data egress between components on the FPGA can be managed using a custom transport layer for a REDHAWK BulkIO port. The following image displays multiple components targeted for the same FPGA.
 
-![Negotiable Transport Image](./images/NegotiableTransport.png)
+![Negotiable Transport Image](img/NegotiableTransport.png)
 
 BulkIO allows for the addition of transports beyond those included by default. These transports are selected based on a priority, with CORBA's priority set to 99 and shared memory IPC set to 1; in the case of communications between components in the same process, a local transport is selected, which is defined as shared address space. In the following code examples, the first example demonstrates how a new transport is created and applied to links between components running in different processes. The second code example demonstrates how to subclass a BulkIO port and change the local transport to a custom one.
 

@@ -21,7 +21,10 @@ html/%.html: md/%.md py/convert_md_to_html.py py/generate_tree_of_files.html.py
 
 FORCE:
 
+pdf:
+	./build-pdf.sh
+
 clean:
-	$(RM) -r html
-	$(RM) tree-of-files.html raw.html
+	$(RM) -r html pdf
+	$(RM) RedhawkManual.pdf raw.html tree-of-files.html 
 

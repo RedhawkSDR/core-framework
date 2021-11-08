@@ -32,7 +32,7 @@ The following sections discuss how to launch the REDHAWK IDE, how to open the Ch
 ### Opening the Chalkboard
 
 From the **REDHAWK Explorer** view expand **Sandbox**, and double-click **Chalkboard**.
-![Chalkboard](./images/REDHAWK_DoubleClickChalkboard.png "Chalkboard")
+![Chalkboard](img/REDHAWK_DoubleClickChalkboard.png "Chalkboard")
 
 ### Creating a Signal Generator
 

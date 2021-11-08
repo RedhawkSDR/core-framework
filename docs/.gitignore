@@ -1,5 +1,7 @@
+build-pdf
 html
 raw.html
+RedhawkManual*.pdf
 tree-of-files.html
 
 __pycache__
