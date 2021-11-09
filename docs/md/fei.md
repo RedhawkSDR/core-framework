@@ -1,5 +1,11 @@
 # FrontEnd Interfaces
 
+FrontEnd Interfaces (FEI) specify the interaction between <abbr title="See Glossary.">application</abbr>s and radio hardware.  They include allocation, operation, and development of tuner devices within the REDHAWK Core Framework (CF). Tuner devices in this context may be Radio Frequency (RF), Intermediate Frequency (IF), or purely digital tuning equipment or software.  Explicit types of tuners are defined, so that devices can be categorized by the capabilities they provide.
+
+Tuner devices can provide individual tuners to other REDHAWK entities through tuner allocation. To allocate an individual tuner, the `allocate()` function of a device is called with an appropriate allocation structure as the only argument. Devices then allocate physical resources and, once a valid connection has been made, begin flowing data out of the device.
+
+Physical devices often need to be split into multiple logical REDHAWK tuners to fully describe their functionality. Splitting physical devices often involves multiple tuners of the same, or mixed, types.
+
 ## Device Types
 
 The set of FEI devices is:
@@ -38,7 +44,7 @@ The RX device is an analog receiver.
 Minimum ports:
 
 | Type | name | purpose | direction | description | returned by `allocate()`
-| --- | --- | --- | --- | --- | ---
+| --- | --- | --- | --- | ----- | ---
 | RFInfo | RFInfo_in | data | provides (input) | RF information from the antenna, such as rf_flow_id | No
 | RFInfo | RFInfo_out | data | uses (output) | RF information from the device to follow-on digitizers | No
 | AnalogTuner or AnalogScanningTuner | <&nbsp;any&nbsp;> | control | provides (input) | RF control such as setting center frequency | Yes
@@ -229,12 +235,12 @@ my_parent
 
 After expanding the previous example so that child_class_a is the parent of a second instance of child_class_b, the code in my_parent.cpp would contain:
 
-``` c++
+```cpp
 #include "child_class_a/child_class_a.h"
 #include "child_class_b/child_class_b.h"
 ```
 
-``` c++
+```cpp
 // this device instantiation code was added to the constructor, but it does not need to be added there
 void my_parent_i::constructor()
 {
@@ -251,7 +257,7 @@ void my_parent_i::constructor()
 Each Device has a member named `_dynamicComponents`, with handles to each of its children.
 Below is an example of using `_dynamicComponents`:
 
-``` c++
+```cpp
 for (unsigned int i=0; i<_dynamicComponents.size(); i++) {
     child_class_a::child_class_a_i* base_dev = dynamic_cast<child_class_a::child_class_a_i*>(_dynamicComponents[i]);
     std::cout<<"  "<<_dynamicComponents[i]->_identifier;
@@ -322,7 +328,6 @@ The following table describes the specific keywords for FrontEnd devices.
 | FRONTEND::FDOA_SIGMA | double | Frequency difference of arrival sigma in Hz | Frequency difference of arrival sigma at this tuned frequency
 
 ## Parent/Child FEI Devices
----
 
 In the context of FEI, it is possible to programmatically create device proxies that model the underlying hardware.
 For example, in the case where the configuration of the underlying RF hardware is not static and an API exists to scan the hardware, the following CONOP is enabled by the addChild API:
@@ -339,7 +344,6 @@ The parent device delegates the allocations to the child devices and can promote
 Because allocations are returned with a reference to the child device satisfying the allocation (more on this in the next section), the parent device can be a custom device provided for convenience.
 
 ## Allocations with feedback
----
 
 Devices' capacity management interface has been extended to provide better support to sophisticated multi-device allocations.
 Single allocations can now be made through the `allocate()` call.
@@ -412,7 +416,6 @@ Continuing with the example transceiver in the previous section, a single alloca
 The return value from the allocation to the parent device is the child device's reference as well as its output data port and input control port.
 
 ## Controlling Coherent Receivers (arrays) with Frontend Interfaces
----
 
 When ingesting data from coherent tuners, allocations must be coordinated between multiple independent tuners; each of these tuners is associated with a different RF receiver and a different antenna. While each of these tuners is ostensibly independent, they must all be tuned to the same frequency over the same bandwith, with data generated coherently (in lock-step) between the different tuners.
 
@@ -428,12 +431,12 @@ This device parent hierarchy is shown below:
 
 The programmatic deployment of this hierarchy uses the `addChild()` method built into each device. For example, the following code in rx_array.cpp shows a single RX_ARRAY (rx_array_i) creating two instances of ABOT (abot_i), each with 2 RDC (rdc_i).
 
-``` c++
+```cpp
 #include "abot/abot.h"
 #include "rdc/rdc.h"
 ```
 
-``` c++
+```cpp
 // this device instantiation code was added to the constructor, but it does not need to be added there
 void rx_array_i::constructor()
 {
@@ -486,15 +489,15 @@ rx_array = rx_d.compositeDevice
 ```
 
 For the array to function correctly, each wideband receiver must be connected to a different antenna.  This antenna can be modeled with the GenericAntenna device, and its RFInfo port can be used to pass the rf_flow_id for that specific antenna element.
-To propagate the rf_flow_id, the rx_digitier's output RFInfo port needs to be connected to each rdc's input RFInfo port.  This functionality is not created by the code generators because it is CONOP-specific and must be implemented by the developer in the port's callback function.
+To propagate the rf_flow_id, the rx_digitizer's output RFInfo port needs to be connected to each rdc's input RFInfo port.  This functionality is not created by the code generators because it is CONOP-specific and must be implemented by the developer in the port's callback function.
 Note that this connection does not have to be defined in XML; instead it can be implemented programmatically when the devices are instantiated.
 
 ## Allocating a tuner
 
 Tuner allocations have remained unchanged from FEI 2.0.
 
-| ID | name | type | description
-| --- | --- | --- | ---
+| ID | type | description
+| --- | --- | ---
 | FRONTEND::tuner_allocation::tuner_type | string | Device type
 | FRONTEND::tuner_allocation::allocation_id | string | Requested allocation id (empty string if does not matter). Will cause an error if not available
 | FRONTEND::tuner_allocation::center_frequency | double | Requested center frequency
@@ -508,8 +511,8 @@ Tuner allocations have remained unchanged from FEI 2.0.
 
 Listener allocations are not needed (since there is a single data port per channel), but are still supported.
 
-| ID | name | type | description
-| --- | --- | --- | ---
+| ID | type | description
+| --- | --- | ---
 | FRONTEND::listener_allocation::existing_allocation_id | string | Allocation to listen to
 | FRONTEND::listener_allocation::listener_allocation_id | string | Listener allocation
 
@@ -520,8 +523,8 @@ The following allocations can be passed along with FRONTEND::tuner_allocation to
 The FRONTEND::snapshot allocation is used to specify snapshot parameters.
 The response to an allocation including FRONTEND::snapshot is an SRDC device
 
-| ID | name | type | description
-| --- | --- | --- | ---
+| ID | type | description
+| --- | --- | ---
 | FRONTEND::snapshot_start::whole_seconds | double | J1970 GMT
 | FRONTEND::snapshot_start::partial_seconds| double | 0.0 to 1.0
 | FRONTEND::snapshot_stop::whole_seconds | double | J1970 GMT
@@ -530,8 +533,8 @@ The response to an allocation including FRONTEND::snapshot is an SRDC device
 The FRONTEND::delay allocation is used to specify time-delay parameters for the data feed.
 The response to an allocation including FRONTEND::delay is an DRDC device
 
-| ID | name | type | description
-| --- | --- | --- | ---
+| ID | type | description
+| --- | --- | ---
 | FRONTEND::delay::whole_seconds | double | J1970 GMT
 | FRONTEND::delay::partial_seconds| double | 0.0 to 1.0
 | FRONTEND::delay::relative | boolean | True if relative to now, false if absolute (UTC)
@@ -539,28 +542,28 @@ The response to an allocation including FRONTEND::delay is an DRDC device
 The FRONTEND::stream_id allocation is used to request a particular stream id for the generated data sets.
 The response to an allocation including FRONTEND::strema_id is an RDC, ARDC, SRDC, or DRDC device
 
-| ID | name | type | description
-| --- | --- | --- | ---
+| ID | type | description
+| --- | --- | ---
 | FRONTEND::stream_id::requested_stream_id | string | Requested stream id for generated data
 
 The FRONTEND::data_format allocation is used to request a particular data type for the generated data.
 
-| ID | name | type | description
-| --- | --- | --- | ---
+| ID | type | description
+| --- | --- | ---
 | FRONTEND::data_format::bulkio_type | string | Repository ID for the requested type (e.g.: IDL:BULKIO/dataShort:1.0)
 | FRONTEND::data_format::mode | boolean | Set true for complex, false for real
 
 The FRONTEND::payload_format allocation is used to request the payload in the case of SDDS or VITA49 data sets
 
-| ID | name | type | description
-| --- | --- | --- | ---
+| ID | type | description
+| --- | --- | ---
 | FRONTEND::payload_format::native_type | string | binary format (e.g.: float, short, short, ushort)
 | FRONTEND::payload_format::endian | boolean | Set true for big endian, false for little endian
 
 The FRONTEND::upstream allocation is used to require that the allocated device have a connection from the device specified
 
-| ID | name | type | description
-| --- | --- | --- | ---
+| ID | type | description
+| --- | --- | ---
 | FRONTEND::upstream::device_id | string | device instance id for the upstream device
 
 ## Allocating a set of coherent channels
@@ -627,8 +630,8 @@ The FRONTEND::tuner_status property provides the status of every allocated FEI d
 The FRONTEND::tuner_status property contains both required and optional elements as follows:
 
 ### Required elements
-| ID | name | type | description
-| --- | --- | --- | ---
+| ID | type | description
+| --- | --- | ---
 | FRONTEND::tuner_status::tuner_type | string | ANTENNA, RX, RX_ARRAY, DBOT, ABOT, ARDC, RDC, SRDC, DRDC, TX, TX_ARRAY, or TDC
 | FRONTEND::tuner_status::allocation_id_csv| string | comma-separated list of allocation ids for this tuner, where the first is the controlling allocation
 | FRONTEND::tuner_status::center_frequency | double | Current center frequency in Hz. Actual tuned frequency rather than the desired frequency (if those values are not the same).
@@ -636,19 +639,19 @@ The FRONTEND::tuner_status property contains both required and optional elements
 | FRONTEND::tuner_status::sample_rate | double | Current sample rate in Hz. Actual sample rate rather than the desired sample rate (if those values are not the same). Can be ignored for such devices as analog tuners
 | FRONTEND::tuner_status::group_id | string | Unique ID that specifies a group of devices. Actual Group ID, regardless whether it was requested in the tuner allocation or not.
 | FRONTEND::tuner_status::rf_flow_id | string | Specifies a certain RF flow to allocate against. Actual RF Flow ID, regardless whether it was requested in the tuner allocation or not.
-| FRONTEND::tuner_status::enabled boolean | Indicates if tuner is enabled. Enabled refers to the output state not any internal hardware/software state.
+| FRONTEND::tuner_status::enabled | boolean | Indicates if tuner is enabled. Enabled refers to the output state not any internal hardware/software state.
 
 ### Required elements for scanner devices
 
-| ID | name | type | description
-| --- | --- | --- | ---
+| ID | type | description
+| --- | --- | ---
 | FRONTEND::tuner_status::scan_mode_enabled | boolean | Describes whether or not a scan plan is running on this tuner.
-| FRONTEND::tuner_status::supports_scan | boolean } Describes whether or not this tuner can support a scan plan. Scan plans may not necessarily be available to all tuners in a device
+| FRONTEND::tuner_status::supports_scan | boolean | Describes whether or not this tuner can support a scan plan. Scan plans may not necessarily be available to all tuners in a device
 
 ### Optional elements
 
-| ID | name | type | description
-| --- | --- | --- | ---
+| ID | type | description
+| --- | --- | ---
 | FRONTEND::tuner_status::scan_mode_enabled | boolean | Describes whether or not a scan plan is running on this tuner.
 | FRONTEND::tuner_status::bandwidth_tolerance | double | Allowable percentage over requested bandwidth. Tolerance provided by the requester.
 | FRONTEND::tuner_status::sample_rate_tolerance | double | Allowable percentage over requested sample rate. Tolerance provided by the requester.
@@ -797,7 +800,7 @@ This packet transmission process is shown below:
 
 ![Transmission API](img/tx_burst_seq.png)
 
-```c++
+```cpp
 std::string stream_id = "testStream";
 unsigned int size_packet_1 = 1000;
 unsigned int size_packet_2 = 500;
@@ -838,7 +841,7 @@ The re-tuning instructions are inserted as keyword CHAN_RF in SRI updates, as se
 
 ![Multi-Frequency Transmission API](img/tx_burst_freq_seq.png)
 
-```c++
+```cpp
 std::string stream_id = "testStream";
 unsigned int size_packet_1 = 1000;
 unsigned int size_packet_2 = 500;
@@ -877,7 +880,7 @@ Note that the stream id plays no role in the basic transmit API.
 Stream id differentiation becomes important when different transmission priorities are mixed.
 To provide a stream id a particular priority, add the keyword FRONTEND::PRIORITY with value of type short with the stream's priority to the SRI keywords.
 
-```c++
+```cpp
 std::string stream_id = "testStream";
 unsigned int size_packet_1 = 1000;
 unsigned int size_packet_2 = 500;
@@ -926,7 +929,7 @@ To transmit multiple packets as a single continuous signal burst, setting the ti
 To remove the ambiguity of the transmitted construct, the timestamp in subsequent packet(s) can be set such that the separate packets are interpreted by the transmitter as a continuous transmitted signal.
 To do so, set the timestamp to invalid and both the whole (twsec) and fractional (tfsec) to 0, as shown below:
 
-```c++
+```cpp
 std::string stream_id = "testStream";
 unsigned int size_packet_1 = 1000;
 unsigned int size_packet_2 = 500;
