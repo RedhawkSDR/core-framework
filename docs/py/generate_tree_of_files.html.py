@@ -62,7 +62,7 @@ class Dir(Node):
         super().__init__(path)
         self.children = []
         self.title = ''  # This comes from the markdown title heading of the first child.
-    
+
     def append(self, node):
         self.children.append(node)
 

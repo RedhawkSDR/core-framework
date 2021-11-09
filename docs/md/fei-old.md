@@ -1,4 +1,4 @@
-# FrontEnd Interfaces
+# FrontEnd Interfaces - old
 
 FrontEnd Interfaces (FEI) is a module containing interfaces designed to standardize the interaction between <abbr title="See Glossary.">applications</abbr> and radio hardware. This appendix specifies the requirements of an FEI 2.0 compatible <abbr title="See Glossary.">device</abbr>, explains best-practices, provides advice for development, and describes related data structures. This appendix is not intended to be an API reference for FEI or an exhaustive description of the Interface Description Language (IDL). This appendix is intended to provide an additional resource for developers.
 

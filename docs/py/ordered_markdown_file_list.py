@@ -111,6 +111,9 @@ fpaths_ordered = [
     'nodes/creating-a-new-node.md',
     'nodes/distributed-computing-and-rf-devices.md',
 
+    'fei.md',
+    'fei-old.md',
+
     'sandbox/_index.md',
     'sandbox/python/_index.md',
     'sandbox/python/working_with_components.md',
@@ -184,7 +187,6 @@ fpaths_ordered = [
 
     'appendices/_index.md',
     'appendices/optimization.md',
-    'appendices/fei.md',
     'appendices/persona-device-pattern.md',
     'appendices/shared-memory.md',
 
