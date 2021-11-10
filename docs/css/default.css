@@ -181,10 +181,15 @@ h6 {
     margin-top: 0;
 }
 hr{height: 0; margin: 15px 0; overflow: hidden; background: transparent; border: 0; border-bottom: 4px solid #ddd;}
-ul{margin: 1em 0 1em 2em;}
-ol{margin: 1em 0 1em 2em;}
-ul li, ol li{margin-top: .5em; margin-bottom: .5em;}
-ul ul, ul ol, ol ol, ol ul{margin-top: 0; margin-bottom: 0;}
+ul { line-height: 1; margin: .5em 0 .5em 2em; }
+ol { line-height: 1; margin: .5em 0 .5em 2em; }
+ul li, ol li { margin-top: .3em; margin-bottom: .3em; }
+ul p, ol p { margin-block-start: .3em; margin-block-end: .3em; }
+ul ul, ul ol, ol ol, ol ul {
+    line-height: 1;
+    margin-bottom: 0;
+    margin-top: 0;
+}
 blockquote{margin: 1em 0; border-left: 5px solid #ddd; padding-left: .6em; color: #555;}
 dt{font-weight: bold; margin-left: 1em;}
 dd{margin-left: 2em; margin-bottom: 1em;}

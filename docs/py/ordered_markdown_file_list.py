@@ -146,6 +146,21 @@ fpaths_ordered = [
     'logging/logging-within-a-resource.md',
     'logging/viewing-logging-events.md',
 
+    'containers/containers.md',
+    'containers/in-sandbox.md',
+    'containers/in-a-domain.md',
+    'containers/plugin-class.md',
+    'containers/containerized-components.md',
+    'containers/containerized-redhawk.md',
+
+    'containers-orig/containers.md',
+    'containers-orig/plugin-class.md',
+    'containers-orig/plugin-docker.md',
+    'containers-orig/plugin-ekskube.md',
+    'containers-orig/containerized-components.md',
+    'containers-orig/containerized-redhawk.md',
+    'containers-orig/orchestration.md',
+
     'ide/_index.md',
     'ide/launching-the-ide.md',
     'ide/pydev-overview.md',
