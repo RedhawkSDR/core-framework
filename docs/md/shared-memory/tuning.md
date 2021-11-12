@@ -1,4 +1,4 @@
-# Shared Memory Tuning
+# Tuning
 
 The REDHAWK shared memory allocator differs from traditional single-process allocators in the way that it manages memory.
 Memory that is allocated by one process is often deallocated by another process at some indeterminite point in the future.

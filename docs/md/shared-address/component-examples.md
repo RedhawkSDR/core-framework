@@ -1,4 +1,4 @@
-# Component Examples
+# Examples
 
 Transforming Component
 ----------------------

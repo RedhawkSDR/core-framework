@@ -11,22 +11,12 @@ fpaths_ordered = [
     'getting-started/basic-ide-example.md',
     'getting-started/further-reading.md',
 
-    'new/index.md',
-    'new/custom-transport/add-transport.md',
-    'new/gpp-plugins/using-gpp-plugins.md',
-    'new/java-and-jacorb/java-and-jacorb-setup.md',
-    'new/shared-address/components-howto.md',
-    'new/shared-address/component-model.md',
-    'new/shared-address/component-examples.md',
-    'new/shared-memory/shared-memory-ipc.md',
-    'new/shared-memory/metrics.md',
-    'new/shared-memory/tuning.md',
-
     'install/_index.md',
     'install/redhawk-yum.md',
     'install/dependencies.md',
     'install/ide.md',
     'install/source-install.md',
+    'install/java-and-jacorb.md',
     'install/troubleshooting.md',
 
     'install-orig/_index.md',
@@ -95,6 +85,8 @@ fpaths_ordered = [
     'connections/connection-callbacks.md',
     'connections/custom-idl-interfaces.md',
 
+    'add-transport.md',
+
     'waveforms/_index.md',
     'waveforms/waveform-editor.md',
     'waveforms/sample-waveform.md',
@@ -103,6 +95,8 @@ fpaths_ordered = [
     'services/_index.md',
 
     'devices/_index.md',
+    'devices/fei.md',
+    'devices/fei-old.md',
     'devices/interacting-with-hardware/_index.md',
     'devices/interacting-with-hardware/creating-fei-device-ide.md',
     'devices/interacting-with-hardware/interacting-fei-device-python-package.md',
@@ -117,9 +111,15 @@ fpaths_ordered = [
     'nodes/running-a-node.md',
     'nodes/creating-a-new-node.md',
     'nodes/distributed-computing-and-rf-devices.md',
+    'nodes/gpp-plugins.md',
 
-    'fei.md',
-    'fei-old.md',
+    'shared-address/components-howto.md',
+    'shared-address/component-model.md',
+    'shared-address/component-examples.md',
+
+    'shared-memory/shared-memory-ipc.md',
+    'shared-memory/metrics.md',
+    'shared-memory/tuning.md',
 
     'sandbox/_index.md',
     'sandbox/python/_index.md',
@@ -143,8 +143,7 @@ fpaths_ordered = [
     'runtime-environment/allocation-manager.md',
     'runtime-environment/connection-manager.md',
     'runtime-environment/events.md',
-
-    'runtime-inspection/_index.md',
+    'runtime-environment/inspection.md',
 
     'logging/_index.md',
     'logging/logging-structure.md',
@@ -158,7 +157,6 @@ fpaths_ordered = [
     'containers/in-a-domain.md',
     'containers/plugin-class.md',
     'containers/containerized-components.md',
-    'containers/containerized-redhawk.md',
 
     'containers-orig/containers.md',
     'containers-orig/plugin-class.md',
@@ -194,10 +192,7 @@ fpaths_ordered = [
     'ide/connect-wizard.md',
     'ide/octave-wizard.md',
     'ide/plot-port-wizard.md',
-
-    'exploring-sdrroot/_index.md',
-
-    'sharing-projects/_index.md',
+    'ide/exploring-sdrroot.md',
 
     'exploring-domain/_index.md',
     'exploring-domain/connecting-to-a-domain.md',
@@ -207,11 +202,12 @@ fpaths_ordered = [
     'exploring-domain/increasing-bulkio-connection-bandwidth.md',
     'exploring-domain/getting-error-condition-details.md',
 
+
     'appendices/_index.md',
     'appendices/optimization.md',
     'appendices/persona-device-pattern.md',
     'appendices/shared-memory.md',
-
+    'appendices/sharing-projects.md',
     'appendices/troubleshooting/_index.md',
     'appendices/troubleshooting/omni.md',
     'appendices/troubleshooting/connections.md',

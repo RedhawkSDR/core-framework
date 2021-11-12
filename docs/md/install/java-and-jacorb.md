@@ -1,4 +1,4 @@
-# Java and JacORB Setup
+# Java and JacORB
 
 Starting with version 3 Redhawk requires Java 11 to run Java components.  However, you don't need to install or configure Java if you configure Redhawk with:
 ```sh
@@ -25,7 +25,7 @@ javac 11.[...]
 ## Configure Java to Use Jacorb
 With the switch to `java-11-openjdk`, the jdk no longer supports CORBA.  We get CORBA support via JacORB.
 
-It is fine to do this step before JacORB is installed; however, the Java 11 jdk must be installed.
+It is fine to do this step before JacORB is installed; however, the Java 11 jdk must be installed, and set active via `alternatives`.
 
 The Java Runtime Environment (JRE) uses an optional property file to set CORBA ORB configuration options, including which ORB implementation to use.  Create that property file with this script:
 ```sh
@@ -38,7 +38,7 @@ printf "%s\n" "jacorb.config.dir=/etc" >>$tmpfpath
 
 dstdir=$(readlink -e `which java`)
 if [[ ! "$dstdir" =~ "java-11-openjdk" ]]; then
-    echo "Error:  Java 11 must be installed before running this script.  quitting.
+    echo "Error:  ``java`` must point to Java 11 before running this script.  quitting.
     rm $tmpfpath
     exit 1
 fi
@@ -55,7 +55,7 @@ sudo chown root:root $fpath
 ## Install JacORB
 JacORB comes bundled as a dependency of Redhawk.  
 If you install `redhawk` via rpm, JacORB will also be installed as a requirement.  
-If you build Redhawk from source, you will install JacORB with the other packaged dependencies in the `redhawk-dependencies` yum repository.  Instructions for that are in the main Redhawk manual.
+If you build Redhawk from source, you will install JacORB with the other packaged dependencies in the `redhawk-dependencies` yum repository.  Instructions for that are in the Installation section of the manual.
 
 ## Configure JacORB
 To ensure consistency between C++, Python, and Java, Redhawk reads the omniORB configuration file (by default, `/etc/omniORB.cfg`) to get the initial references for:
@@ -68,7 +68,8 @@ Refer to the [JacORB documentation](https://www.jacorb.org/documentation.html) f
 When JacORB is installed, it installs this file at `/etc/jacorb.properties`.
 The file is installed with suitable default values for running Redhawk.
 
-Note:  In its inline comments, `jacorb.properties` claims to affect JacORB logging, but in this context it does not.
+> **Note**  
+> In its inline comments, `jacorb.properties` claims to affect JacORB logging, but in this context it does not.
 See below for how to set the JacORB logging level.
 
 ## Set `JACORB_HOME`
@@ -103,7 +104,8 @@ $ yum install java-1.8.0-openjdk-devel
 ```
 Note that Java 1.8 has an internal CORBA ORB implementation.  Things compiled and run with Java 1.8 will use that, and not JacORB.
 
-The IDE does not operate properly if it uses Java 11; however, it does not need to use the Java that is set in `alternatives`.  Tell the IDE to use Java 1.8:
+The IDE does not operate properly if it uses Java 11; however, it does not need to use the Java that is set in `alternatives`.  Conversely, REDHAWK does not use the environment variable `JAVA_HOME`.  
+To tell the IDE to use Java 1.8:
 ```sh
 export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk
 export PATH=$JAVA_HOME/bin:$PATH

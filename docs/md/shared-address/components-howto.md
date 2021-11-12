@@ -1,6 +1,6 @@
-# Components HowTo
-Instructions for getting up and running with shared address space
-components.
+# Shared Address
+
+Instructions for getting up and running with shared address space components.
 
 Creating a Shared Library Component
 ===================================
