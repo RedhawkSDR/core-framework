@@ -127,7 +127,7 @@ __all__ = ('show', 'loadSADFile', 'IDELocation', 'connectedIDE', 'getIDE_REF',
            'getDEBUG', 'setDEBUG', 'getComponent', 'IDE_REF', 'setIDE_REF',
            'stop', 'catalog', 'redirectSTDOUT', 'orb', 'reset', 'launch', 'api',
            'createEventChannel', 'getEventChannel', 'getService', 'browse',
-           'release', 'started', '_get_started')
+           'release', 'started', '_get_started', 'availableOrchestrationTypes')
 
 # Set up logging
 log = logging.getLogger(__name__)
@@ -1364,3 +1364,9 @@ def getEventChannel(name):
     throw a NameError.
     """
     return _getSandbox().getEventChannel(name)
+
+def availableOrchestrationTypes():
+    print("Provided Orchestration Types:")
+    print("\tDocker - local docker")
+    print("\tDockerSwarm - remote docker swarm cluster")
+    print("\tEksKube - remote EKS k8s cluster")

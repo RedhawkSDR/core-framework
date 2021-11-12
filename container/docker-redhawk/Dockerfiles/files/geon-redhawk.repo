@@ -1,5 +1,0 @@
-[redhawk]
-name=REDHAWK Repository
-baseurl=http://www.geontech.com/repositories/redhawk/yum/RH_VERSION/el7/x86_64
-enabled=1
-gpgcheck=0

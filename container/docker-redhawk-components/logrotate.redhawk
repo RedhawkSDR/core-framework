@@ -1,6 +1,0 @@
-/var/log/redhawk/*.log {
-    rotate 5
-    size 1M
-    copytruncate
-    create 0644 redhawk redhawk
-}

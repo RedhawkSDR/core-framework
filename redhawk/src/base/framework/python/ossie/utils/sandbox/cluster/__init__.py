@@ -23,5 +23,5 @@ from .dockerswarm import DockerSwarmProcess
 from .ekskube import EksKubeProcess
 from .clusterCfgParser import ClusterCfgParser
 
-__all__ = ('DockerProcess', 'DockerSwarmProcess', 'EksKubeProcess', ClusterCfgParser)
+__all__ = ('DockerProcess', 'DockerSwarmProcess', 'EksKubeProcess', 'ClusterCfgParser')
 

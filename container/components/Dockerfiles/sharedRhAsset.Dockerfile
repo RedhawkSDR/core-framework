@@ -8,7 +8,7 @@ RUN yum install -y git rpm-build automake && \
     for i in ${shared_asset}; do pushd /root/ && git clone https://github.com/RedhawkSDR/${i}.git && pushd ${i} && /bin/bash -lc "./build.sh rpm" && find /root/rpmbuild/RPMS -name "*.rpm" -exec cp {} /root/rpms \; && popd && popd && /bin/bash -lc "yum install -y *rpm"; done && \
     ls /root/rpms
 
-FROM @@@BASE_IMAGE@@@ as runner
+FROM rh.componenthost as runner
 WORKDIR /root/rpms
 RUN rm -rf /root/rpms/*
 COPY --from=builder /root/rpms /root/rpms
