@@ -1,63 +1,32 @@
 # Docker REDHAWK Components
+This page covers how to build Docker images that contain REDHAWK components.
 
-This page covers how to get Docker images that contain REDHAWK components.
-These can be:
-
-- downloaded as a pre-built image
-- built
-    - from REDHAWK Core Assets
-    - from custom created components
-
-Component images are compatibile with the core-framework of the same minor release version.
-
-
-## Pre-Built Images
-Prebuilt versions of several REDHAWK Component images are available on DockerHub.
-* [HardLimit](https://hub.docker.com/r/geontech/rh.hardlimit)
-* [SigGen](https://hub.docker.com/r/geontech/rh.siggen)
-* [agc](https://hub.docker.com/r/geontech/rh.agc)
-* [AmFmPmBasebandDemod](https://hub.docker.com/r/geontech/rh.amfmpmbasebanddemod)
-* [ArbitraryRateResampler](https://hub.docker.com/r/geontech/rh.arbitraryrateresampler)
-* [autocorrelate](https://hub.docker.com/r/geontech/rh.autocorrelate)
-* [fastfilter](https://hub.docker.com/r/geontech/rh.fastfilter)
-* [fcalc](https://hub.docker.com/r/geontech/rh.fcalc)
-* [FileWriter](https://hub.docker.com/r/geontech/rh.filewriter)
-* [psd](https://hub.docker.com/r/geontech/rh.psd)
-* [psk_soft](https://hub.docker.com/r/geontech/rh.psk_soft)
-* [RBDSDecoder](https://hub.docker.com/r/geontech/rh.rbdsdecoder)
-* [SinkSDDS](https://hub.docker.com/r/geontech/rh.sinksdds)
-* [sinksocket](https://hub.docker.com/r/geontech/rh.sinksocket)
-* [sourcesocket](https://hub.docker.com/r/geontech/rh.sourcesocket)
-* [TuneFilterDecimate](https://hub.docker.com/r/geontech/rh.tunefilterdecimate)
-* [ComponentHost](https://hub.docker.com/r/geontech/rh.componenthost) (Includes DataConverter and SourceSDDS by default)
-
-These images were built based on the [docker-redhawk-components](https://github.com/Geontech/docker-redhawk-components) project.
-These base images pull down and bake individual RH components from GitHub into a new image.
+Component images are compatible with the core-framework of the same minor release version.
 
 ## Custom Component Images
-
-A Docker image with REDHAWK installed is required to support containerized component development and deployment.
-This image must contain the REDHAWK libraries and the appropriate REDHAWK environment variables such as `$SDRROOT`.
-Install the image in a location that makes it available for both containerizing components and orchestration software.
+A Docker image with REDHAWK installed is used as a base image into which to add a REDHAWK component.
+This base image must contain the REDHAWK libraries and the appropriate REDHAWK environment variables such as `$SDRROOT`.
 
 ### Prepare the Base Image
-
 To build a base image with a particular version of REDHAWK, modify the following commands:
 ```sh
-cd core-framework/container/docker-redhawk-components/tmp
+cd core-framework/container/components/tmp
 git clone <git-repo-url>/redhawk/core-framework.git
 git checkout <branch-or-tag>
 wget https://github.com/RedhawkSDR/redhawk/releases/download/<version>/redhawk-yum-<version>-<dist>-<arch>.tar.gz
-docker build --build-arg docker_repo=<url> \
+cd ../Dockerfiles
+docker build \
+    --build-arg docker_repo=<url> \
     [--build-arg <key>=<value>] \
-    --tag my-base-image
-    redhawkBuild.Dockerfile
+    --tag my-base-image \
+    -f redhawkBuild.Dockerfile \
+    .
 ```
 The available `--build-arg`s can be seen in the `ARG` lines at the top of the Dockerfile.  
 Note that `ARG docker_repo` does not have a default value, so the user must supply an url.  
 This builds REDHAWK from source.
 
-See the Installation section of the Manual for more details about downloading the REDHAWK yum archive.  For preparing a base image, the archive only needs to be downloaded.  It does not need to be setup as a yum repository.
+See the Installation section of the Manual for details about downloading the REDHAWK yum archive.  For preparing a base image, the archive only needs to be downloaded.  It does not need to be setup as a yum repository.
 
 ####  Verify the Image is Built
 ```
@@ -67,7 +36,7 @@ my-base-image         latest               bef41b7af47a   45 seconds ago   3.19G
 ```
 
 ### REDHAWK Asset from GitHub
-REDHAWK Asset components can be found at `https://github.com/RedhawkSDR/<asset>`.  These are the core assets that come installed with REDHAWK.  The Dockerfiles found in `core-framework/container/Dockerfiles` call out to this repo depending on the below build argument that specifies which REDHAWK Component to pull down into the image at image build time.
+REDHAWK Asset components can be found at `https://github.com/RedhawkSDR/assets`.  These are the core assets that come installed with REDHAWK.  The Dockerfiles found in `core-framework/container/components/Dockerfiles` call out to this repo depending on the below build argument that specifies which REDHAWK Component to pull down into the image at image build time.
 
 First, to build a desired component into a Docker image, cd into `core-framework/container/Dockerfiles` and run the following command, replacing `<asset>` with the properly capitalized name of the desired REDHAWK component as seen listed in `/var/redhawk/sdr/dom/components/`:
 
@@ -155,3 +124,30 @@ A user-defined component is a component that the user made in REDHAWK.  Use thes
     cd core-framework/container/docker-redhawk-components
     make custom CUSTOM=<path-to-SPD-file>
     ```
+
+
+<!--
+This was done before Redhawk 3.0.  So, it is not yet tested or supported.
+
+Prebuilt versions of several REDHAWK Component images are available on DockerHub.
+* [HardLimit](https://hub.docker.com/r/geontech/rh.hardlimit)
+* [SigGen](https://hub.docker.com/r/geontech/rh.siggen)
+* [agc](https://hub.docker.com/r/geontech/rh.agc)
+* [AmFmPmBasebandDemod](https://hub.docker.com/r/geontech/rh.amfmpmbasebanddemod)
+* [ArbitraryRateResampler](https://hub.docker.com/r/geontech/rh.arbitraryrateresampler)
+* [autocorrelate](https://hub.docker.com/r/geontech/rh.autocorrelate)
+* [fastfilter](https://hub.docker.com/r/geontech/rh.fastfilter)
+* [fcalc](https://hub.docker.com/r/geontech/rh.fcalc)
+* [FileWriter](https://hub.docker.com/r/geontech/rh.filewriter)
+* [psd](https://hub.docker.com/r/geontech/rh.psd)
+* [psk_soft](https://hub.docker.com/r/geontech/rh.psk_soft)
+* [RBDSDecoder](https://hub.docker.com/r/geontech/rh.rbdsdecoder)
+* [SinkSDDS](https://hub.docker.com/r/geontech/rh.sinksdds)
+* [sinksocket](https://hub.docker.com/r/geontech/rh.sinksocket)
+* [sourcesocket](https://hub.docker.com/r/geontech/rh.sourcesocket)
+* [TuneFilterDecimate](https://hub.docker.com/r/geontech/rh.tunefilterdecimate)
+* [ComponentHost](https://hub.docker.com/r/geontech/rh.componenthost) (Includes DataConverter and SourceSDDS by default)
+
+These images were built based on the [docker-redhawk-components](https://github.com/Geontech/docker-redhawk-components) project.
+These base images pull down and bake individual RH components from GitHub into a new image.
+-->
