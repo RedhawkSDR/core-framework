@@ -15,6 +15,9 @@ The following sections explain the different methods for transferring supported 
 > **WARNING**  
 > For the current implementation of omniORB, the `/etc/omniORB.cfg` maintains the configurable maximum transfer size defined by the value for giopMaxMsgSize. The default maximum transfer size is set to `2097152` (2 MB). For every `pushPacket()`, the data+headers must be less than this value; otherwise, a `MARSHAL` exception is raised by the middleware. This maximum value can be found during run time by using the `omniORB::giopMaxMsgSize()` function call or the `bulkio::Const::MAX_TRANSFER_BYTES` value.  
 
+> **NOTE**  
+Java components use JacORB rather than omniORB.  Unlike omniORB, JacORB has no concept of a maximum message size.  If a Java component (i.e. user code) sends a message larger than `omniORB::giopMaxMsgSize()`, the message will fail on the omniORB (i.e. message receiver) side, but the Java component will not be notified of the failure.  However, if a Java component calls `sendMessages(msgs)`, where `msgs` is a Collection, the component will always split the Collection and send a sequence of individual messages.
+
 ### Vector Data
 A component usually ingests and egresses data from its ports in the service function. A component with a provides-port (input), grabs data from the port using the `getPacket()` method. This method returns a `dataTransfer` object (described in [DataTransfer Member Descriptions](#datatransfer-member-descriptions)) from the input port's data queue or a null/None value if the queue is empty.
 

@@ -121,10 +121,7 @@ Add this class to the `componentName.java` right before the last line which is "
 
 ```Java
 /**
- * Set additional options for ORB startup. For example:
- *
- *   orbProps.put("com.sun.CORBA.giop.ORBFragmentSize",
- *                          Integer.toString(fragSize));
+ * Set additional options for ORB startup.
  *
  * @param orbProps
  */

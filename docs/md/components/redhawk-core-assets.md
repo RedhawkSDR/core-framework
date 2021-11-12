@@ -33,7 +33,7 @@ The following table contains the names and descriptions of the REDHAWK basic com
 | `rh.psd`                    | Transforms data from the time domain to the frequency domain using an FFT-based Power Spectral Density (PSD). Output data is framed data where each frame contains the frequency domain representation of a subsection of the input. This component provides both the real-valued PSD and the complex FFT outputs. |
 | `rh.psk_soft`               | Takes complex baseband pre-d data and does a PSK demodulation of either BPSK, QPSK, or 8-PSK and outputs symbols and bits. Input must be an integer number of samples per symbol (recommended 8-10). |
 | `rh.RBDSDecoder`            | Decodes RBDS data from broadcast FM using the RBDS Standard Specification. |
-| `rh.SigGen`                 | Generates different output signals based on its configuration. Contains an implementation in each of the supported languages (Python, C++, Java) and is an example of a component with multiple implementations. |
+| `rh.SigGen`                 | Generates different output signals based on its configuration. Contains an implementations  in C++ and Python. |
 | `rh.SinkSDDS`               | Accepts BulkIO data and produces a single SDDS stream over the provided multicast or unicast address. |
 | `rh.sinksocket`             | Reads data from a BulkIO port and writes it to a TCP socket.  |
 | `rh.SinkVITA49`             | Creates a UDP/multicast or TCP VITA49 packet stream and converts the data and Signal Related Information (SRI) Keywords to Intermediate Frequency (IF) data packets and Context packets for use within/between/outside of a REDHAWK <abbr title="See Glossary.">domain</abbr> <abbr title="See Glossary.">application</abbr>.  |

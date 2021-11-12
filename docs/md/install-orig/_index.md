@@ -1,4 +1,4 @@
-# Installation
+# Install-orig
 
 This chapter explains how to install the Core Framework (CF), the IDE, and the basic assets. The CF is the software back-end of REDHAWK. The IDE is a GUI for development and interaction with REDHAWK systems. The basic assets are a collection of <abbr title="See Glossary.">components</abbr>, <abbr title="See Glossary.">devices</abbr>, and <abbr title="See Glossary.">waveforms</abbr> that developers can use to create simple software-defined radio applications.
 
