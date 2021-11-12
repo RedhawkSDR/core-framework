@@ -104,8 +104,8 @@ body {
     top: 0;
 }
 p {
-    margin: 1em 0;
-    line-height: 1.5em;
+    margin: 1em 0 0.5em 0;
+    line-height: 1.3em;
 }
 table {
     font: 100%;
@@ -181,8 +181,8 @@ h6 {
     margin-top: 0;
 }
 hr{height: 0; margin: 15px 0; overflow: hidden; background: transparent; border: 0; border-bottom: 4px solid #ddd;}
-ul { line-height: 1; margin: .5em 0 .5em 2em; }
-ol { line-height: 1; margin: .5em 0 .5em 2em; }
+ul { line-height: 1.3; margin: .5em 0 .5em 2em; }
+ol { line-height: 1.3; margin: .5em 0 .5em 2em; }
 ul li, ol li { margin-top: .3em; margin-bottom: .3em; }
 ul p, ol p { margin-block-start: .3em; margin-block-end: .3em; }
 ul ul, ul ol, ol ol, ol ul {
