@@ -65,14 +65,8 @@ def getInterfaceLibrary(namespace):
 
 def getPackageRequires(namespace):
     library = getInterfaceLibrary(namespace)
-    if library['version']:
-        return '%s >= %s' % (library['libname'], library['version'])
-    else:
-        return library['libname']
+    return library['libname']
 
 def getRPMDependency(name):
     library = getInterfaceLibrary(name)
-    if library['version']:
-        return '%s >= %s' % (library['rpmname'], library['version'])
-    else:
-        return library['interfaces']
+    return library['interfaces']
