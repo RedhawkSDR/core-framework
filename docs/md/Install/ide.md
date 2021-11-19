@@ -2,7 +2,7 @@
 
 The REDHAWK IDE leverages Java technologies and requires Java 8. The IDE also includes native libraries that allow the IDE to have a look and feel appropriate for the OS. A minimum of 2 GB of RAM is required, but 4 GB+ is recommended.
 
-> **WARNING**:  The IDE should not be used for code generation.  Instead, use the IDE to generate the PRF, SCD, and SPD XML files.  Then, run `redhawk-codegen` directly on that SPD file.
+> **WARNING**:  The IDE should no longer be used for code generation.  Instead, use the IDE to generate the PRF, SCD, and SPD XML files.  Then, run `redhawk-codegen` directly on that SPD file.
 
 To install a stand-alone IDE:
 
@@ -25,5 +25,7 @@ To install a stand-alone IDE:
     ```bash
     tar zxf redhawk-ide-<version>-linux.gtk.x86_64.tar.gz
     ```
+
+> **NOTE**:  Before running the IDE, follow the instructions in section 'Java and JacORB'.
 
 1. Start the IDE by running the `eclipse` executable in the eclipse directory.

@@ -1,4 +1,4 @@
-# Shared Memory Maintenance
+# Shared Memory
 
 REDHAWK uses POSIX shared memory to provide optimized data transfer for Bulk Input/Output (BulkIO) connections between C++ <abbr title="See Glossary.">components</abbr> or <abbr title="See Glossary.">devices</abbr> on the same host.
 On Linux systems, POSIX shared memory is visible as a filesystem of type `tmpfs` mounted at `/dev/shm`.

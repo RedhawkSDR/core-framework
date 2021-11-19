@@ -1,4 +1,4 @@
-# Connections
+# Troubleshoot Connections
 
 This section explains how to diagnose connection issues.
 

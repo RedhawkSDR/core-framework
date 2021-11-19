@@ -1,4 +1,4 @@
-# omniNames and omniEvents
+# Troubleshoot omniNames and omniEvents
 
 This section explains how to troubleshoot and resolve `omniNames` and `omniEvents` issues.
 
