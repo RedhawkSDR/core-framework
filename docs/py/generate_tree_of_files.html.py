@@ -19,7 +19,6 @@ import subprocess
 from ordered_markdown_file_list import fpaths_ordered
 
 indent_code = '    '
-indent_render = '&nbsp;' * 4
 top_level_nodes = []
 
 def get_node(path):
@@ -61,7 +60,6 @@ class Dir(Node):
     def __init__(self, path):
         super().__init__(path)
         self.children = []
-        self.title = ''  # This comes from the markdown title heading of the first child.
 
     def append(self, node):
         self.children.append(node)
@@ -69,7 +67,7 @@ class Dir(Node):
     def html(self):
         html = [indent_code * self.depth + '<div class="tree-of-files-dir {}">'.format(self.depth_class)]
         html.append(indent_code * (self.depth + 1) + '<div class="ui-accordion-header-icon ui-icon ui-icon-triangle-1-e"></div>')
-        html.append(indent_code * (self.depth + 1) + self.title)
+        html.append(indent_code * (self.depth + 1) + self.name.replace('-', ' '))
         html.append(indent_code * (self.depth + 1) + '<div style="clear: left;"></div>')
         html.append(indent_code * self.depth + '</div>  <!-- end tree-of-files-dir -->')
         html.append(indent_code * (self.depth) + '<div class="tree-of-files-children dontshow">')
@@ -130,8 +128,6 @@ def ingest_path(fpath):
     path = os.path.join(parent_path, name)
     node = File(path)
     if parent_node:
-        if not parent_node.children:
-            parent_node.title = node.title
         parent_node.append(node)
     else:
         top_level_nodes.append(node)
@@ -184,3 +180,4 @@ if __name__ == '__main__':
         ingest_path(os.path.join(fpath))
 
     write_html()
+
