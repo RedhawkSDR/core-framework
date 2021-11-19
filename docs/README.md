@@ -1,13 +1,26 @@
 # README Redhawk Docs
 
-# How to read the docs
-The docs are installed in `$OSSIEHOME/docs/`.  Point a browser to the `index.html` file there.  
+## How to read and search the docs
 
-# How to search the docs
-The docs are originally written in `Markdown`, then converted to `html`.
-The `.md` files are distributed to make it easier to search, eg with `grep`.
+### For RPM Install
+Point browser to `$OSSIEHOME/docs/html/index.html`.
 
-## Caveats
+Or view `$OSSIEHOME/docs/RedhawkManual-<ver>.pdf`.
+
+The docs are originally written in `Markdown`, then converted to `html`.  
+The `.md` files are distributed to make it easier to search, eg with `grep`.  
+Search can be done in the pdf, or in `$OSSIEHOME/docs/md/`.
+
+### For Source Install
+```
+cd core-framework/docs
+make
+make pdf  # optional
+# After OSSIEHOME is created, during the install of `redhawk`:
+make install  # optional
+```
+
+## Content Caveats
 Redhawk 3.0 includes changes for which the docs have not yet been updated.
 Readers should keep in mind these changes:
 
