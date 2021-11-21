@@ -51,8 +51,8 @@ def parse_html():
     toc = []
     put_in_toc = False
     title_line = ''
-    fp_raw = open('raw.html', 'w')  # delete me
-    for line in open(fpath_html).readlines():
+    fp_raw = open('raw.html', 'w', encoding='utf-8')  # delete me
+    for line in open(fpath_html, encoding='utf-8').readlines():
         fp_raw.write(line.strip() + '\n')  # delete me
         if line.startswith('<nav id="TOC">') or line.startswith('<div id="TOC">'):
             put_in_toc = True
@@ -73,7 +73,7 @@ def parse_html():
     return html, toc, title
 
 def rewrite_html(html, toc, title):
-    fp = open(fpath_html, 'w')
+    fp = open(fpath_html, 'w', encoding='utf-8')
     for line in html:
         if line.strip().startswith('<title>'):
             fp.write('  <title>{}</title>\n'.format(title))
@@ -87,7 +87,6 @@ def rewrite_html(html, toc, title):
                 css_line = '  <link href="{}{}" rel="stylesheet">'.format(dotdots, css_file)
                 fp.write('{}\n'.format(css_line))
             fp.write('  <script>\n')
-            #fp.write(open('js/default.js').read())
             fp.write('  </script>\n')
         elif line.startswith('<body>'):
             fp.write(line)
