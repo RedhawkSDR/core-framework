@@ -1,4 +1,4 @@
-# Component Model Overview 
+# Component Model Overview
 
 REDHAWK 2.0 C++ Components
 --------------------------
