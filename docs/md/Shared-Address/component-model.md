@@ -47,7 +47,7 @@ The shared address space model does not affect existing components. Executable-b
 
 ![mixed](img/mixed.png)
 
-The ability to generate executable components is not going away. Although I would expect it to be rare, there may be particular reasons why a given component cannot be run in a shared address space–perhaps due to the requirements of an external library, for example.
+The ability to generate executable components is not going away. Although I would expect it to be rare, there may be particular reasons why a given component cannot be run in a shared address space -- perhaps due to the requirements of an external library, for example.
 
 Process Per Component
 ---------------------

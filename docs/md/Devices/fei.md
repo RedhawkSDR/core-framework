@@ -665,7 +665,7 @@ The FRONTEND::tuner_status property contains both required and optional elements
 | FRONTEND::tuner_status::available_sample_rate | string | Valid potential sample rates for the tuner. In range(XX-YY) or csv (X,Y,Z) format.
 | FRONTEND::tuner_status::reference_source | long | Indicates internal vs external reference source. 0 = internal reference; 1 = external reference.
 | FRONTEND::tuner_status::output_format | string | Indicates current output data format. Uses the SDDS digraph format.
-| FRONTEND::tuner_status::output_multicast | string | Multicast address for SDDS output. Multicast address in dotted quad notation (e.g., “192.168.0.1”).
+| FRONTEND::tuner_status::output_multicast | string | Multicast address for SDDS output. Multicast address in dotted quad notation (e.g., "192.168.0.1").
 | FRONTEND::tuner_status::output_vlan | long | vlan number for SDDS output. If there is no vlan used, indicate that with a zero.
 | FRONTEND::tuner_status::output_port | long | port number for SDDS output.
 | FRONTEND::tuner_status::decimation | long | Current decimation of tuner. Decimation values for DDC tuners. Defined as the ratio of input sample rate to output sample rate regardless of data format.

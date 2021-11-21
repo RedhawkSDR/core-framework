@@ -89,7 +89,7 @@ To verify that the container id is correct and the component is running as a con
 ```
 > docker container ps -a
 CONTAINER ID   IMAGE         COMMAND                  CREATED         STATUS       PORTS      NAMES
-a430ac7416ce   sample_comp   "/bin/bash -lc '$SDR…"   2 minutes ago   Up 2 minutes            sample_comp_1
+a430ac7416ce   sample_comp   "/bin/bash -lc '$SDR..."   2 minutes ago   Up 2 minutes            sample_comp_1
 ```
 
 To release the component, exit the Sandbox's Python session.

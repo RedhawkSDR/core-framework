@@ -7,7 +7,7 @@ A component that takes some input stream(s), and produces output data. E.g., Tun
 
 ### Service Function
 
-The following example is from the modified FM demodulator I'm using to do resource utilization measurement in shared address space components, versus a comparable 2.0 application. This is the basic flow I'm expecting for new components that are doing some sort of data transformation; other than the use of the shared buffer data types, this is almost a valid 2.0 flow as well–much of it is intrinsic to the BulkIO stream API. The one thing missing in 2.0 is the getStream() method on
+The following example is from the modified FM demodulator I'm using to do resource utilization measurement in shared address space components, versus a comparable 2.0 application. This is the basic flow I'm expecting for new components that are doing some sort of data transformation; other than the use of the shared buffer data types, this is almost a valid 2.0 flow as well -- much of it is intrinsic to the BulkIO stream API. The one thing missing in 2.0 is the getStream() method on
 output ports. You have to track the output streams yourself in 2.0, which was an oversight.
 
 ```
@@ -104,7 +104,7 @@ redhawk::shared_buffer<float> FmDemod_i::doFmDemod(const redhawk::shared_buffer<
 ```
 
 It's not taking different streams into account, but that's relatively
-easy to fix–you could keep a map of stream IDs to demodulator objects.
+easy to fix.  You could keep a map of stream IDs to demodulator objects.
 
 Quick implementation notes:
 
