@@ -8,7 +8,7 @@ There are other dependencies that are not available from those sources because t
 
 For RHEL/CentOS 7:
 ```bash
-sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+sudo yum install epel-release
 ```
 
 ## Install the Software Collections (SCL) Repository

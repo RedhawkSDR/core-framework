@@ -8,6 +8,7 @@ The overall installation process includes:
 
 - Install [external dependencies](external-dependencies.md).
 - Setup the [REDHAWK YUM repository](redhawk-yum-repo.md) and install included dependencies.
+- If you intend to use Java components, see the section on [Java and JacORB](java-and-jacorb.html).
 - Install REDHAWK software (below).
 - Setup the user environment (below).
 
