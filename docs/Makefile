@@ -43,8 +43,8 @@ install: checkossiehome
 	#cp -dr css font html img js md README.md ${OSSIEHOME}/docs/
 	(test -e RedhawkManual.pdf && cp RedhawkManual.pdf ${OSSIEHOME}/docs/) || true
 
-pdf:
-	./build-pdf.sh
+pdf: FORCE
+	py/generate_pdf.py
 
 clean:
 	$(RM) -r html pdf

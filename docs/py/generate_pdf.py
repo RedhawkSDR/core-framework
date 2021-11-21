@@ -9,33 +9,6 @@ import sys
 
 from ordered_markdown_file_list import fpaths_ordered
 
-
-def get_names(fpath):
-    dnames, fname = os.path.split(fpath)
-    dnames = dnames.split('/')
-    fpath = dpath_pdf
-    for dname in dnames:
-        if dname:
-            fpath = os.path.join(fpath, dname)
-    fpath = os.path.join(fpath, fname)
-    if dnames == ['']:
-        dnames = []
-    return dnames, fpath
-
-'''
-def combine_indiv_mds(dnames, names):
-    print('-->  combine_indiv_mds():  {}'.format(' '.join([os.path.basename(n) for n in names])))
-    md_name = '/'.join(dnames).replace('/', '_')
-    num_files_w_name = len([f for f in os.listdir(dpath_pdf) if f.startswith(md_name)])
-    md_name += '_{}.MD'.format(num_files_w_name)
-    fpath = os.path.join(dpath_pdf, md_name)
-    print('        ' + fpath)
-    cmd = 'pandoc -t markdown -o {} {}'.format(fpath, ' '.join(names))
-    cmd = shlex.split(cmd)
-    subprocess.run(cmd)
-    return fpath
-'''
-
 def combine_indiv_mds(fpaths_in):
     dpath_in = os.path.dirname(fpaths_in[0])
     title = dpath_in.replace('-', ' ').replace('/', '-')
@@ -59,14 +32,10 @@ def combine_indiv_mds(fpaths_in):
     return fpath_out
 
 def make_pdf(mds):
-    #for md in mds:
-    #    print(md, os.path.exists(md))
-    #exit()
     fname = 'RedhawkManual'
     if version:
         fname += '-{}'.format(version)
     fname += '.pdf'
-    #cmd = 'pandoc -f markdown -t latex --template=default.latex --toc-depth=3 --toc -o {} {}'.format(fname, ' '.join(mds))
     cmd = 'pandoc -f markdown -t latex -V geometry:margin=0.8in --toc-depth=3 --toc -o {} {}'.format(fname, ' '.join(mds))
     cmd = shlex.split(cmd)
     subprocess.run(cmd)
@@ -84,15 +53,14 @@ def main():
             continue
         if not dpath:
             if fpaths:
-                #print(fpaths)
                 combined_mds.append(combine_indiv_mds(fpaths))
+                fpaths = []
             combined_mds.append(os.path.join(dpath_pdf, fpath_in))
         elif dpath == dpath_prev:
             fpaths.append(fpath_in)
         else:
             if fpaths and dpath_prev is not None:
                 combined_mds.append(combine_indiv_mds(fpaths))
-                #print(fpaths)
             dpath_prev = dpath
             fpaths = [fpath_in]
     make_pdf(combined_mds)
@@ -108,4 +76,3 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         version = sys.argv[1]
     main()
-
