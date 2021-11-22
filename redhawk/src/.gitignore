@@ -3,8 +3,10 @@ autom4te.cache
 config.guess
 config.log
 config.status
+config.cache
 config.sub
 configure
+compile
 depcomp
 install-sh
 libtool
