@@ -141,8 +141,8 @@ class TestPythonUtils(unittest.TestCase):
         objref = weakobj.objectref(obj)
         objref2 = weakobj.objectref(obj)
 
-        self.assertEquals(objref, objref2)
-        self.assertEquals(objref.foo(), obj.foo())
+        self.assertEqual(objref, objref2)
+        self.assertEqual(objref.foo(), obj.foo())
 
         # Delete what should be the only reference to the original object.
         del obj

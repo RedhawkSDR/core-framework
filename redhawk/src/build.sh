@@ -23,13 +23,15 @@ config_ac='configure.ac'
 make_am='Makefile.am'
 makefile='Makefile'
 
+set -e
+
 if [ "$1" == "clean" ]; then
  make clean
 else
  if [[ $config_ac -nt $makefile || $make_am -nt $makefile ]]; then
+  set -x
   ./reconf
-  ./configure
+  CXXFLAGS=-Wno-deprecated ./configure -C --disable-java --disable-persistence #XXX --disable-log4cxx
  fi
  make -j
- exit 0
 fi

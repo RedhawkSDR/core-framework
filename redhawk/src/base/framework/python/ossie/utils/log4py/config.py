@@ -29,8 +29,8 @@ import pprint
 import re
 import inspect
 import traceback
-from appenders import *
-from layouts import *
+from .appenders import *
+from .layouts import *
 
 # Map log4j levels to python logging levels
 _LEVEL_TRANS = {"ALL": logging.NOTSET,
@@ -104,11 +104,11 @@ def _parseLines( lsrc, result={} ):
           key=g.groups()[0]
           value=g.groups()[1]
           if len(key.strip()) == 0 or len(value.strip()) == 0 :
-            print "log4py: error malformed log4py configuration:" + line
+            print("log4py: error malformed log4py configuration:" + line)
           else:
             result[key] = value
         else:
-            print "log4py: error malformed log4py configuration:" + line
+            print("log4py: error malformed log4py configuration:" + line)
         line=''
       return result
 
@@ -187,7 +187,7 @@ def _install_handlers(props):
   handlers = {}
 
   hlist=[]
-  tlist = filter(lambda x: x.startswith("log4j.appender."), props.keys())
+  tlist = [x for x in list(props.keys()) if x.startswith("log4j.appender.")]
   if not len(tlist) : return handlers
 
   # filter out just the appender names
@@ -207,11 +207,11 @@ def _install_handlers(props):
        klass = _import_handler(appenderClass)
        handler = klass()
      except:
-         print "log4py: error with appender: ", appenderClass, " for logger ", appenderKey
+         print("log4py: error with appender: ", appenderClass, " for logger ", appenderKey)
          continue
 
      # Deal with appender options
-     appenderOptions = filter(lambda x: x.startswith(appenderKey+"."), props.keys())
+     appenderOptions = [x for x in list(props.keys()) if x.startswith(appenderKey+".")]
      for appenderOption in appenderOptions:
        opt = appenderOption[len(appenderKey+"."):]
        value = props[appenderOption].strip()
@@ -222,13 +222,13 @@ def _install_handlers(props):
          try:
            klass = _import_layout(layoutClass)
            layout = klass()
-           layoutOptions = filter(lambda x: x.startswith(appenderKey+".layout."), props.keys())
+           layoutOptions = [x for x in list(props.keys()) if x.startswith(appenderKey+".layout.")]
            for layoutOption in layoutOptions:
              opt = layoutOption[len(appenderKey+".layout."):]
              value = props[layoutOption].strip()
              setattr(layout, opt, value)
          except:
-             print "log4py: error with layout: ", layoutClass
+             print("log4py: error with layout: ", layoutClass)
 
        elif opt.lower().endswith("filter"):
          pass
@@ -256,7 +256,7 @@ def _install_loggers(props, handlers, filterCategory, disable_existing_loggers )
   try:
      log_cfg = props["log4j.rootLogger"].split(",")
   except KeyError:
-    print "log4py: missing log4j.rootLogger line"
+    print("log4py: missing log4j.rootLogger line")
 
   root = logging.root
   log = root
@@ -268,11 +268,11 @@ def _install_loggers(props, handlers, filterCategory, disable_existing_loggers )
     pass
 
   if log_cfg and len(log_cfg) > 0:
-    if  log_cfg[0].strip().upper() in _LEVEL_TRANS.keys():
+    if  log_cfg[0].strip().upper() in list(_LEVEL_TRANS.keys()):
       log.setLevel(_LEVEL_TRANS[log_cfg[0].strip().upper()])
       del log_cfg[0]
     else:
-      print "log4py; error Root logger issue, unknown level: " + str(log_cfg[0].strip())
+      print("log4py; error Root logger issue, unknown level: " + str(log_cfg[0].strip()))
 
   for h in root.handlers[:]:
     root.removeHandler(h)
@@ -283,20 +283,20 @@ def _install_loggers(props, handlers, filterCategory, disable_existing_loggers )
       try:
         root.addHandler(handlers[h])
       except:
-        print "log4py: error Root logger issue, unknown level or appender: " + str(h)
+        print("log4py: error Root logger issue, unknown level or appender: " + str(h))
 
-  tmp = filter(lambda x: x.startswith("log4j.category."), props.keys() )
+  tmp = [x for x in list(props.keys()) if x.startswith("log4j.category.")]
   clist = [ x[len("log4j.category."):] for x in tmp ]
-  tmp = filter(lambda x: x.startswith("log4j.logger."), props.keys())
+  tmp = [x for x in list(props.keys()) if x.startswith("log4j.logger.")]
   llist = [ x[len("log4j.logger."):] for x in tmp ]
   # existing loggers
-  existing = root.manager.loggerDict.keys()
+  existing = list(root.manager.loggerDict.keys())
   existing.sort(key=_encoded)
   child_loggers = []
   #now set up the new ones...
 
   # check additive tags to avoid additive logging to the root loggers
-  additivities = filter(lambda x: x.startswith("log4j.additivity."), props.keys())
+  additivities = [x for x in list(props.keys()) if x.startswith("log4j.additivity.")]
 
   _install_from_list( clist, props, filterCategory, additivities, handlers, existing, child_loggers )
   _install_from_list( llist, props, filterCategory, additivities, handlers, existing, child_loggers )
@@ -334,16 +334,16 @@ def _install_from_list( llist, props, filterCategory, additivities, handlers, ex
     hlist=[]
     has_level=False
     for x in [ "log4j.category."+log, "log4j.logger."+log ]:
-      if x in props.keys():
+      if x in list(props.keys()):
         log_cfg = props[x].split(',')
         if log_cfg and len(log_cfg) > 0:
-          if log_cfg[0].strip().upper() in _LEVEL_TRANS.keys():
+          if log_cfg[0].strip().upper() in list(_LEVEL_TRANS.keys()):
             level = _LEVEL_TRANS[log_cfg[0].strip().upper()]
             has_level = True
             del log_cfg[0]
 
           else:
-            print "log4py error: "+ str(logger.name) + " issue, unknown level: " + str(log_cfg[0].strip())
+            print("log4py error: "+ str(logger.name) + " issue, unknown level: " + str(log_cfg[0].strip()))
 
         if log_cfg:
             hlist = hlist + [x.strip() for x in log_cfg]
@@ -370,5 +370,5 @@ def _install_from_list( llist, props, filterCategory, additivities, handlers, ex
         try:
           logger.addHandler(handlers[hand])
         except:
-           print "log4py: error "+ str(logger.name) + " issue, unknown handler: " + str(hand)
+           print("log4py: error "+ str(logger.name) + " issue, unknown handler: " + str(hand))
 

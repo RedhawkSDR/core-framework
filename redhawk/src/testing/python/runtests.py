@@ -28,11 +28,13 @@ from omniORB import CORBA
 from ossie.utils.log4py import logging
 import ossie.utils.log4py.config
 
+
 class MultiTestLoader(unittest.TestLoader):
     """
     Extend the default TestLoader to support a list of modules, at least for
     the purposes of loadTestsFromName and loadTestsFromNames.
     """
+
     def loadTestsFromName(self, name, modules):
         if not isinstance(modules, list):
             return unittest.TestLoader.loadTestsFromName(self, name, modules)
@@ -45,6 +47,7 @@ class MultiTestLoader(unittest.TestLoader):
                 except AttributeError:
                     pass
             raise AttributeError("test '%s' not found" % (name,))
+
 
 class TestProgram(object):
     def __init__(self, modules=None):
@@ -75,7 +78,7 @@ class TestProgram(object):
         long_options = ['xunit=', 'log-level=', 'log-config=', 'verbose']
 
         xunit = False
-        xmlout=None
+        xmlout = None
         log_level = None
         log_config = None
         options, args = getopt.getopt(argv, short_options, long_options)
@@ -84,14 +87,14 @@ class TestProgram(object):
                 self.verbosity = 2
             elif opt in ('-x', '--xunit'):
                 xunit = True
-                xmlout=value
+                xmlout = value
             elif opt == '--log-level':
                 # Map from string names to Python levels (this does not appear to
                 # be built into Python's logging module)
-                log_level = ossie.utils.log4py.config._LEVEL_TRANS.get(value.upper(), None)
+                log_level = ossie.utils.log4py.config._LEVEL_TRANS.get(
+                    value.upper(), None)
             elif opt == '--log-config':
                 log_config = value
-
 
         # If requested, use XML output (but the module is non-standard, so it
         # may not be available).
@@ -99,11 +102,14 @@ class TestProgram(object):
             try:
                 import xmlrunner
                 if xmlout:
-                    self.testRunner = xmlrunner.XMLTestRunner(output=xmlout, verbosity=self.verbosity)
+                    self.testRunner = xmlrunner.XMLTestRunner(
+                        output=xmlout, verbosity=self.verbosity)
                 else:
-                    self.testRunner = xmlrunner.XMLTestRunner(verbosity=self.verbosity)
+                    self.testRunner = xmlrunner.XMLTestRunner(
+                        verbosity=self.verbosity)
             except ImportError:
-                print >>sys.stderr, 'WARNING: XML test runner module is not installed'
+                print('WARNING: XML test runner module is not installed',
+                      file=sys.stderr)
             except TypeError:
                 # Maybe it didn't like the verbosity argument
                 self.testRunner = xmlrunner.XMLTestRunner()
@@ -138,6 +144,7 @@ class TestProgram(object):
         orb.shutdown(True)
 
         sys.exit(not result.wasSuccessful())
+
 
 main = TestProgram
 

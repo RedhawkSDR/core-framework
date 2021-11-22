@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-from local import LocalSandbox
-from ide import IDESandbox
+from .local import LocalSandbox
+from .ide import IDESandbox
 
 __all__ = ('LocalSandbox', 'IDESandbox')

@@ -19,12 +19,12 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import dcd as DCDParser
-import dmd as DMDParser
-import dpd as DPDParser
-import prf as PRFParser
-import profile as ProfileParser
-import sad as SADParser
-import scd as SCDParser
-import spd as SPDParser
-import parserconfig
+from . import dcd as DCDParser
+from . import dmd as DMDParser
+from . import dpd as DPDParser
+from . import prf as PRFParser
+from . import profile as ProfileParser
+from . import sad as SADParser
+from . import scd as SCDParser
+from . import spd as SPDParser
+from . import parserconfig

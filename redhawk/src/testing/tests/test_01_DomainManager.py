@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import unittest, os, signal, commands, shutil
+import unittest, os, signal, subprocess, shutil
 from _unitTestHelpers import scatest
 from xml.dom import minidom
 from ossie.cf import CF
@@ -35,7 +35,7 @@ import re
 
 
 def getChildren(parentPid):
-    process_listing = commands.getoutput('ls /proc').split('\n')
+    process_listing = subprocess.getoutput('ls /proc').split('\n')
     children = []
     for entry in process_listing:
         try:
@@ -124,7 +124,7 @@ class DomainManagerTest(scatest.CorbaTestCase):
         # as per DeviceManager requirement SR:482
         devMgr.shutdown()
 
-        self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+        self.assertTrue(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 0)
         self.assertNotEqual(self._domMgr, None)
         self.assertEqual(len(self._domMgr._get_applicationFactories()), 0)
@@ -134,7 +134,7 @@ class DomainManagerTest(scatest.CorbaTestCase):
     def test_DomainManagerPropertyOverride(self):
         # in order to test the nodeBooter execparam first we need to set the execparams
         self.tearDown()
-        print "Waiting to give tearDown some time"
+        print("Waiting to give tearDown some time")
         time.sleep(2)
 
         # the id used to set the COMPONENT_BINDING_TIMEOUT

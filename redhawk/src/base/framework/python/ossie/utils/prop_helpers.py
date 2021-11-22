@@ -32,7 +32,7 @@ from omniORB import any as _any
 from omniORB import CORBA as _CORBA
 from omniORB import tcInternal as _tcInternal
 import copy as _copy
-import cStringIO, pydoc
+import io, pydoc
 import struct as _struct
 import string as _string
 import operator as _operator
@@ -119,12 +119,12 @@ def configureProp(compRef, propName, propValue):
             applicableTypes = strTypes
         elif valueType == bool:
             applicableTypes = boolTypes
-        elif valueType == long:
+        elif valueType == int:
             applicableTypes = longTypes
         elif valueType == float:
             applicableTypes = floatTypes
         else:
-            raise Exception, 'Could not match "'+str(valueType)+'" to a valid CORBA type'
+            raise Exception('Could not match "'+str(valueType)+'" to a valid CORBA type')
     
     passConfigure = False
     for propType in applicableTypes:
@@ -141,7 +141,7 @@ def configureProp(compRef, propName, propValue):
         msg = 'Was not able to configure property: "'+str(propName)+'", trying the following types:\n'
         for propType in applicableTypes:
             msg += ('  ' + str(propType) + '\n')
-        raise Exception, msg
+        raise Exception(msg)
 
 def getPropNameDict(prf):
     #
@@ -156,8 +156,8 @@ def getPropNameDict(prf):
             name = prop.get_id()
         else:
             name = prop.get_name()
-        if nameDict.has_key( str(name)):
-            print "WARN: property with non-unique name %s" % name
+        if str(name) in nameDict:
+            print("WARN: property with non-unique name %s" % name)
             continue
       
         nameDict[str(name)] = str(prop.get_id())
@@ -168,8 +168,8 @@ def getPropNameDict(prf):
             tagbase = str(struct.get_id())
         else:
             tagbase = str(struct.get_name())
-        if nameDict.has_key( tagbase ):
-            print "WARN: struct with duplicate name %s" % tagbase
+        if tagbase in nameDict:
+            print("WARN: struct with duplicate name %s" % tagbase)
             continue
       
         nameDict[str(tagbase)] = str(struct.get_id())
@@ -179,8 +179,8 @@ def getPropNameDict(prf):
                 name = prop.get_id()
             else:
                 name = prop.get_name()
-            if nameDict.has_key( tagbase + str(name) ):
-                print "WARN: struct element with duplicate name %s" % tagbase
+            if tagbase + str(name) in nameDict:
+                print("WARN: struct element with duplicate name %s" % tagbase)
                 continue
 
             nameDict[str(tagbase + str(name))] = str(prop.get_id())
@@ -190,8 +190,8 @@ def getPropNameDict(prf):
                 name = prop.get_id()
             else:
                 name = prop.get_name()
-            if nameDict.has_key( tagbase + str(name) ):
-                print "WARN: struct element with duplicate name %s" % tagbase
+            if tagbase + str(name) in nameDict:
+                print("WARN: struct element with duplicate name %s" % tagbase)
                 continue
 
             nameDict[str(tagbase + str(name))] = str(prop.get_id())
@@ -204,8 +204,8 @@ def getPropNameDict(prf):
         else:
             tagbase = str(structSequence.get_name())
         # make sure this structSequence name is unique
-        if nameDict.has_key( str(tagbase) ):
-            print "WARN: property with non-unique name %s" % tagbase
+        if str(tagbase) in nameDict:
+            print("WARN: property with non-unique name %s" % tagbase)
             continue
 
         nameDict[str(tagbase)] = str(structSequence.get_id())
@@ -219,8 +219,8 @@ def getPropNameDict(prf):
                 name = prop.get_id()
             else:
                 name = prop.get_name()
-            if nameDict.has_key( tagbase + str(name)):
-                print "WARN: property with non-unique name %s" % name
+            if tagbase + str(name) in nameDict:
+                print("WARN: property with non-unique name %s" % name)
                 continue
 
             nameDict[str(tagbase + str(name))] = str(prop.get_id())
@@ -230,8 +230,8 @@ def getPropNameDict(prf):
                 name = prop.get_id()
             else:
                 name = prop.get_name()
-            if nameDict.has_key( tagbase + str(name)):
-                print "WARN: property with non-unique name %s" % name
+            if tagbase + str(name) in nameDict:
+                print("WARN: property with non-unique name %s" % name)
                 continue
 
             nameDict[str(tagbase + str(name))] = str(prop.get_id())
@@ -246,7 +246,7 @@ def getPropNameDict(prf):
 '''
 def addCleanName(cleanName, id, _displayNames, _duplicateNames, namesp=None):
     retval=cleanName
-    if not _displayNames.has_key(cleanName):
+    if cleanName not in _displayNames:
         _displayNames[cleanName] = id
         # maintain a count of clean name for each namespace context
         _duplicateNames[cleanName] = { namesp : 0 }
@@ -352,7 +352,7 @@ class Property(object):
         self.type = type
         self.compRef = compRef
         if mode not in self.MODES:
-            print str(mode) + ' is not a valid mode, defaulting to "readwrite"'
+            print(str(mode) + ' is not a valid mode, defaulting to "readwrite"')
             self.mode = 'readwrite'
         else:
             self.mode = mode
@@ -397,7 +397,7 @@ class Property(object):
                 cname = _cleanId(sprop)
                 if cname in i._memberNames:
                      cname = i._memberNames[cname]
-                if i.members[cname].__dict__.has_key("_enums"):
+                if "_enums" in i.members[cname].__dict__:
                   if i.members[cname]._enums != None:
                     enums = i.members[cname]._enums
                 if self.mode != "writeonly":
@@ -408,23 +408,23 @@ class Property(object):
 
     def _api(self, destfile):
         # Basic default/current value for simple/simplesequence
-        print >>destfile, "% -*s %s" % (17, "Default Value:", self.defValue)
+        print("% -*s %s" % (17, "Default Value:", self.defValue), file=destfile)
         if self._checkRead():
-            print >>destfile, "% -*s %s" % (17, "Value: ", self.queryValue())
+            print("% -*s %s" % (17, "Value: ", self.queryValue()), file=destfile)
 
     def api(self, destfile=None):
         localdef_dest = False
         if destfile == None:
             localdef_dest = True
-            destfile = cStringIO.StringIO()
+            destfile = io.StringIO()
 
-        print >>destfile, "\nProperty\n--------"
-        print >>destfile, "% -*s %s" % (17, "ID:", self.id)
-        print >>destfile, "% -*s %s" % (17, "Type:", self.type)
-        print >>destfile, "% -*s %s" % (17, "Mode:", self.mode)
-        print >>destfile, "% -*s %s" % (17, "Kinds: ", ', '.join(self.kinds))
+        print("\nProperty\n--------", file=destfile)
+        print("% -*s %s" % (17, "ID:", self.id), file=destfile)
+        print("% -*s %s" % (17, "Type:", self.type), file=destfile)
+        print("% -*s %s" % (17, "Mode:", self.mode), file=destfile)
+        print("% -*s %s" % (17, "Kinds: ", ', '.join(self.kinds)), file=destfile)
         if 'allocation' in self.kinds:
-            print >>destfile, "% -*s %s" % (17, "Action:", self.action) 
+            print("% -*s %s" % (17, "Action:", self.action), file=destfile) 
         self._api(destfile)
 
         if localdef_dest:
@@ -462,7 +462,7 @@ class Property(object):
             except:
                 results = None
                 if self.mode == "writeonly":
-                    print "Invalid Action: can not query a partial property if it is writeonly"
+                    print("Invalid Action: can not query a partial property if it is writeonly")
             if results is None:
                 return None
             else:
@@ -486,7 +486,7 @@ class Property(object):
         on the component and returning only the value
         '''
         if not self._checkRead():
-            raise Exception, 'Could not perform query, ' + str(self.id) + ' is a writeonly property'
+            raise Exception('Could not perform query, ' + str(self.id) + ' is a writeonly property')
 
         value = self._queryValue()
         return self.fromAny(value)
@@ -498,16 +498,16 @@ class Property(object):
         the parent property is configured.
         '''
         if not self._checkWrite():
-            raise Exception, 'Could not perform configure, ' + str(self.id) + ' is a readonly property'
+            raise Exception('Could not perform configure, ' + str(self.id) + ' is a readonly property')
 
         try:
             value = self.toAny(value)
-        except EnumValueError, ex:
+        except EnumValueError as ex:
             # If enumeration value is invalid, list available enumerations.
-            print 'Could not perform configure on ' + str(ex.id) + ', invalid enumeration provided'
-            print "Valid enumerations: "
-            for name, value in ex.enums.iteritems():
-                print "\t%s=%s" % (name, value)
+            print('Could not perform configure on ' + str(ex.id) + ', invalid enumeration provided')
+            print("Valid enumerations: ")
+            for name, value in ex.enums.items():
+                print("\t%s=%s" % (name, value))
             return
         self._configureValue(value)
 
@@ -615,7 +615,7 @@ class Property(object):
     # Type conversions
     __complex__ = proxy_operator(complex)
     __int__ = proxy_operator(int)
-    __long__ = proxy_operator(long)
+    __long__ = proxy_operator(int)
     __float__ = proxy_operator(float)
     __nonzero__ = proxy_operator(bool)
 
@@ -676,7 +676,7 @@ class simpleProperty(Property):
           structRef, structSeqRef, structSeqIdx
         """
         if valueType not in SCA_TYPES:
-            raise(Exception('"' + str(valueType) + '"' + ' is not a valid valueType, choose from\n ' + str(SCA_TYPES)))
+            raise Exception
         
         # Initialize the parent
         Property.__init__(self, id, type=valueType, kinds=kinds,compRef=compRef, mode=mode, action=action, parent=parent,
@@ -715,15 +715,15 @@ class simpleProperty(Property):
 
 
     def _enumValue(self, value):
-         if value in self._enums.values():
+         if value in list(self._enums.values()):
              return value
-         elif value in self._enums.keys():
+         elif value in list(self._enums.keys()):
              return self._enums.get(value)
          raise EnumValueError(self.id, value, self._enums)
 
     def _api(self, destfile):
         if self._enums != None:
-            print >>destfile, "% -*s %s" % (17, "Enumerations:", self._enums)
+            print("% -*s %s" % (17, "Enumerations:", self._enums), file=destfile)
         Property._api(self, destfile)
 
     @property
@@ -797,14 +797,14 @@ class simpleProperty(Property):
             if value != None:
                 ret=str(value)
         else:
-            raise Exception, 'Could not perform query, "' + str(self.id) + '" is a writeonly property'
+            raise Exception('Could not perform query, "' + str(self.id) + '" is a writeonly property')
         return ret
         
     def __str__(self, *args):
         return self.__repr__()
 
     def enums(self):
-        print self._enums
+        print(self._enums)
 
     def __getattr__(self, name):
         # If attribute is not found on simpleProperty, defer to the value; this
@@ -826,7 +826,7 @@ class sequenceProperty(Property):
           mode      - Mode for the property, must be in MODES (default: 'readwrite')
         """
         if valueType not in SCA_TYPES and valueType != 'structSeq':
-            raise('"' + str(valueType) + '"' + ' is not a valid valueType, choose from\n ' + str(SCA_TYPES))
+            raise '"'
         
         # Initialize the parent Property
         Property.__init__(self, id, type=valueType, kinds=kinds, compRef=compRef, parent=parent, mode=mode, action='external',
@@ -969,7 +969,7 @@ class sequenceProperty(Property):
         if self.mode != "writeonly":
             return repr(self.queryValue())
         else:
-            raise Exception, 'Could not perform query, "' + str(self.id) + '" is a writeonly property'
+            raise Exception('Could not perform query, "' + str(self.id) + '" is a writeonly property')
     
     def __str__(self):
         return self.__repr__()
@@ -1069,7 +1069,7 @@ class structProperty(Property):
         self._configureValue(structValue)
 
     def _checkValue(self, value):
-        for memberId in value.iterkeys():
+        for memberId in value.keys():
             self._getMemberId(memberId)
 
     def _getMemberId(self, name):
@@ -1078,11 +1078,11 @@ class structProperty(Property):
         memberId = self._memberNames.get(name, None)
         if memberId:
             return memberId
-        raise TypeError, "'%s' is not a member of '%s'" % (name, self.id)
+        raise TypeError("'%s' is not a member of '%s'" % (name, self.id))
 
     def _remapValue(self, value):
         valout = {}
-        for memberId, memberVal in value.iteritems():
+        for memberId, memberVal in value.items():
             memberId = self._getMemberId(memberId)
             valout[memberId] = memberVal
         return valout
@@ -1100,7 +1100,7 @@ class structProperty(Property):
         structTable.limit_column(2, 15)
         structTable.limit_column(3, 15)
         structTable.limit_column(4, 40)
-        for prop_id, prop in self.members.iteritems():
+        for prop_id, prop in self.members.items():
             if self._checkRead():
                 value = prop.queryValue()
             else:
@@ -1109,7 +1109,7 @@ class structProperty(Property):
             if enums is None:
                 enums = ''
             structTable.append(prop_id, prop.type, str(prop.defValue), str(value), enums)
-        print >>destfile, "\nStruct\n======"
+        print("\nStruct\n======", file=destfile)
         structTable.write(destfile)
 
     @property
@@ -1143,11 +1143,11 @@ class structProperty(Property):
         Converts the input value in Python format to a CORBA Any.
         '''
         if value is None:
-            props = [_CF.DataType(str(m.id), m.toAny(None)) for m in self.members.values()]
+            props = [_CF.DataType(str(m.id), m.toAny(None)) for m in list(self.members.values())]
             return _CORBA.Any(self.typecode, props)
 
         if not isinstance(value, dict):
-            raise TypeError, 'configureValue() must be called with dict instance as second argument (got ' + str(type(value))[7:-2] + ' instance instead)'
+            raise TypeError('configureValue() must be called with dict instance as second argument (got ' + str(type(value))[7:-2] + ' instance instead)')
 
         # Remap the value keys, which may be names, to IDs; this also checks
         # that the value passed in matches the struct definition
@@ -1155,7 +1155,7 @@ class structProperty(Property):
 
         # Convert struct items into CF::Properties.
         props = []
-        for _id, member in self.members.iteritems():
+        for _id, member in self.members.items():
             memberVal = value.get(_id, member.defValue)
             props.append(_CF.DataType(str(_id), member.toAny(memberVal)))
 
@@ -1190,7 +1190,7 @@ class structProperty(Property):
         if self.mode != "writeonly":
             currValue = self.queryValue()
         else:
-            raise Exception, 'Could not perform query, "' + str(self.id) + '" is a writeonly property'
+            raise Exception('Could not perform query, "' + str(self.id) + '" is a writeonly property')
         structView = "ID: " + self.id
         for key in currValue:
             try:
@@ -1315,9 +1315,9 @@ class structSequenceProperty(sequenceProperty):
     def _api(self, destfile):
         structTable = TablePrinter('Name', 'Data Type')
         structTable.limit_column(1, 35)
-        for prop_id, prop in self.structDef.members.iteritems():
+        for prop_id, prop in self.structDef.members.items():
             structTable.append(prop_id, prop.type)
-        print >>destfile, "\nStruct\n======"
+        print("\nStruct\n======", file=destfile)
         structTable.write(destfile)
 
         simpleTable = TablePrinter('Index', 'Name', 'Value')
@@ -1325,9 +1325,9 @@ class structSequenceProperty(sequenceProperty):
         simpleTable.limit_column(2, 35)
         if self._checkRead():
             for index, dict_ in enumerate(self):
-                for k, v in dict_.items():
+                for k, v in list(dict_.items()):
                     simpleTable.append(str(index), str(k), str(v))
-            print >>destfile, '\nValues\n======'
+            print('\nValues\n======', file=destfile)
             simpleTable.write(destfile)
 
     def fromAny(self, value):
@@ -1355,7 +1355,7 @@ def parseComplexString(ajbString, baseType):
     containing the name of a complex type (e.g., "float").
     '''
 
-    if __TYPE_MAP.has_key(baseType): 
+    if baseType in __TYPE_MAP: 
         # if the type is passed in as a string
         # e.g., "float" vs. float
         baseType = getPyType(baseType) 

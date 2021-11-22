@@ -52,7 +52,7 @@ except ImportError:
 
 Validate_simpletypes_ = True
 if sys.version_info[0] == 2:
-    BaseStrType_ = basestring
+    BaseStrType_ = str
 else:
     BaseStrType_ = str
 
@@ -115,7 +115,7 @@ except ImportError:
 #   in a module named generatedssuper.py.
 
 try:
-    from generatedssuper import GeneratedsSuper
+    from .generatedssuper import GeneratedsSuper
 except ImportError as exp:
     
     class GeneratedsSuper(object):
@@ -415,7 +415,7 @@ except ImportError as exp:
             return None
         @classmethod
         def gds_reverse_node_mapping(cls, mapping):
-            return dict(((v, k) for k, v in mapping.iteritems()))
+            return dict(((v, k) for k, v in mapping.items()))
         @staticmethod
         def gds_encode(instring):
             if sys.version_info[0] == 2:
@@ -426,7 +426,7 @@ except ImportError as exp:
         def convert_unicode(instring):
             if isinstance(instring, str):
                 result = quote_xml(instring)
-            elif sys.version_info[0] == 2 and isinstance(instring, unicode):
+            elif sys.version_info[0] == 2 and isinstance(instring, str):
                 result = quote_xml(instring).encode('utf8')
             else:
                 result = GeneratedsSuper.gds_encode(str(instring))

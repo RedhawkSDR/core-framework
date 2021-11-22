@@ -22,5 +22,5 @@
 import time
 
 while True:
-    print "Hello World"
+    print("Hello World")
     time.sleep(1)

@@ -20,14 +20,14 @@
 
 import unittest, os
 from _unitTestHelpers import scatest
-from test_01_DeviceManager import killChildProcesses
+from .test_01_DeviceManager import killChildProcesses
 from ossie.utils import redhawk, sb
 from ossie.cf import CF
 from ossie.events import Subscriber
 from ossie import properties
 from omniORB import any as _any
 import time
-import Queue
+import queue
 
 class CppDeviceBusyState(scatest.CorbaTestCase):
     def setUp(self):
@@ -101,7 +101,7 @@ class DeviceLifeCycleTest(scatest.CorbaTestCase):
                 stuff=fp.read()
                 fp.close()
                 if 'GPP' in stuff:
-                    print "Killing process "+process_number+" (presumably a GPP)"
+                    print("Killing process "+process_number+" (presumably a GPP)")
                     os.kill(int(process_number),9)
 
     def test_DeviceLifeCycleNoKill(self):
@@ -116,8 +116,8 @@ class DeviceStartorder(scatest.CorbaTestCase):
         # subscriber
         eventMgr = domMgr._get_eventChannelMgr()
         channel = eventMgr.createForRegistrations('test_events')
-        self._started = Queue.Queue()
-        self._stopped = Queue.Queue()
+        self._started = queue.Queue()
+        self._stopped = queue.Queue()
         self._subscriber = Subscriber(channel, dataArrivedCB=self._messageReceived)
 
     def tearDown(self):
@@ -142,19 +142,19 @@ class DeviceStartorder(scatest.CorbaTestCase):
         for identifier in startorder:
             try:
                 received = self._started.get(timeout=1.0)
-            except Queue.Empty:
+            except queue.Empty:
                 self.fail('Did not receive start message for ' + identifier)
             self.assertEqual(received, identifier)
-        self.failUnless(self._started.empty(), msg='Too many start messages received')
+        self.assertTrue(self._started.empty(), msg='Too many start messages received')
 
     def _verifyStopOrder(self, startorder):
         for identifier in startorder[::-1]:
             try:
                 received = self._stopped.get(timeout=1.0)
-            except Queue.Empty:
+            except queue.Empty:
                 self.fail('Did not receive stop message for ' + identifier)
             self.assertEqual(received, identifier)
-        self.failUnless(self._stopped.empty(), msg='Too many stop messages received')
+        self.assertTrue(self._stopped.empty(), msg='Too many stop messages received')
 
     def test_StartOrder(self):
         """
@@ -257,7 +257,7 @@ class DeviceDeviceManagerTest(scatest.CorbaTestCase):
         # manager's log output
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/dev_kill_devmgr_node/DeviceManager.dcd.xml", loggingURI=os.getcwd()+'/tmp_logfile.config', wait=False)
         time.sleep(2)
-        self.assertEquals(devMgr, None)
+        self.assertEqual(devMgr, None)
         fp = open('tmp_logfile.log', 'r')
         logcontents = fp.read()
         fp.close()

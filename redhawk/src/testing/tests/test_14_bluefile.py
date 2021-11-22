@@ -96,7 +96,7 @@ class BlueFileHelpers(unittest.TestCase):
         complexData = format.startswith('C')
         typecode = format[1]
         dataFormat, dataType = self.TYPEMAP[typecode]
-        indata = [dataType(x) for x in xrange(16)]
+        indata = [dataType(x) for x in range(16)]
 
         source = sb.StreamSource(format=dataFormat)
         sink = sb.FileSink(filename, midasFile=True)
@@ -121,7 +121,7 @@ class BlueFileHelpers(unittest.TestCase):
 
     def _generateSourceData(self, format, size):
         if format in ('CF', 'CD'):
-            return [complex(x) for x in xrange(size)]
+            return [complex(x) for x in range(size)]
 
         complexData = format.startswith('C')
         typecode = format[1]
@@ -130,7 +130,7 @@ class BlueFileHelpers(unittest.TestCase):
         samples = size
         if complexData:
             samples *= 2
-        data = [dataType(x) for x in xrange(samples)]
+        data = [dataType(x) for x in range(samples)]
         if complexData:
             data = numpy.reshape(data, (size,2))
 
@@ -207,7 +207,7 @@ class BlueFileHelpers(unittest.TestCase):
             indata = numpy.arange(samples, dtype=numpy.int8)
             packet = indata.tostring()
         else:
-            indata = [dataType(x) for x in xrange(samples)]
+            indata = [dataType(x) for x in range(samples)]
             packet = indata
 
         # Push the SRI and data directly to the sink's port
@@ -260,7 +260,7 @@ class BlueFileHelpers(unittest.TestCase):
         dataFormat, dataType = self.TYPEMAP[typecode]
 
         frames = 4
-        indata = [self._generateSourceData(format, subsize) for x in xrange(frames)]
+        indata = [self._generateSourceData(format, subsize) for x in range(frames)]
         hdr = bluefile.header(2000, format, subsize=subsize)
         bluefile.write(filename, hdr, indata)
 
@@ -383,7 +383,7 @@ class BlueFileHelpers(unittest.TestCase):
         sb.start()
 
         bulkio_ts = bulkio.timestamp.now()
-        source.write(range(16), time=bulkio_ts)
+        source.write(list(range(16)), time=bulkio_ts)
         source.close()
         sink.waitForEOS()
 
@@ -402,7 +402,7 @@ class BlueFileHelpers(unittest.TestCase):
         sb.start()
 
         # Push a 256-element ramp (the maximum range of octet)
-        indata = range(256)
+        indata = list(range(256))
         interleaved = False
         if format.startswith('C'):
             source.sri.mode = True
@@ -441,7 +441,7 @@ class BlueFileHelpers(unittest.TestCase):
         sri.keywords=kws
         bf.start()
         bf.pushSRI(sri)
-        tmpData = range(0, 1024)
+        tmpData = list(range(0, 1024))
         bf.pushPacket(tmpData, bulkio.timestamp.now(), True, sid)
 
         # Read back the timecode from the output file
@@ -456,7 +456,7 @@ class BlueFileHelpers(unittest.TestCase):
         filename='bf-kw-test.out'
         self._tempfiles.append(filename)
         bf=bluefile_helpers.BlueFileWriter(filename,'dataLong')
-        kdata=2147483648L
+        kdata=2147483648
         kws = props_from_dict({'TEST_KW': kdata})
         sid='streamID'
         srate=5e6
@@ -466,7 +466,7 @@ class BlueFileHelpers(unittest.TestCase):
         sri.keywords=kws
         bf.start()
         bf.pushSRI(sri)
-        tmpData = range(0, 1024)
+        tmpData = list(range(0, 1024))
         bf.pushPacket(tmpData, bulkio.timestamp.now(), True, sid)
 
         # Read back the timecode from the output file

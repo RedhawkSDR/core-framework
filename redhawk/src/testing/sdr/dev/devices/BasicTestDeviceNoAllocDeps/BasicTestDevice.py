@@ -24,7 +24,7 @@ from ossie.cf import CF, CF__POA
 from ossie.device import ExecutableDevice, AggregateDevice, start_device
 import os, sys, stat
 from omniORB import URI, any
-import commands, copy, time, signal, pprint, subprocess
+import subprocess, copy, time, signal, pprint, subprocess
 import logging
 import signal
 import shutil

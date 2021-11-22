@@ -44,7 +44,7 @@ class TestAllTypes(scatest.CorbaTestCase):
     def preconditions(self):
         self.assertNotEqual(self._domMgr, None, "DomainManager not available")
         self.assertNotEqual(self._devMgr, None, "DeviceManager not available")
-        self.assertEquals(self._app, None, "Stale application")
+        self.assertEqual(self._app, None, "Stale application")
 
     def test_JustSADOverride(self):
         self.preconditions()
@@ -61,11 +61,11 @@ class TestAllTypes(scatest.CorbaTestCase):
         readwrite_cmdline_val = items[readwrite_cmdline_idx+1]
         writeonly_cmdline_idx = items.index('writeonly_cmdline')
         writeonly_cmdline_val = items[writeonly_cmdline_idx+1]
-        self.assertEquals(readonly_cmdline_val, 'd')
-        self.assertEquals(readwrite_cmdline_val, 'e')
-        self.assertEquals(writeonly_cmdline_val, 'f')
-        self.assertEquals(self._app.comps[0].readonly_cmdline, 'd')
-        self.assertEquals(self._app.comps[0].readwrite_cmdline, 'e')
+        self.assertEqual(readonly_cmdline_val, 'd')
+        self.assertEqual(readwrite_cmdline_val, 'e')
+        self.assertEqual(writeonly_cmdline_val, 'f')
+        self.assertEqual(self._app.comps[0].readonly_cmdline, 'd')
+        self.assertEqual(self._app.comps[0].readwrite_cmdline, 'e')
 
     def test_CreateSADOverride(self):
         self.preconditions()
@@ -82,11 +82,11 @@ class TestAllTypes(scatest.CorbaTestCase):
         readwrite_cmdline_val = items[readwrite_cmdline_idx+1]
         writeonly_cmdline_idx = items.index('writeonly_cmdline')
         writeonly_cmdline_val = items[writeonly_cmdline_idx+1]
-        self.assertEquals(readonly_cmdline_val, 'g')
-        self.assertEquals(readwrite_cmdline_val, 'h')
-        self.assertEquals(writeonly_cmdline_val, 'i')
-        self.assertEquals(self._app.comps[0].readonly_cmdline, 'g')
-        self.assertEquals(self._app.comps[0].readwrite_cmdline, 'h')
+        self.assertEqual(readonly_cmdline_val, 'g')
+        self.assertEqual(readwrite_cmdline_val, 'h')
+        self.assertEqual(writeonly_cmdline_val, 'i')
+        self.assertEqual(self._app.comps[0].readonly_cmdline, 'g')
+        self.assertEqual(self._app.comps[0].readwrite_cmdline, 'h')
 
     def test_CleanJustSADOverride(self):
         self.preconditions()
@@ -103,11 +103,11 @@ class TestAllTypes(scatest.CorbaTestCase):
         readwrite_cmdline_val = items[readwrite_cmdline_idx+1]
         writeonly_cmdline_idx = items.index('writeonly_cmdline')
         writeonly_cmdline_val = items[writeonly_cmdline_idx+1]
-        self.assertEquals(readonly_cmdline_val, 'd')
-        self.assertEquals(readwrite_cmdline_val, 'e')
-        self.assertEquals(writeonly_cmdline_val, 'f')
-        self.assertEquals(self._app.comps[0].readonly_cmdline, 'd')
-        self.assertEquals(self._app.comps[0].readwrite_cmdline, 'e')
+        self.assertEqual(readonly_cmdline_val, 'd')
+        self.assertEqual(readwrite_cmdline_val, 'e')
+        self.assertEqual(writeonly_cmdline_val, 'f')
+        self.assertEqual(self._app.comps[0].readonly_cmdline, 'd')
+        self.assertEqual(self._app.comps[0].readwrite_cmdline, 'e')
 
     def test_CleanCreateSADOverride(self):
         self.preconditions()
@@ -124,11 +124,11 @@ class TestAllTypes(scatest.CorbaTestCase):
         readwrite_cmdline_val = items[readwrite_cmdline_idx+1]
         writeonly_cmdline_idx = items.index('writeonly_cmdline')
         writeonly_cmdline_val = items[writeonly_cmdline_idx+1]
-        self.assertEquals(readonly_cmdline_val, 'g')
-        self.assertEquals(readwrite_cmdline_val, 'h')
-        self.assertEquals(writeonly_cmdline_val, 'i')
-        self.assertEquals(self._app.comps[0].readonly_cmdline, 'g')
-        self.assertEquals(self._app.comps[0].readwrite_cmdline, 'h')
+        self.assertEqual(readonly_cmdline_val, 'g')
+        self.assertEqual(readwrite_cmdline_val, 'h')
+        self.assertEqual(writeonly_cmdline_val, 'i')
+        self.assertEqual(self._app.comps[0].readonly_cmdline, 'g')
+        self.assertEqual(self._app.comps[0].readwrite_cmdline, 'h')
 
 
     def test_CleanCmdlineOverride(self):
@@ -146,11 +146,11 @@ class TestAllTypes(scatest.CorbaTestCase):
         readwrite_cmdline_val = items[readwrite_cmdline_idx+1]
         writeonly_cmdline_idx = items.index('writeonly_cmdline')
         writeonly_cmdline_val = items[writeonly_cmdline_idx+1]
-        self.assertEquals(readonly_cmdline_val, 'g')
-        self.assertEquals(readwrite_cmdline_val, 'h')
-        self.assertEquals(writeonly_cmdline_val, 'i')
-        self.assertEquals(self._app.comps[0].readonly_cmdline, 'g')
-        self.assertEquals(self._app.comps[0].readwrite_cmdline, 'h')
+        self.assertEqual(readonly_cmdline_val, 'g')
+        self.assertEqual(readwrite_cmdline_val, 'h')
+        self.assertEqual(writeonly_cmdline_val, 'i')
+        self.assertEqual(self._app.comps[0].readonly_cmdline, 'g')
+        self.assertEqual(self._app.comps[0].readwrite_cmdline, 'h')
 
     def test_CmdlineOverride(self):
         self.preconditions()
@@ -167,11 +167,11 @@ class TestAllTypes(scatest.CorbaTestCase):
         readwrite_cmdline_val = items[readwrite_cmdline_idx+1]
         writeonly_cmdline_idx = items.index('writeonly_cmdline')
         writeonly_cmdline_val = items[writeonly_cmdline_idx+1]
-        self.assertEquals(readonly_cmdline_val, 'g')
-        self.assertEquals(readwrite_cmdline_val, 'h')
-        self.assertEquals(writeonly_cmdline_val, 'i')
-        self.assertEquals(self._app.comps[0].readonly_cmdline, 'g')
-        self.assertEquals(self._app.comps[0].readwrite_cmdline, 'h')
+        self.assertEqual(readonly_cmdline_val, 'g')
+        self.assertEqual(readwrite_cmdline_val, 'h')
+        self.assertEqual(writeonly_cmdline_val, 'i')
+        self.assertEqual(self._app.comps[0].readonly_cmdline, 'g')
+        self.assertEqual(self._app.comps[0].readwrite_cmdline, 'h')
 
 
     def test_NoCmdlineOverride(self):
@@ -189,9 +189,9 @@ class TestAllTypes(scatest.CorbaTestCase):
         readwrite_cmdline_val = items[readwrite_cmdline_idx+1]
         writeonly_cmdline_idx = items.index('writeonly_cmdline')
         writeonly_cmdline_val = items[writeonly_cmdline_idx+1]
-        self.assertEquals(readonly_cmdline_val, 'a')
-        self.assertEquals(readwrite_cmdline_val, 'b')
-        self.assertEquals(writeonly_cmdline_val, 'c')
-        self.assertEquals(self._app.comps[0].readonly_cmdline, 'a')
-        self.assertEquals(self._app.comps[0].readwrite_cmdline, 'b')
+        self.assertEqual(readonly_cmdline_val, 'a')
+        self.assertEqual(readwrite_cmdline_val, 'b')
+        self.assertEqual(writeonly_cmdline_val, 'c')
+        self.assertEqual(self._app.comps[0].readonly_cmdline, 'a')
+        self.assertEqual(self._app.comps[0].readwrite_cmdline, 'b')
 

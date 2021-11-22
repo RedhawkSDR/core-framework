@@ -48,7 +48,7 @@ class VPort(BULKIO__POA.virtualPort, CF__POA.Port):
 
     def disconnectPort(self, connectionId):
         self.port_lock.acquire()
-        if self.outPorts.has_key(str(connectionId)):
+        if str(connectionId) in self.outPorts:
             self.outPorts.pop(str(connectionId), None)
         else:
             self.port_lock.release()

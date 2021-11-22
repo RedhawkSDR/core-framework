@@ -45,7 +45,7 @@ class CommandWrapperSPDDep_i(CF__POA.Resource, Resource):
         loggerName = execparams['NAME_BINDING'].replace('/', '.')
         Resource.__init__(self, identifier, execparams, loggerName=loggerName)
         self._pid = None
-        self.execparams = " ".join(["%s %s" % x for x in execparams.items()])
+        self.execparams = " ".join(["%s %s" % x for x in list(execparams.items())])
 
     #####################################
     # Implement the Resource interface

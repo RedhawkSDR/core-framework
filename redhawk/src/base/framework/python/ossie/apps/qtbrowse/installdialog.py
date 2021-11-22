@@ -21,7 +21,7 @@
 
 
 from PyQt4.QtGui import *
-from installdialogbase import InstallDialogBase
+from .installdialogbase import InstallDialogBase
 
 
 class InstallDialog(InstallDialogBase):

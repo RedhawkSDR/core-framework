@@ -74,7 +74,7 @@ void ProcessThread::run()
             return;
         } else if (state == NOOP) {
             try {
-                boost::posix_time::time_duration boost_delay = boost::posix_time::microseconds(_delay.tv_sec*1e6 + _delay.tv_nsec*1e-3);
+                boost::posix_time::time_duration boost_delay = boost::posix_time::microseconds(_delay.tv_sec * 1000000 + _delay.tv_nsec / 1000);
                 boost::this_thread::sleep(boost_delay);
             } catch (boost::thread_interrupted &) {
                 break;

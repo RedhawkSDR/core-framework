@@ -21,7 +21,7 @@
 
 
 from PyQt4.QtGui import *
-from structdialogbase import StructDialogBase
+from .structdialogbase import StructDialogBase
 
 
 class StructDialog(StructDialogBase):

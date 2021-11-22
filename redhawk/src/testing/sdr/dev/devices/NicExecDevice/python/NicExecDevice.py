@@ -65,7 +65,7 @@ class NicExecDevice_i(NicExecDevice_base):
 
     def _findAvailableNic(self):
         all_nics = self.nic_list[:]
-        for nic in self._allocatedNics.itervalues():
+        for nic in self._allocatedNics.values():
             all_nics.remove(nic)
         if not all_nics:
             return None
@@ -75,7 +75,7 @@ class NicExecDevice_i(NicExecDevice_base):
         del self._allocatedNics[value.identifier]
 
     def get_nic_allocation_status(self):
-        return [self.NicAllocationStatusStruct(k,v) for k, v in self._allocatedNics.iteritems()]
+        return [self.NicAllocationStatusStruct(k,v) for k, v in self._allocatedNics.items()]
 
     nic_allocation_status = NicExecDevice_base.nic_allocation_status.rebind(fget=get_nic_allocation_status)
 

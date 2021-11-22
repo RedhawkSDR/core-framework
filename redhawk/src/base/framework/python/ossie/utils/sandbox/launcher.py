@@ -27,8 +27,8 @@ import tempfile
 import subprocess
 import platform
 import zipfile
-import cluster
-from process import LocalProcess
+from . import cluster
+from .process import LocalProcess
 
 from ossie.utils import log4py
 from ossie import parsers
@@ -96,18 +96,18 @@ class VirtualDevice(object):
         for impl in spd.get_implementation():
             if self._checkImplementation(sdrroot, profile, impl):
                 return impl
-        raise RuntimeError, "Softpkg '%s' has no usable implementation" % spd.get_name()
+        raise RuntimeError("Softpkg '%s' has no usable implementation" % spd.get_name())
 
     def getExecArgs(self, entryPoint, deps, execparams, debugger, window, stdout=None):        
         # Make sure the entry point exists and can be run.
         if not os.path.exists(entryPoint):
-            raise RuntimeError, "Entry point '%s' does not exist" % entryPoint
+            raise RuntimeError("Entry point '%s' does not exist" % entryPoint)
         elif not os.access(entryPoint, os.X_OK|os.R_OK):
-            raise RuntimeError, "Entry point '%s' is not executable" % entryPoint
+            raise RuntimeError("Entry point '%s' is not executable" % entryPoint)
         log.trace("Using entry point '%s'", entryPoint)
 
         # Process softpkg dependencies and modify the child environment.
-        environment = dict(os.environ.items())
+        environment = dict(list(os.environ.items()))
         for dependency in deps:
             self._processDependency(environment, dependency)
 
@@ -116,7 +116,7 @@ class VirtualDevice(object):
 
         # Convert execparams into arguments.
         arguments = []
-        for name, value in execparams.iteritems():
+        for name, value in execparams.items():
             arguments += [name, str(value)]
 
         if window:
@@ -145,7 +145,7 @@ class VirtualDevice(object):
                 window_proc = LocalProcess(window_command, window_args)
                 stdout = open(fifoname, 'w')
                 os.unlink(fifoname)
-            except IOError, e:
+            except IOError as e:
                 pass
         elif window_mode == 'direct':
             # Run the command directly in a window (typically, in the debugger).
@@ -167,7 +167,7 @@ class VirtualDevice(object):
             entryPoint = entryPoint_image.split("::")[0]
             image      = entryPoint_image.split("::")[1]
         else:
-            raise RuntimeError, "No docker image was found in the spd file"
+            raise RuntimeError("No docker image was found in the spd file")
 
         command, arguments, environment, stdout = self.getExecArgs(entryPoint, deps, execparams, debugger, window, stdout)
         

@@ -41,144 +41,144 @@ logging.getLogger().setLevel(logging.ERROR)
 # for populating the PropertyStore
 PROPERTIES = (
               (
-               u'DCE:6b298d70-6735-43f2-944d-06f754cd4eb9', # ID
-               u'no_default_prop', # NAME
-               u'string', # TYPE
-               u'readwrite', # MODE
+               'DCE:6b298d70-6735-43f2-944d-06f754cd4eb9', # ID
+               'no_default_prop', # NAME
+               'string', # TYPE
+               'readwrite', # MODE
                None, # DEFAULT
                None, # UNITS
                'external', # ACTION
-               (u'configure',), # KINDS
+               ('configure',), # KINDS
               ),
               (
-               u'DCE:456310b2-7d2f-40f5-bfef-9fdf4f3560ea', # ID
-               u'default_prop', # NAME
-               u'string', # TYPE
-               u'readwrite', # MODE
+               'DCE:456310b2-7d2f-40f5-bfef-9fdf4f3560ea', # ID
+               'default_prop', # NAME
+               'string', # TYPE
+               'readwrite', # MODE
                'default', # DEFAULT
                None, # UNITS
                'external', # ACTION
-               (u'configure',), # KINDS
+               ('configure',), # KINDS
               ),
               (
-               u'DCE:4a23ad60-0b25-4121-a630-68803a498f75', # ID
-               u'os_name', # NAME
-               u'string', # TYPE
-               u'readonly', # MODE
+               'DCE:4a23ad60-0b25-4121-a630-68803a498f75', # ID
+               'os_name', # NAME
+               'string', # TYPE
+               'readonly', # MODE
                'Linux', # DEFAULT
                None, # UNITS
-               u'eq', # ACTION
-               (u'allocation',), # KINDS
+               'eq', # ACTION
+               ('allocation',), # KINDS
               ),
               (
-               u'DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b', # ID
-               u'processor_name', # NAME
-               u'string', # TYPE
-               u'readonly', # MODE
+               'DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b', # ID
+               'processor_name', # NAME
+               'string', # TYPE
+               'readonly', # MODE
                'x86', # DEFAULT
                None, # UNITS
-               u'eq', # ACTION
-               (u'allocation',), # KINDS
+               'eq', # ACTION
+               ('allocation',), # KINDS
               ),
               (
-               u'DCE:7f36cdfb-f828-4e4f-b84f-446e17f1a85b', # ID
-               u'DeviceKind', # NAME
-               u'string', # TYPE
-               u'readonly', # MODE
+               'DCE:7f36cdfb-f828-4e4f-b84f-446e17f1a85b', # ID
+               'DeviceKind', # NAME
+               'string', # TYPE
+               'readonly', # MODE
                'BasicTestDevice', # DEFAULT
                None, # UNITS
-               u'eq', # ACTION
-               (u'allocation',), # KINDS
+               'eq', # ACTION
+               ('allocation',), # KINDS
               ),
               (
-               u'DCE:64303822-4c67-4c04-9a5c-bf670f27cf39', # ID
-               u'RunsAs', # NAME
-               u'string', # TYPE
-               u'readonly', # MODE
+               'DCE:64303822-4c67-4c04-9a5c-bf670f27cf39', # ID
+               'RunsAs', # NAME
+               'string', # TYPE
+               'readonly', # MODE
                'root', # DEFAULT
                None, # UNITS
-               u'ne', # ACTION
-               (u'allocation',), # KINDS
+               'ne', # ACTION
+               ('allocation',), # KINDS
               ),
               (
-               u'DCE:021f10cf-7a05-46ec-a507-04b513b84bd4', # ID
-               u'HasXMIDAS', # NAME
-               u'boolean', # TYPE
-               u'readonly', # MODE
+               'DCE:021f10cf-7a05-46ec-a507-04b513b84bd4', # ID
+               'HasXMIDAS', # NAME
+               'boolean', # TYPE
+               'readonly', # MODE
                True, # DEFAULT
                None, # UNITS
-               u'eq', # ACTION
-               (u'allocation',), # KINDS
+               'eq', # ACTION
+               ('allocation',), # KINDS
               ),
               (
-               u'DCE:ac73446e-f935-40b6-8b8d-4d9adb6b403f', # ID
-               u'ProvidedCpuCores', # NAME
-               u'short', # TYPE
-               u'readonly', # MODE
+               'DCE:ac73446e-f935-40b6-8b8d-4d9adb6b403f', # ID
+               'ProvidedCpuCores', # NAME
+               'short', # TYPE
+               'readonly', # MODE
                8, # DEFAULT
                None, # UNITS
-               u'ge', # ACTION
-               (u'allocation',), # KINDS
+               'ge', # ACTION
+               ('allocation',), # KINDS
               ),
               (
-               u'DCE:dd339b67-b387-4018-94d2-9a72955d85b9', # ID
-               u'CoresClockRateGHz', # NAME
-               u'float', # TYPE
-               u'readonly', # MODE
+               'DCE:dd339b67-b387-4018-94d2-9a72955d85b9', # ID
+               'CoresClockRateGHz', # NAME
+               'float', # TYPE
+               'readonly', # MODE
                3.0, # DEFAULT
                None, # UNITS
-               u'le', # ACTION
-               (u'allocation',), # KINDS
+               'le', # ACTION
+               ('allocation',), # KINDS
               ),
               (
-               u'DCE:8dcef419-b440-4bcf-b893-cab79b6024fb', # ID
-               u'memCapacity', # NAME
-               u'long', # TYPE
-               u'readonly', # MODE
+               'DCE:8dcef419-b440-4bcf-b893-cab79b6024fb', # ID
+               'memCapacity', # NAME
+               'long', # TYPE
+               'readonly', # MODE
                None, # DEFAULT
                None, # UNITS
                'external', # ACTION
-               (u'allocation',), # KINDS
+               ('allocation',), # KINDS
               ),
               (
-               u'DCE:5636c210-0346-4df7-a5a3-8fd34c5540a8', # ID
-               u'BogoMipsCapacity', # NAME
-               u'long', # TYPE
-               u'readonly', # MODE
+               'DCE:5636c210-0346-4df7-a5a3-8fd34c5540a8', # ID
+               'BogoMipsCapacity', # NAME
+               'long', # TYPE
+               'readonly', # MODE
                None, # DEFAULT
                None, # UNITS
                'external', # ACTION
-               (u'allocation',), # KINDS
+               ('allocation',), # KINDS
               ),
               (
-               u'DCE:c03e148f-e9f9-4d70-aa00-6e23d33fa648', # ID
-               u'SomeConfigFileLocation', # NAME
-               u'string', # TYPE
-               u'readonly', # MODE
+               'DCE:c03e148f-e9f9-4d70-aa00-6e23d33fa648', # ID
+               'SomeConfigFileLocation', # NAME
+               'string', # TYPE
+               'readonly', # MODE
                'notyourfile', # DEFAULT
                None, # UNITS
                'external', # ACTION
-               (u'execparam',), # KINDS
+               ('execparam',), # KINDS
               ),
               (
-               u'DCE:dc4289a8-bb98-435b-b914-305ffaa7594f', # ID
-               u'ImplementationSpecificProperty', # NAME
-               u'string', # TYPE
-               u'readonly', # MODE
+               'DCE:dc4289a8-bb98-435b-b914-305ffaa7594f', # ID
+               'ImplementationSpecificProperty', # NAME
+               'string', # TYPE
+               'readonly', # MODE
                'DefaultValueNoGood', # DEFAULT
                None, # UNITS
                'external', # ACTION
-               (u'execparam',), # KINDS
+               ('execparam',), # KINDS
               ),
               (
-               u'DCE:716ea1c4-059a-4b18-8b66-74804bd8d435', # ID
-               u'ImplementationSpecificProperty2', # NAME
-               u'long', # TYPE
-               u'readonly', # MODE
+               'DCE:716ea1c4-059a-4b18-8b66-74804bd8d435', # ID
+               'ImplementationSpecificProperty2', # NAME
+               'long', # TYPE
+               'readonly', # MODE
                0, # DEFAULT
                None, # UNITS
                'external', # ACTION
-               (u'execparam',), # KINDS
+               ('execparam',), # KINDS
               ),
              )
 
@@ -439,11 +439,11 @@ class TestPythonFramework(scatest.OssieTestCase):
     def test_TupleInitialization(self):
         tr = TestResource()
         tr.initialize()  # Initialize *must* be called, normally this is done by the coreframework
-        self.assertEqual(tr._props.has_key("InvalidKey"), False)
+        self.assertEqual("InvalidKey" in tr._props, False)
         for p in PROPERTIES:
-            self.assert_(tr._props.isValidPropId(p[0]))
-            self.assert_(tr._props.has_key(p[0]))
-            self.assert_(tr._props.has_key(p[1]))
+            self.assertTrue(tr._props.isValidPropId(p[0]))
+            self.assertTrue(p[0] in tr._props)
+            self.assertTrue(p[1] in tr._props)
             self.assertEqual(tr._props[p[0]], tr._props[p[1]])
 
             configurable = ("configure" in p[7])
@@ -497,7 +497,7 @@ class TestPythonFramework(scatest.OssieTestCase):
         # Testing query
         props = tr.query([])
         props = dict([(p.id, p.value._v) for p in props])
-        self.assertEqual(props.has_key("EXEC_PARAM_3"), True)
+        self.assertEqual("EXEC_PARAM_3" in props, True)
 
     def test_NewStyle(self):
          # Test the new behaviors
@@ -604,9 +604,9 @@ class TestPythonFramework(scatest.OssieTestCase):
 
         props = tr.query([])
         props = dict([(p.id, p.value._v) for p in props])
-        self.assertEqual(props.has_key("EXEC_PARAM_3"), True)
+        self.assertEqual("EXEC_PARAM_3" in props, True)
         self.assertEqual(props["EXEC_PARAM_3"], 3.125)
-        self.assertEqual(props.has_key("EXEC_PARAM_4"), False)
+        self.assertEqual("EXEC_PARAM_4" in props, False)
 
         # Check that we cannot query a "writeonly" execparam
         self.assertRaises(CF.UnknownProperties, tr.query, [CF.DataType(id="EXEC_PARAM_4", value=any.to_any(None))])
@@ -637,7 +637,7 @@ class TestPythonFramework(scatest.OssieTestCase):
                 'name':"someprop",
                 'defvalue':10}
         # Expects a ValueError Exception, fails if not raised
-        self.failUnlessRaises(ValueError, simple_property, **kwds)
+        self.assertRaises(ValueError, simple_property, **kwds)
 
 
         # Check that a valid type does not raise an exception valid type
@@ -885,18 +885,18 @@ class TestPythonFramework(scatest.OssieTestCase):
                                           structdef=StructPropStruct)
 
         def getter(id_):
-            for fld_id, fld_val in struct_prop.fields.iteritems():
+            for fld_id, fld_val in struct_prop.fields.items():
                 if fld_id == id_:
                     return fld_val[1]
 
         def setter(id_, prop):
-            for fld_id, fld_val in struct_prop.fields.iteritems():
+            for fld_id, fld_val in struct_prop.fields.items():
                 if fld_id == id_:
                     struct_prop.fields[prop.id_] = (prop.name, prop)
                     del struct_prop.fields[fld_id]
 
         def validator(id_, value):
-            for fld_id, fld_val in struct_prop.fields.iteritems():
+            for fld_id, fld_val in struct_prop.fields.items():
                 if fld_id == id_:
                     fld_val[1].defvalue = value
 
@@ -1041,7 +1041,7 @@ class TestPythonFramework(scatest.OssieTestCase):
             ######################################################
             def query_prop_test_struct(self):
                 result = []
-                for name, attr in self.struct_prop.__dict__.items():
+                for name, attr in list(self.struct_prop.__dict__.items()):
                     if name.startswith('__') and name.endswith('__'):
                         name = name[2:-2]
                         result.append(CF.DataType(id=name, value=any.to_any(attr)))
@@ -1201,16 +1201,16 @@ class TestPythonFramework(scatest.OssieTestCase):
         tr.initialize() # Initialize *must* be called, normally this is done by the coreframework
 
         input = tr.getPort("input")
-        self.assert_(input != None)
-        self.assert_(input._is_a("IDL:CF/LifeCycle:1.0"))
+        self.assertTrue(input != None)
+        self.assertTrue(input._is_a("IDL:CF/LifeCycle:1.0"))
 
         input = tr.getPort("input2")
-        self.assert_(input != None)
-        self.assert_(input._is_a("IDL:CF/LifeCycle:1.0"))
+        self.assertTrue(input != None)
+        self.assertTrue(input._is_a("IDL:CF/LifeCycle:1.0"))
 
         output = tr.getPort("output")
-        self.assert_(output != None)
-        self.assert_(output._is_a("IDL:CF/Port:1.0"))
+        self.assertTrue(output != None)
+        self.assertTrue(output._is_a("IDL:CF/Port:1.0"))
 
         self.assertRaises(CF.PortSupplier.UnknownPort, tr.getPort, "nonexistant")
 
@@ -1231,13 +1231,13 @@ class TestPythonFramework(scatest.OssieTestCase):
         channel2 = chanMgr.createEventChannel("TestChan", force=False)
         self.assertNotEqual(channel2, None)
         self.assertNotEqual(channel2._narrow(CosEventChannelAdmin.EventChannel), None)
-        self.assert_(channel1._is_equivalent(channel2))
+        self.assertTrue(channel1._is_equivalent(channel2))
 
         # Get should return the right one
         channel3 = chanMgr.getEventChannel("TestChan")
         self.assertNotEqual(channel3, None)
         self.assertNotEqual(channel3._narrow(CosEventChannelAdmin.EventChannel), None)
-        self.assert_(channel1._is_equivalent(channel3))
+        self.assertTrue(channel1._is_equivalent(channel3))
 
         # This should create a new channel
         channel4 = chanMgr.createEventChannel("TestChan", force=True)

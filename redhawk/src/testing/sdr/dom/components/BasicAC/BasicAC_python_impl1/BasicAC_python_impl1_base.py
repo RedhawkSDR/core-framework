@@ -29,7 +29,7 @@ from ossie.utils import uuid
 
 from ossie.resource import Resource
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 from ossie.resource import usesport, providesport
 
 NOOP = -1
@@ -101,7 +101,7 @@ class BasicAC_python_impl1_base(CF__POA.Resource, Resource):
         def releaseObject(self):
             try:
                 self.stop()
-            except Exception, e:
+            except Exception as e:
                 self._log.exception("Error stopping: " + str(e))
             Resource.releaseObject(self)
 
@@ -162,9 +162,9 @@ class PortCFResourceOut_i(BasicAC_python_impl1_base.PortCFResourceOut):
 
         try:    
             try:
-                for connId, port in self.outPorts.items():
+                for connId, port in list(self.outPorts.items()):
                     if port != None: port.initialize()
-            except Exception, e:
+            except Exception as e:
                 self.parent._log.exception("The call to initialize failed with %s on port %s connection %s instance %s", e, self.name, connId, port)
         finally:
             self.port_lock.release()
@@ -174,9 +174,9 @@ class PortCFResourceOut_i(BasicAC_python_impl1_base.PortCFResourceOut):
 
         try:    
             try:
-                for connId, port in self.outPorts.items():
+                for connId, port in list(self.outPorts.items()):
                     if port != None: port.releaseObject()
-            except Exception, e:
+            except Exception as e:
                 self.parent._log.exception("The call to releaseObject failed with %s on port %s connection %s instance %s", e, self.name, connId, port)
         finally:
             self.port_lock.release()
@@ -187,9 +187,9 @@ class PortCFResourceOut_i(BasicAC_python_impl1_base.PortCFResourceOut):
 
         try:    
             try:
-                for connId, port in self.outPorts.items():
+                for connId, port in list(self.outPorts.items()):
                     if port != None:retVal = port.runTest(testid, testValues)
-            except Exception, e:
+            except Exception as e:
                 self.parent._log.exception("The call to runTest failed with %s on port %s connection %s instance %s", e, self.name, connId, port)
         finally:
             self.port_lock.release()
@@ -201,9 +201,9 @@ class PortCFResourceOut_i(BasicAC_python_impl1_base.PortCFResourceOut):
 
         try:    
             try:
-                for connId, port in self.outPorts.items():
+                for connId, port in list(self.outPorts.items()):
                     if port != None: port.configure(configProperties)
-            except Exception, e:
+            except Exception as e:
                 self.parent._log.exception("The call to configure failed with %s on port %s connection %s instance %s", e, self.name, connId, port)
         finally:
             self.port_lock.release()
@@ -214,9 +214,9 @@ class PortCFResourceOut_i(BasicAC_python_impl1_base.PortCFResourceOut):
 
         try:    
             try:
-                for connId, port in self.outPorts.items():
+                for connId, port in list(self.outPorts.items()):
                     if port != None:retVal = port.query(configProperties)
-            except Exception, e:
+            except Exception as e:
                 self.parent._log.exception("The call to query failed with %s on port %s connection %s instance %s", e, self.name, connId, port)
         finally:
             self.port_lock.release()
@@ -229,9 +229,9 @@ class PortCFResourceOut_i(BasicAC_python_impl1_base.PortCFResourceOut):
 
         try:    
             try:
-                for connId, port in self.outPorts.items():
+                for connId, port in list(self.outPorts.items()):
                     if port != None:retVal = port.getPort(name)
-            except Exception, e:
+            except Exception as e:
                 self.parent._log.exception("The call to getPort failed with %s on port %s connection %s instance %s", e, self.name, connId, port)
         finally:
             self.port_lock.release()
@@ -243,9 +243,9 @@ class PortCFResourceOut_i(BasicAC_python_impl1_base.PortCFResourceOut):
 
         try:    
             try:
-                for connId, port in self.outPorts.items():
+                for connId, port in list(self.outPorts.items()):
                     if port != None: port.start()
-            except Exception, e:
+            except Exception as e:
                 self.parent._log.exception("The call to start failed with %s on port %s connection %s instance %s", e, self.name, connId, port)
         finally:
             self.port_lock.release()
@@ -255,9 +255,9 @@ class PortCFResourceOut_i(BasicAC_python_impl1_base.PortCFResourceOut):
 
         try:    
             try:
-                for connId, port in self.outPorts.items():
+                for connId, port in list(self.outPorts.items()):
                     if port != None: port.stop()
-            except Exception, e:
+            except Exception as e:
                 self.parent._log.exception("The call to stop failed with %s on port %s connection %s instance %s", e, self.name, connId, port)
         finally:
             self.port_lock.release()
@@ -268,10 +268,10 @@ class PortCFResourceOut_i(BasicAC_python_impl1_base.PortCFResourceOut):
 
         try:    
             try:
-                for connId, port in self.outPorts.items():
+                for connId, port in list(self.outPorts.items()):
                     if port != None:
                         retVal = port.identifier()
-            except Exception, e:
+            except Exception as e:
                 self.parent._log.exception("The call to identifier failed with %s on port %s connection %s instance %s", e, self.name, connId, port)
         finally:
             self.port_lock.release()
@@ -284,10 +284,10 @@ class PortCFResourceOut_i(BasicAC_python_impl1_base.PortCFResourceOut):
 
         try:    
             try:
-                for connId, port in self.outPorts.items():
+                for connId, port in list(self.outPorts.items()):
                     if port != None:
                         retVal = port.started()
-            except Exception, e:
+            except Exception as e:
                 self.parent._log.exception("The call to started failed with %s on port %s connection %s instance %s", e, self.name, connId, port)
         finally:
             self.port_lock.release()

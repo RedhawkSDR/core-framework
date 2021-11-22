@@ -50,7 +50,7 @@ def Popen(*args, **kwargs):
                 while True:
                     try:
                         return self.func(*args, **kwargs)
-                    except OSError, e:
+                    except OSError as e:
                         if e.errno != errno.EINTR:
                             raise
 

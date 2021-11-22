@@ -23,7 +23,7 @@ import sys as _sys
 from omniORB import CORBA as _CORBA
 import CosNaming as _CosNaming
 from xml.dom import minidom as _minidom
-import core as _core
+from . import core as _core
 from ossie.cf import CF as _CF
 import ossie.utils as _utils
 from ossie.utils.sca import importIDL as _importIDL
@@ -53,21 +53,21 @@ def __terminate_process( process, signals=(_signal.SIGINT, _signal.SIGTERM, _sig
                 if __waitTermination(process):
                     break
             process.wait()
-        except OSError, e:
+        except OSError as e:
             pass
         finally:
             pass
 
 def _cleanup_domain():
     try:
-        if globals().has_key('currentdomain'):
+        if 'currentdomain' in globals():
             __terminate_process( globals()['currentdomain'].process)
             x = globals().pop('currentdomain')
             if x : del x
     except:
         traceback.print_exc()
         pass
-    if globals().has_key('currentdevmgrs'):
+    if 'currentdevmgrs' in globals():
         for x in globals()['currentdevmgrs']:
             try:
                 __terminate_process(x.process)
@@ -78,7 +78,7 @@ def _cleanup_domain():
         if x : del x
 
 def _shutdown_session():
-    if globals().has_key('orb_to_shutdown'):
+    if 'orb_to_shutdown' in globals():
         orb = globals()['orb_to_shutdown']
         if orb:
             orb.shutdown(True)
@@ -129,7 +129,7 @@ def kickDomain(domain_name=None, kick_device_managers=True, device_managers=[], 
         try:
             sdrroot = _os.getenv('SDRROOT')
         except:
-            print "The environment variable SDRROOT must be set or an sdrroot value must be passed as an argument"
+            print("The environment variable SDRROOT must be set or an sdrroot value must be passed as an argument")
     
     args = ['nodeBooter']
     args.append('-D')
@@ -153,13 +153,13 @@ def kickDomain(domain_name=None, kick_device_managers=True, device_managers=[], 
             dmd_contents = fp.read()
             fp.close
         except:
-            print "Unable to read domain profile "+dmd_file
+            print("Unable to read domain profile "+dmd_file)
             return None
         try:
             dmd = _minidom.parseString(dmd_contents)
             domain_name = str(dmd.getElementsByTagName('domainmanagerconfiguration')[0].getAttribute('name'))
         except:
-            print "Invalid domain profile "+dmd_file
+            print("Invalid domain profile "+dmd_file)
             return None
     
     _devnull = open('/dev/null')
@@ -175,7 +175,7 @@ def kickDomain(domain_name=None, kick_device_managers=True, device_managers=[], 
     else:
         sp = _utils.Popen(args, executable=None, cwd=_os.getcwd(), close_fds=True, stdin=_devnull, stdout=stdout_fp, preexec_fn=_os.setpgrp)
     
-    if globals().has_key('currentdomain'):
+    if 'currentdomain' in globals():
         globals()['currentdomain'] = None
         
     globals()['currentdomain'] = _envContainer(sp, stdout_fp)
@@ -198,7 +198,7 @@ def kickDomain(domain_name=None, kick_device_managers=True, device_managers=[], 
         for idx, device_manager in enumerate(device_managers):
             dcd_file = _getDCDFile(sdrroot, device_manager)
             if not dcd_file:
-                print "Unable to locate DCD file for '%s'" % device_manager
+                print("Unable to locate DCD file for '%s'" % device_manager)
                 continue
 
             args = ['nodeBooter']
@@ -221,7 +221,7 @@ def kickDomain(domain_name=None, kick_device_managers=True, device_managers=[], 
             sp = _utils.Popen(args, executable=None, cwd=_os.getcwd(), close_fds=True, stdin=_devnull, stdout=stdout_fp, preexec_fn=_os.setpgrp)
             dm_procs.append( _envContainer(sp, stdout_fp) )
 
-        if globals().has_key('currentdevmgrs'):
+        if 'currentdevmgrs' in globals():
             globals()['currentdevmgrs'] += dm_procs
         else:
             globals()['currentdevmgrs'] = dm_procs
@@ -296,9 +296,9 @@ def attach(domain=None, location=None, connectDomainEvents=True):
             domain = domains[0]
         else:
             if len(domains) == 0 :
-                print "No domains found."
+                print("No domains found.")
             else:
-                print "Multiple domains found: "+str(domains)+". Please specify one."
+                print("Multiple domains found: "+str(domains)+". Please specify one.")
             return None
 
     dom_entry = _core.Domain(name=str(domain), location=location, connectDomainEvents=connectDomainEvents)

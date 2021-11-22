@@ -20,7 +20,7 @@
 
 def parseRange(line):
     first, last = line.split('-')
-    return range(int(first), int(last)+1)
+    return list(range(int(first), int(last)+1))
 
 def parseValues(line, delim=','):
     values = []
@@ -43,7 +43,7 @@ class NumaNode(object):
             with open(filename) as f:
                 line = f.readline().strip()
                 return parseValues(line, ',')
-        except IOError, e:
+        except IOError as e:
             self._available = False
             return []
 
@@ -61,7 +61,7 @@ class NumaTopology(object):
             with open('/sys/devices/system/node/online') as f:
                 line = f.readline().strip()
                 return parseValues(line, ',')
-        except IOError, e:
+        except IOError as e:
             self._available = False
             return []
 

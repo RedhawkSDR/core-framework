@@ -24,14 +24,14 @@ from _unitTestHelpers import scatest
 from xml.dom import minidom
 from omniORB import CORBA, URI, any
 from ossie.cf import CF, CF__POA, ExtendedCF
-import commands
+import subprocess
 from ossie.utils.sandbox.launcher import LocalProcess
 from ossie import parsers
 from ossie.utils.sandbox.naming import NamingContextStub
 from ossie.utils import sb
 
 def getChildren(parentPid):
-    process_listing = commands.getoutput('ls /proc').split('\n')
+    process_listing = subprocess.getoutput('ls /proc').split('\n')
     children = []
     for entry in process_listing:
         try:
@@ -52,7 +52,7 @@ def getChildren(parentPid):
 
 def getProcessName(pid):
     str_pid = str(pid)
-    process_listing = commands.getoutput('ls /proc').split('\n')
+    process_listing = subprocess.getoutput('ls /proc').split('\n')
     Name = ''
     for entry in process_listing:
         if entry == str_pid:
@@ -73,7 +73,7 @@ def getProcessName(pid):
     return Name
 
 def pidExists(pid):
-    process_listing = commands.getoutput('ls /proc').split('\n')
+    process_listing = subprocess.getoutput('ls /proc').split('\n')
     return str(pid) in process_listing
     
 def execute(self, spd, impl, execparams, timeout=None):
@@ -86,17 +86,17 @@ def execute(self, spd, impl, execparams, timeout=None):
     # Make sure the entry point can be run.
     entry_point = self._getEntryPoint(implementation)
     if not os.access(entry_point, os.X_OK|os.R_OK):
-        raise RuntimeError, "Entry point '%s' is not executable" % entry_point
+        raise RuntimeError("Entry point '%s' is not executable" % entry_point)
 
     # Process softpkg dependencies and modify the child environment.
-    environment = dict(os.environ.items())
+    environment = dict(list(os.environ.items()))
 
     # Get required execparams based on the component type
     execparams.update(self._getRequiredExecparams())
 
     # Convert execparams into arguments.
     arguments = []
-    for name, value in execparams.iteritems():
+    for name, value in execparams.items():
         arguments += [name, str(value)]
 
     # Run the command directly.
@@ -115,12 +115,12 @@ def execute(self, spd, impl, execparams, timeout=None):
     sleepIncrement = 0.1
     while self.getReference() is None:
         if not process.isAlive():
-            raise RuntimeError, "%s '%s' terminated before registering with virtual environment" % (self._getType(), self._name)
+            raise RuntimeError("%s '%s' terminated before registering with virtual environment" % (self._getType(), self._name))
         time.sleep(sleepIncrement)
         timeout -= sleepIncrement
         if timeout < 0:
             process.terminate()
-            raise RuntimeError, "%s '%s' did not register with virtual environment"  % (self._getType(), self._name)
+            raise RuntimeError("%s '%s' did not register with virtual environment"  % (self._getType(), self._name))
 
     # Store the CORBA reference.
     ref = self.getReference()
@@ -143,7 +143,7 @@ class ApplicationRegistrarTest(scatest.CorbaTestCase):
         for implementation in spd.get_implementation():
             if implementation.get_id() == identifier:
                 return implementation
-        raise KeyError, "Softpkg '%s' has no implementation '%s'" % (spd.get_name(), identifier)
+        raise KeyError("Softpkg '%s' has no implementation '%s'" % (spd.get_name(), identifier))
     def _getEntryPoint(self, implementation):
         entry_point = implementation.get_code().get_entrypoint()
         if not entry_point.startswith('/'):
@@ -174,7 +174,7 @@ class ApplicationRegistrarTest(scatest.CorbaTestCase):
         process,ref = execute(self, self.spd, self.impl, {})
         pid = process.pid()
         comp_id = ref._get_identifier()
-        self.assertEquals(comp_id, 'some_id')
+        self.assertEqual(comp_id, 'some_id')
         app_id = ref.query([CF.DataType(id='app_id',value=any.to_any(None))])[0].value._v
         number_components = ref.query([CF.DataType(id='number_components',value=any.to_any(None))])[0].value._v
         dom_id = ref.query([CF.DataType(id='dom_id',value=any.to_any(None))])[0].value._v
@@ -188,7 +188,7 @@ class ApplicationRegistrarTest(scatest.CorbaTestCase):
         process,ref = execute(self, self.spd, self.impl, {})
         pid = process.pid()
         comp_id = ref._get_identifier()
-        self.assertEquals(comp_id, 'some_id')
+        self.assertEqual(comp_id, 'some_id')
         app_id = ref.query([CF.DataType(id='app_id',value=any.to_any(None))])[0].value._v
         number_components = ref.query([CF.DataType(id='number_components',value=any.to_any(None))])[0].value._v
         dom_id = ref.query([CF.DataType(id='dom_id',value=any.to_any(None))])[0].value._v
@@ -203,7 +203,7 @@ class ApplicationRegistrarTest(scatest.CorbaTestCase):
         process,ref = execute(self, self.spd, self.impl, {})
         pid = process.pid()
         comp_id = ref._get_identifier()
-        self.assertEquals(comp_id, 'some_id')
+        self.assertEqual(comp_id, 'some_id')
         app_id = ref.query([CF.DataType(id='app_id',value=any.to_any(None))])[0].value._v
         number_components = ref.query([CF.DataType(id='number_components',value=any.to_any(None))])[0].value._v
         dom_id = ref.query([CF.DataType(id='dom_id',value=any.to_any(None))])[0].value._v

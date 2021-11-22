@@ -71,7 +71,7 @@ class BlueFileExtKeyword(unittest.TestCase):
         sri.keywords=mykw
         bf.start()
         bf.pushSRI(sri)
-        tmpData = range(0, 1024)
+        tmpData = list(range(0, 1024))
         srid=ossie.properties.props_to_dict(sri.keywords)
         return filename
 

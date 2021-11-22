@@ -24,9 +24,9 @@ from omniORB import URI, any, CORBA
 import ossie.utils.log4py.config
 import tempfile
 import os
-import urlparse
-urlparse.uses_netloc.append("sca")
-urlparse.uses_query.append("sca")
+import urllib.parse
+urllib.parse.uses_netloc.append("sca")
+urllib.parse.uses_query.append("sca")
 import time
 import threading
 import logging
@@ -35,14 +35,14 @@ from ossie.properties import PropertyStorage
 from ossie.utils import uuid
 from ossie.threadedcomponent import ThreadedComponent
 import ossie.logger
-import containers
+from . import containers
 
 import sys
 import CosNaming
 import CosEventChannelAdmin, CosEventChannelAdmin__POA
 import signal
 import getopt
-from Queue import Queue
+from queue import Queue
 
 
 
@@ -120,11 +120,11 @@ class _port(object):
 
     def __set__(self, obj, value):
         if self.fget != None:
-            raise AttributeError, "can't set SCA port definition that uses fget"
+            raise AttributeError("can't set SCA port definition that uses fget")
         setattr(obj, self._attrname, value)
 
     def __delete__(self, obj):
-        raise AttributeError, "can't delete SCA port definition"
+        raise AttributeError("can't delete SCA port definition")
 
     def isValid(self, portobj):
         raise NotImplementedError
@@ -402,7 +402,7 @@ class Resource(object):
 
     def __init_monitors(self):
         self._propMonitors = {}
-        for k, p in self._props.items():
+        for k, p in list(self._props.items()):
             self._propMonitors[k] = _PCL_MonitorTrack(self,p)
         
     #########################################
@@ -410,7 +410,7 @@ class Resource(object):
     def start(self):
         self._resourceLog.trace("start()")
         # Check all ports for a startPort() method, and call it if one exists
-        for portdef in self.__ports.itervalues():
+        for portdef in self.__ports.values():
             port = portdef.__get__(self)
             if hasattr(port, 'startPort'):
                 port.startPort()
@@ -419,7 +419,7 @@ class Resource(object):
     def stop(self):
         self._resourceLog.trace("stop()")
         # Check all ports for a stopPort() method, and call it if one exists
-        for portdef in self.__ports.itervalues():
+        for portdef in self.__ports.values():
             port = portdef.__get__(self)
             if hasattr(port, 'stopPort'):
                 port.stopPort()
@@ -443,7 +443,7 @@ class Resource(object):
             try:
                 self.constructor()
                 self.__init_monitors()
-            except Exception, exc:
+            except Exception as exc:
                 self._resourceLog.error("initialize(): %s", str(exc))
                 raise CF.LifeCycle.InitializeError([str(exc)])
 
@@ -488,7 +488,7 @@ class Resource(object):
        """Return list of ports for this Resource"""
        self._portSupplierLog.trace("getPortSet()")
        portList = []
-       for name, portdef in self.__ports.iteritems():
+       for name, portdef in self.__ports.items():
            obj_ptr = self.getPort(name)
            repid = portdef.repid
            description = portdef.__doc__
@@ -741,11 +741,11 @@ class Resource(object):
             self._propertySetLog.trace("query all properties")
             try:
                 rv = []
-                for propid in self._props.keys():
+                for propid in list(self._props.keys()):
                     if self._props.has_id(propid) and self._props.isQueryable(propid):
                         try:
                             value = self._props.query(propid)
-                        except Exception, e:
+                        except Exception as e:
                             self._propertySetLog.error('Failed to query %s: %s', propid, e)
                             value = any.to_any(None)
                         prp = self._props.getPropDef(propid)
@@ -781,7 +781,7 @@ class Resource(object):
                     if self._props.has_id(prop.id) and self._props.isQueryable(prop.id):
                         try:
                             prop.value = self._props.query(prop.id)
-                        except Exception, e:
+                        except Exception as e:
                             self._propertySetLog.error('Failed to query %s: %s', prop.id, e)
                         prp = self._props.getPropDef(prop.id)
                         if type(prp) == ossie.properties.struct_property:
@@ -829,13 +829,13 @@ class Resource(object):
                         try:
                             # run configure on property.. disable callback feature
                             self._props.construct(prop.id, prop.value)
-                        except ValueError, e:
+                        except ValueError as e:
                             self._propertySetLog.warning("Invalid value provided to construct for property %s %s", prop.id, e)
                             notSet.append(prop)
                     else:
                         self._propertySetLog.warning("Tried to construct non-existent, readonly, or property with action not equal to external %s", prop.id)
                         notSet.append(prop)
-                except Exception, e:
+                except Exception as e:
                     self._propertySetLog.exception("Unexpected exception.")
                     notSet.append(prop)
 
@@ -860,13 +860,13 @@ class Resource(object):
                 if self._props.has_id(prop.id) and self._props.isConfigurable(prop.id):
                     try:
                         self._props.configure(prop.id, prop.value)
-                    except Exception, e:
+                    except Exception as e:
                         self._propertySetLog.warning("Invalid value provided to configure for property %s: %s", prop.id, e)
                         notSet.append(prop)
                 else:
                     self._propertySetLog.warning("Tried to configure non-existent, readonly, or property with action not equal to external %s", prop.id)
                     notSet.append(prop)
-            except Exception, e:
+            except Exception as e:
                 error_message += str(e)
                 self._propertySetLog.exception("Unexpected exception.")
                 notSet.append(prop)
@@ -893,7 +893,7 @@ class Resource(object):
         # If the list is empty, get all props
         if prop_ids == []:
             self._propertySetLog.trace("registering all properties")
-            for propid in self._props.keys():
+            for propid in list(self._props.keys()):
                 if self._props.has_id(propid) and self._props.isQueryable(propid):
                     props[propid] = _PCL_Monitor()
         else:
@@ -988,16 +988,16 @@ class Resource(object):
         self.propertySetAccess.acquire()
         try:
             self._propertySetLog.debug("_propertyChangeServiceFunction - checking registry.... " + str(len(self._propChangeRegistry)))
-            for regid,rec in self._propChangeRegistry.iteritems():
+            for regid,rec in self._propChangeRegistry.items():
 
                 # process changes for each property
-                for k,p in rec.props.iteritems():
+                for k,p in rec.props.items():
                     self._propertySetLog.debug("_propertyChangeServiceFunction - prop/set. " + str(k) + "/" + str(p.isSet()))
                     try:
                         if self._propMonitors[k].isChanged():
                             p.recordChanged()
                         self._propertySetLog.debug("_propertyChangeServiceFunction - prop/changed. " + str(k) + "/" + str(self._propMonitors[k].isChanged()))
-                    except Exception, e:
+                    except Exception as e:
                         pass
 
 
@@ -1007,7 +1007,7 @@ class Resource(object):
                     rpt_props = []
                     idx=0
                     # process changes for each property
-                    for k,p in rec.props.iteritems():
+                    for k,p in rec.props.items():
                         self._propertySetLog.debug("_propertyChangeServiceFunction - prop/set. " + str(k) + "/" + str(p.isSet()))
                         if  p.isChanged() == True :
                             try:
@@ -1036,7 +1036,7 @@ class Resource(object):
 
         # reset monitor's state
         if len( self._propChangeRegistry ) > 0:
-           for k,mon in self._propMonitors.iteritems():
+           for k,mon in self._propMonitors.items():
                mon.reset()
 
         self._propertySetLog.debug("_propertyChangeServiceFunction -  adjust thread delay :" + str( delay ))
@@ -1064,7 +1064,7 @@ def configure_logging(orb, uri, debugLevel=3, binding=None):
 
 
 def load_logging_config_uri(orb, uri, binding=None):
-    scheme, netloc, path, params, query, fragment = urlparse.urlparse(uri)
+    scheme, netloc, path, params, query, fragment = urllib.parse.urlparse(uri)
     if scheme == "file":
         ossie.utils.log4py.config.fileConfig(path, binding)
     elif scheme == "sca":
@@ -1217,22 +1217,22 @@ def _getOptions(classtype):
         # they cannot start with -, therefore this is safe
         opts, args = getopt.getopt(sys.argv[1:], "i", ["interactive"])
         if len(opts)==0 and len(args)==0:
-            print "usage: %s [options] [execparams]" % sys.argv[0]
-            print
-            print "The set of execparams is defined in the .prf for the component"
-            print "They are provided as arguments pairs ID VALUE, for example:"
-            print "     %s INT_PARAM 5 STR_PARAM ABCDED" % sys.argv[0]
-            print
-            print classtype.__doc__
+            print("usage: %s [options] [execparams]" % sys.argv[0])
+            print()
+            print("The set of execparams is defined in the .prf for the component")
+            print("They are provided as arguments pairs ID VALUE, for example:")
+            print("     %s INT_PARAM 5 STR_PARAM ABCDED" % sys.argv[0])
+            print()
+            print(classtype.__doc__)
             sys.exit(2)
     except getopt.GetoptError:
-        print "usage: %s [options] [execparams]" % sys.argv[0]
-        print
-        print "The set of execparams is defined in the .prf for the component"
-        print "They are provided as arguments pairs ID VALUE, for example:"
-        print "     %s INT_PARAM 5 STR_PARAM ABCDED" % sys.argv[0]
-        print
-        print classtype.__doc__
+        print("usage: %s [options] [execparams]" % sys.argv[0])
+        print()
+        print("The set of execparams is defined in the .prf for the component")
+        print("They are provided as arguments pairs ID VALUE, for example:")
+        print("     %s INT_PARAM 5 STR_PARAM ABCDED" % sys.argv[0])
+        print()
+        print(classtype.__doc__)
         sys.exit(2)
     return opts, args
 
@@ -1260,7 +1260,7 @@ def parseCommandLineArgs(componentclass):
 def start_component(componentclass, interactive_callback=None, thread_policy=None, loggerName=None):   
     execparams, interactive = parseCommandLineArgs(componentclass)
     if interactive:
-        print "Interactive mode (-i) no longer supported. Please use the sandbox to run Components/Devices/Services outside the scope of a Domain"
+        print("Interactive mode (-i) no longer supported. Please use the sandbox to run Components/Devices/Services outside the scope of a Domain")
         sys.exit(-1)
     name_binding="NOT SET"
     setupSignalHandlers()
@@ -1275,17 +1275,17 @@ def start_component(componentclass, interactive_callback=None, thread_policy=Non
             component_identifier=""
             
             componentPOA = getPOA(orb, thread_policy, "componentPOA")
-            if not execparams.has_key("COMPONENT_IDENTIFIER"):
+            if "COMPONENT_IDENTIFIER" not in execparams:
                 if not interactive:
                     logging.warning("No 'COMPONENT_IDENTIFIER' argument provided")
                 execparams["COMPONENT_IDENTIFIER"] = ""
             
-            if not execparams.has_key("NAME_BINDING"):
+            if "NAME_BINDING" not in execparams:
                 if not interactive:
                     logging.warning("No 'NAME_BINDING' argument provided")
                 execparams["NAME_BINDING"] = ""
             
-            if not execparams.has_key("PROFILE_NAME"):
+            if "PROFILE_NAME" not in execparams:
                 if not interactive:
                     logging.warning("No 'PROFILE_NAME' argument provided")
                 execparams["PROFILE_NAME"] = ""
@@ -1330,7 +1330,7 @@ def start_component(componentclass, interactive_callback=None, thread_policy=Non
             componentPOA.activate_object(component_Obj)
             component_Var = component_Obj._this()
             nic = ''
-            if execparams.has_key('NIC'):
+            if 'NIC' in execparams:
                 nic = execparams['NIC']
 
             component_Obj.setAdditionalParameters(execparams["PROFILE_NAME"],execparams['NAMING_CONTEXT_IOR'], nic)
@@ -1339,7 +1339,7 @@ def start_component(componentclass, interactive_callback=None, thread_policy=Non
             component_Obj.saveLoggingContext( log_config_uri, debug_level, ctx )
 
             # get the naming context and bind to it
-            if execparams.has_key("NAMING_CONTEXT_IOR"):
+            if "NAMING_CONTEXT_IOR" in execparams:
                 try:
                     binding_object = orb.string_to_object(execparams['NAMING_CONTEXT_IOR'])
                 except:
@@ -1368,7 +1368,7 @@ def start_component(componentclass, interactive_callback=None, thread_policy=Non
                     # Pass only the Var to prevent anybody from calling non-CORBA functions
                     interactive_callback(component_Obj)
                 else:
-                    print orb.object_to_string(component_Obj._this())
+                    print(orb.object_to_string(component_Obj._this()))
                     orb.run()
 
             try:

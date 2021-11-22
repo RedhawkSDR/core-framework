@@ -48,11 +48,11 @@ class UsesPort(ExtendedCF__POA.QueryablePort):
         self.outPorts[str(connectionId)] = port
     
     def disconnectPort(self, connectionId):
-        if self.outPorts.has_key(str(connectionId)):
+        if str(connectionId) in self.outPorts:
             self.outPorts.pop(str(connectionId), None)   
 
     def _get_connections(self):
-        return [ExtendedCF.UsesConnection(k,v) for k, v in self.outPorts.iteritems()]
+        return [ExtendedCF.UsesConnection(k,v) for k, v in self.outPorts.items()]
 
 
 class testOut_i(UsesPort):
@@ -120,7 +120,7 @@ class PortDevice_impl(CF__POA.ExecutableDevice, ExecutableDevice):
                                        defvalue=100000000,
                                        mode='readonly',
                                        action='external',
-                                       kinds=(u'allocation',))
+                                       kinds=('allocation',))
 
     def __init__(self, devmgr, uuid, label, softwareProfile, compositeDevice, execparams):
         ExecutableDevice.__init__(self, devmgr, uuid, label, softwareProfile, compositeDevice, execparams)

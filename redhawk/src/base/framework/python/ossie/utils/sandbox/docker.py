@@ -21,22 +21,22 @@ import logging
 import socket
 import os
 from   ossie.cf import CF
-import urlparse
+import urllib.parse
 import time
 import subprocess
 import threading
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import ossie.utils.log4py.config
 from   ossie.utils.log4py import RedhawkLogger
 from  omniORB import CORBA
-from process import LocalProcess as LocalProcess
-from clusterCfgParser import ClusterCfgParser
+from .process import LocalProcess as LocalProcess
+from .clusterCfgParser import ClusterCfgParser
 import shlex
 
 class DockerProcess(LocalProcess):
     def __init__(self, command, arguments, image, environment=None, stdout=None):
         if (os.popen('docker images -q '+image+' 2> /dev/null').read() == ''):
-            raise RuntimeError, "No docker image exists for entry point '%s'" % image
+            raise RuntimeError("No docker image exists for entry point '%s'" % image)
 
         
         cfgParser = ClusterCfgParser("Docker")
@@ -72,7 +72,7 @@ class DockerProcess(LocalProcess):
         if not self.__tracker:
             # Nothing is currently waiting for notification, start monitor.
             name = self.__pod_name  # set the name of your container
-            print "setTerminateCallback " + name
+            print("setTerminateCallback " + name)
             self.__tracker = threading.Thread(name=name, target=self._monitorProcess)
             self.__tracker.daemon = False
             self.__tracker.start()
@@ -82,9 +82,9 @@ class DockerProcess(LocalProcess):
     def terminate_callback(pid, status):
         self._cleanHeap(pid)
         if status > 0:
-            print 'Component %s (pid=%d) exited with status %d' % (name, pid, status)
+            print('Component %s (pid=%d) exited with status %d' % (name, pid, status))
         elif status < 0:
-            print 'Component %s (pid=%d) terminated with signal %d' % (name, pid, -status)
+            print('Component %s (pid=%d) terminated with signal %d' % (name, pid, -status))
             
     def timeout(self):
         return self.__timeout
@@ -98,7 +98,7 @@ class DockerProcess(LocalProcess):
             self.__status = subprocess.check_output(arguments)
         except:
             self.__status = "Not Running"
-        print "Status: " + self.__status.replace("\n", "")
+        print("Status: " + self.__status.replace("\n", ""))
 
         if "true" in self.__status:
             return True

@@ -19,7 +19,7 @@
 #
 
 
-import commands as _commands
+import subprocess as _commands
 import sys as _sys
 import os as _os
 import copy as _copy
@@ -44,8 +44,8 @@ from ossie.utils.log_helpers import stringToCode
 from ossie.utils import prop_helpers
 from ossie.utils import rhtime
 import warnings as _warnings
-import cStringIO, pydoc
-from connect import *
+import io, pydoc
+from .connect import *
 
 _warnings.filterwarnings('once',category=DeprecationWarning)
 
@@ -107,7 +107,7 @@ def _convertType(propType, val):
     elif propType.find('complex') == 0:
         baseType = getMemberType(propType) 
         real, imag = _prop_helpers.parseComplexString(val, baseType)
-        if isinstance(real, basestring):
+        if isinstance(real, str):
             real = int(real)
             imag = int(imag)
         newValue = complex(real, imag)
@@ -153,8 +153,8 @@ def _formatSimple(prop, value, id):
     # Checks if current prop is an enum
     try:
         if prop._enums != None:
-            if value in prop._enums.values():
-                currVal += " (enum=" + prop._enums.keys()[prop._enums.values().index(value)] + ")"
+            if value in list(prop._enums.values()):
+                currVal += " (enum=" + list(prop._enums.keys())[list(prop._enums.values()).index(value)] + ")"
     except:
         return currVal
     return currVal
@@ -180,7 +180,7 @@ class OutputBase(object):
     connection, but are created dynamically on connection.
     """
     def setup(self, usesIOR, dataType=None, componentName=None, usesPortName=None):
-        raise NotImplementedError, 'OutputBase subclasses must implement setup()'
+        raise NotImplementedError('OutputBase subclasses must implement setup()')
 
 
 class CorbaObject(object):
@@ -205,15 +205,15 @@ class PortSupplier(object):
         localdef_dest = False
         if destfile == None:
             localdef_dest = True
-            destfile = cStringIO.StringIO()
+            destfile = io.StringIO()
 
         if ports:
             table = TablePrinter('Port Name', 'Port Interface')
-            for port in ports.itervalues():
+            for port in ports.values():
                 table.append(port['Port Name'], port['Port Interface'])
             table.write(f=destfile)
         else:
-            print >>destfile, "None"
+            print("None", file=destfile)
 
         if localdef_dest:
             pydoc.pager(destfile.getvalue())
@@ -223,17 +223,17 @@ class PortSupplier(object):
         localdef_dest = False
         if destfile == None:
             localdef_dest = True
-            destfile = cStringIO.StringIO()
+            destfile = io.StringIO()
 
-        print >>destfile, 'Provides (Input) Ports'
-        print >>destfile, '======================'
+        print('Provides (Input) Ports', file=destfile)
+        print('======================', file=destfile)
         self._showPorts(self._providesPortDict, destfile=destfile)
-        print >>destfile
+        print(file=destfile)
 
-        print >>destfile, 'Uses (Output) Ports'
-        print >>destfile, '==================='
+        print('Uses (Output) Ports', file=destfile)
+        print('===================', file=destfile)
         self._showPorts(self._usesPortDict, destfile=destfile)
-        print >>destfile
+        print(file=destfile)
 
         if localdef_dest:
             pydoc.pager(destfile.getvalue())
@@ -241,28 +241,28 @@ class PortSupplier(object):
 
     def _getUsesPort(self, name):
         if not name in self._usesPortDict:
-            raise RuntimeError, "Component '%s' has no uses port '%s'" % (self._instanceName, name)
+            raise RuntimeError("Component '%s' has no uses port '%s'" % (self._instanceName, name))
         return self._usesPortDict[name]
 
     def _getDefaultUsesPort(self):
         numPorts = len(self._usesPortDict)
         if numPorts == 1:
-            return self._usesPortDict.values()[0]
+            return list(self._usesPortDict.values())[0]
         elif numPorts == 0:
-            raise RuntimeError, "Component '%s' has no uses ports" % self._instanceName
+            raise RuntimeError("Component '%s' has no uses ports" % self._instanceName)
         else:
-            raise RuntimeError, "Component '%s' has more than one port, connection is ambiguous" % self._instanceName
+            raise RuntimeError("Component '%s' has more than one port, connection is ambiguous" % self._instanceName)
 
     def _matchUsesPort(self, usesPort, connectionId):
         interface = usesPort['Port Interface']
 
         # First, look for exact matches.
-        matches = self._matchExact(interface, self._providesPortDict.values())
+        matches = self._matchExact(interface, list(self._providesPortDict.values()))
 
         # Only if no exact matches are found, try to check the CORBA interfaces
         # for compatibility.
         if not matches:
-            for providesPort in self._providesPortDict.values():
+            for providesPort in list(self._providesPortDict.values()):
                 if self._canConnect(interface, providesPort['Port Interface']):
                     matches.append(providesPort)
 
@@ -271,7 +271,7 @@ class PortSupplier(object):
 
     def _getProvidesPort(self, name):
         if not name in self._providesPortDict:
-            raise RuntimeError, "Component '%s' has no provides port '%s'" % (self._instanceName, name)
+            raise RuntimeError("Component '%s' has no provides port '%s'" % (self._instanceName, name))
         return self._providesPortDict[name]
 
     def _getEndpoint(self, port, connectionId):
@@ -298,12 +298,12 @@ class PortSupplier(object):
         interface = providesPort['Port Interface']
 
         # First, look for exact matches.
-        matches = self._matchExact(interface, self._usesPortDict.values())
+        matches = self._matchExact(interface, list(self._usesPortDict.values()))
 
         # Only if no exact matches are found, try to check the CORBA interfaces
         # for compatibility.
         if not matches:
-            for usesPort in self._usesPortDict.values():
+            for usesPort in list(self._usesPortDict.values()):
                 if self._canConnect(usesPort['Port Interface'], interface):
                     matches.append(usesPort)
 
@@ -353,7 +353,7 @@ class PortSupplier(object):
                 try:
                     usesEndpoint = self._matchProvidesPort(providesPort, connectionId)[0]
                 except IndexError:
-                    raise RuntimeError, "No uses ports that match provides port '%s'" % providesPortName
+                    raise RuntimeError("No uses ports that match provides port '%s'" % providesPortName)
             elif usesPortName:
                 # Just uses port was given; find first matching provides port.
                 usesPort = self._getUsesPort(usesPortName)
@@ -361,12 +361,12 @@ class PortSupplier(object):
                 try:
                     providesEndpoint = providesComponent._matchUsesPort(usesPort, connectionId)[0]
                 except IndexError:
-                    raise RuntimeError, "No provides ports that match uses port '%s'" % usesPortName
+                    raise RuntimeError("No provides ports that match uses port '%s'" % usesPortName)
             else:
                 # No port names given, attempt to negotiate.
                 matches = []
                 uses = None
-                for usesPort in self._usesPortDict.values():
+                for usesPort in list(self._usesPortDict.values()):
                     uses = PortEndpoint(self, usesPort)
                     matches.extend((uses, provides) for provides in providesComponent._matchUsesPort(usesPort, connectionId))
 
@@ -374,7 +374,7 @@ class PortSupplier(object):
                     ret_str = "Multiple ports matched interfaces on connect, must specify providesPortName or usesPortName\nPossible matches:\n"
                     for match in matches:
                         ret_str += "  Interface: "+match[0].getInterface()+", component/port:  "+match[0].getName()+"     "+match[1].getName()+"\n"
-                    raise RuntimeError, ret_str
+                    raise RuntimeError(ret_str)
                 elif len(matches) == 0:
                     if uses:
                         raise NoMatchingPorts('No matching interfaces between '+uses.supplier._instanceName+' and '+providesComponent._instanceName)
@@ -402,7 +402,7 @@ class PortSupplier(object):
                 # Use usesPortName if provided
                 usesPorts = [self._getUsesPort(usesPortName)]
             else:
-                usesPorts = self._usesPortDict.values()
+                usesPorts = list(self._usesPortDict.values())
             # Try to find a uses interface to connect to the object
             providesInterface = providesComponent._getInterface()
             usesEndpoint = None
@@ -416,7 +416,7 @@ class PortSupplier(object):
         else:
             # No support for provides side, throw an exception so the user knows
             # that the connection failed.
-            raise TypeError, "Type '%s' is not supported for provides side connection" % (providesComponent.__class__.__name__)
+            raise TypeError("Type '%s' is not supported for provides side connection" % (providesComponent.__class__.__name__))
         
         # Make the actual connection from the endpoints
         log.trace("Uses endpoint '%s' has interface '%s'", usesEndpoint.getName(), usesEndpoint.getInterface())
@@ -428,16 +428,16 @@ class PortSupplier(object):
                 allocation_id = tuner_status[valid_tuners[0]].allocation_id_csv.split(',')[0]
                 while True:
                     connectionId = str(_uuidgen())
-                    if not self._listener_allocations.has_key(connectionId):
+                    if connectionId not in self._listener_allocations:
                         break
                 import frontend
                 listen_alloc = frontend.createTunerListenerAllocation(allocation_id, connectionId)
                 retalloc = self.allocateCapacity(listen_alloc)
                 if not retalloc:
-                    raise RuntimeError, "Unable to create a listener for allocation "+allocation_id+" on device "+usesEndpoint.getName()
+                    raise RuntimeError("Unable to create a listener for allocation "+allocation_id+" on device "+usesEndpoint.getName())
                 self._listener_allocations[connectionId] = listen_alloc
             elif len(valid_tuners) > 1:
-                raise RuntimeError, "More than one valid tuner allocation exists on the frontend interfaces device, so the ambiguity cannot be resolved. Please provide the connection id for the desired allocation"
+                raise RuntimeError("More than one valid tuner allocation exists on the frontend interfaces device, so the ambiguity cannot be resolved. Please provide the connection id for the desired allocation")
 
         usesPortRef.connectPort(providesPortRef, connectionId)
         ConnectionManager.instance().registerConnection(connectionId, usesEndpoint, providesEndpoint)
@@ -447,13 +447,13 @@ class PortSupplier(object):
 
     def disconnect(self, providesComponent):
         manager = ConnectionManager.instance()
-        for _connectionId, (connectionId, uses, provides) in manager.getConnectionsBetween(self, providesComponent).items():
+        for _connectionId, (connectionId, uses, provides) in list(manager.getConnectionsBetween(self, providesComponent).items()):
             usesPortRef = uses.getReference()
             try:
                 usesPortRef.disconnectPort(connectionId)
             except:
                 pass
-            if self._listener_allocations.has_key(connectionId):
+            if connectionId in self._listener_allocations:
                 self.deallocateCapacity(self._listener_allocations[connectionId])
                 self._listener_allocations.pop(connectionId)
             if isinstance(providesComponent, PortSupplier):
@@ -504,7 +504,7 @@ class PropertySet(object):
         for prop in self._properties:
             if name in (prop.id, prop.clean_name):
                 return prop
-        raise KeyError, "Unknown property '%s'" % name
+        raise KeyError("Unknown property '%s'" % name)
     
     def _itemToDataType(self, name, value):
         prop = self._findProperty(name)
@@ -516,7 +516,7 @@ class PropertySet(object):
             pass
         try:
             # Turn a dictionary of Python values into a list of CF Properties
-            props = [self._itemToDataType(k,v) for k,v in props.iteritems()]
+            props = [self._itemToDataType(k,v) for k,v in props.items()]
         except AttributeError:
             # Assume the exception occurred because props is not a dictionary
             pass
@@ -528,7 +528,7 @@ class PropertySet(object):
             pass
         try:
             # Turn a dictionary of Python values into a list of CF Properties
-            props = [self._itemToDataType(k,v) for k,v in props.iteritems()]
+            props = [self._itemToDataType(k,v) for k,v in props.items()]
         except AttributeError:
             # Assume the exception occurred because props is not a dictionary
             pass
@@ -548,7 +548,7 @@ class PropertySet(object):
         localdef_dest = False
         if destfile == None:
             localdef_dest = True
-            destfile = cStringIO.StringIO()
+            destfile = io.StringIO()
         properties = [p for p in self._properties if 'property' in p.kinds or 'configure' in p.kinds or 'execparam' in p.kinds]
         if not properties:
             return
@@ -564,8 +564,8 @@ class PropertySet(object):
             extId, propId = externalPropInfo
             table.enable_header(False)
         else:
-            print >>destfile, 'Properties'
-            print >>destfile, '=========='
+            print('Properties', file=destfile)
+            print('==========', file=destfile)
         for prop in properties:
             if externalPropInfo:
                 # Searching for a particular external property
@@ -599,7 +599,7 @@ class PropertySet(object):
                         table.append(name, '('+scaType+')', defVal, currVal)
             elif prop.type == 'struct':
                 table.append(name, '('+scaType+')')
-                for member in prop.members.itervalues():
+                for member in prop.members.values():
                     name = ' ' + member.clean_name
                     scaType = _formatType(member.type)
                     if not writeOnly:
@@ -928,12 +928,12 @@ class Device(Resource):
         for prop in self._allocProps:
             if name in (prop.id, prop.clean_name):
                 return prop
-        raise KeyError, "No allocation property '%s'" % name
+        raise KeyError("No allocation property '%s'" % name)
 
     def _capacitiesToAny(self, props):
         if isinstance(props, dict):
             allocProps = []
-            for name, value in props.iteritems():
+            for name, value in props.items():
                 prop = self._getAllocProp(name)
                 allocProps.append(_CF.DataType(prop.id, prop.toAny(value)))
             return allocProps
@@ -1010,12 +1010,12 @@ class Device(Resource):
         localdef_dest = False
         if destfile == None:
             localdef_dest = True
-            destfile = cStringIO.StringIO()
+            destfile = io.StringIO()
 
-        print >>destfile, 'Allocation Properties'
-        print >>destfile, '====================='
+        print('Allocation Properties', file=destfile)
+        print('=====================', file=destfile)
         if not self._allocProps:
-            print >>destfile, 'None'
+            print('None', file=destfile)
             return
 
         table = TablePrinter('Property Name', '(Data Type)', 'Action')
@@ -1026,7 +1026,7 @@ class Device(Resource):
                     structdef = prop.structDef
                 else:
                     structdef = prop
-                for member in structdef.members.itervalues():
+                for member in structdef.members.values():
                     table.append('  '+member.clean_name, member.type)
         table.write(f=destfile)
         if localdef_dest:
@@ -1099,15 +1099,15 @@ class QueryableBase(object):
                         for prop in propSet:
                             if name == prop.clean_name:
                                 if _DEBUG == True:
-                                    print "Component:__setattr__() Setting component property attribute " + str(name) + " to value " + str(value)
+                                    print("Component:__setattr__() Setting component property attribute " + str(name) + " to value " + str(value))
                                 self._configureSingleProp(prop.id,value)
                                 break
                             if name == prop.id:
                                 if _DEBUG == True:
-                                    print "Component:__setattr__() Setting component property attribute " + str(name) + " to value " + str(value)
+                                    print("Component:__setattr__() Setting component property attribute " + str(name) + " to value " + str(value))
                                 self._configureSingleProp(name,value)
                                 break
-            except AttributeError, e:
+            except AttributeError as e:
                 # This would be thrown if _propertyies attribute hasn't been set yet
                 # This will occur only with setting of class attibutes before _properties has been set
                 # This will not affect setting attributes based on component properties since this will
@@ -1126,7 +1126,7 @@ class QueryableBase(object):
                for prop in propSet: 
                    if name == prop.id or name == prop.clean_name:
                        if _DEBUG == True:
-                           print 'Component:__getattribute__()', prop
+                           print('Component:__getattribute__()', prop)
                        return prop
         if name == '_id':
             if object.__getattribute__(self,"_id") == None:
@@ -1166,9 +1166,9 @@ class QueryableBase(object):
         _duplicateNames = {}
         
         if _DEBUG == True:
-            print "Component: _getPropertySet() kinds " + str(kinds)
-            print "Component: _getPropertySet() modes " + str(modes)
-            print "Component: _getPropertySet() action " + str(action)
+            print("Component: _getPropertySet() kinds " + str(kinds))
+            print("Component: _getPropertySet() modes " + str(modes))
+            print("Component: _getPropertySet() action " + str(action))
         if not self._prf:
             return []
 
@@ -1273,7 +1273,7 @@ class QueryableBase(object):
                         structDefValue[prop_key] = []
 
                 hasDefault = False
-                for defValue in structDefValue.values():
+                for defValue in list(structDefValue.values()):
                     if defValue is not None:
                         hasDefault = True
                         break
@@ -1365,7 +1365,7 @@ class QueryableBase(object):
 
         if _DEBUG == True:
             try:
-                print "Component: _getPropertySet() propertySet " + str(propertySet)
+                print("Component: _getPropertySet() propertySet " + str(propertySet))
             except:
                 pass
         return propertySet
@@ -1384,24 +1384,24 @@ class QueryableBase(object):
         maxNameLen = 0
         if printResults:
             if results != [] and len(props) == 0: 
-                for prop in propDict.items():
+                for prop in list(propDict.items()):
                     if len(prop[0]) > maxNameLen:
                         maxNameLen = len(prop[0])
-                print "_query():"
-                print "Property Name" + " "*(maxNameLen-len("Property Name")) + "\tProperty Value"
-                print "-------------" + " "*(maxNameLen-len("Property Name")) + "\t--------------"
-                for prop in propDict.items():
-                    print str(prop[0]) + " "*(maxNameLen-len(str(prop[0]))) + "\t    " + str(prop[1])
+                print("_query():")
+                print("Property Name" + " "*(maxNameLen-len("Property Name")) + "\tProperty Value")
+                print("-------------" + " "*(maxNameLen-len("Property Name")) + "\t--------------")
+                for prop in list(propDict.items()):
+                    print(str(prop[0]) + " "*(maxNameLen-len(str(prop[0]))) + "\t    " + str(prop[1]))
         return propDict
     
     # helper function for property changes
     def _configureSingleProp(self, propName, propValue):
         if _DEBUG == True:
-            print "Component:_configureSingleProp() propName " + str(propName)
-            print "Component:_configureSingleProp() propValue " + str(propValue)
+            print("Component:_configureSingleProp() propName " + str(propName))
+            print("Component:_configureSingleProp() propValue " + str(propValue))
 
         if not propName in self._configureTable:
-            raise AssertionError,'Component:_configureSingleProp() ERROR - Property not found in _configureSingleProp'
+            raise AssertionError('Component:_configureSingleProp() ERROR - Property not found in _configureSingleProp')
         prop = self._configureTable[propName]
         # Will generate a configure call on the component
         prop.configureValue(propValue)
@@ -1434,7 +1434,7 @@ class ComponentBase(QueryableBase):
         
     def _buildAPI(self):
         if _DEBUG == True:
-            print "Component:_buildAPI()"
+            print("Component:_buildAPI()")
         super(ComponentBase,self)._buildAPI()
 
         for port in self._scd.get_componentfeatures().get_ports().get_provides():
@@ -1514,7 +1514,7 @@ class ComponentBase(QueryableBase):
                         mod = __import__(pkg_name,globals(),locals(),[_to])
                         globals()[_to] = mod.__dict__[_to]
                         success = True
-                    except ImportError, msg:
+                    except ImportError as msg:
                         pass
                 else:
                     try:
@@ -1523,7 +1523,7 @@ class ComponentBase(QueryableBase):
                         mod = __import__(pkg_name,globals(),locals(),[_to])
                         globals()[_to] = mod.__dict__[_to]
                         success = True
-                    except ImportError, msg:
+                    except ImportError as msg:
                         pass
                 if not success:
                     std_idl_path = _os.path.join(_os.environ['OSSIEHOME'], 'lib/python')

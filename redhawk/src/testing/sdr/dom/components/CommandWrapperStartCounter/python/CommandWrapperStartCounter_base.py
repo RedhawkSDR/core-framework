@@ -33,7 +33,7 @@ from ossie.utils import uuid
 from ossie.resource import Resource
 from ossie.properties import simple_property
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 
 NOOP = -1
 NORMAL = 0
@@ -106,7 +106,7 @@ class CommandWrapperStartCounter_base(CF__POA.Resource, Resource):
         def releaseObject(self):
             try:
                 self.stop()
-            except Exception, e:
+            except Exception as e:
                 self._log.exception("Error stopping: " + str(e))
             Resource.releaseObject(self)
 

@@ -29,7 +29,7 @@ from ossie.utils import uuid
 from ossie.device import ExecutableDevice 
 
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 
 NOOP = -1
 NORMAL = 0
@@ -94,7 +94,7 @@ class PythonExecDev_python_impl1_base(CF__POA.ExecutableDevice, ExecutableDevice
         def releaseObject(self):
             try:
                 self.stop()
-            except Exception, e:
+            except Exception as e:
                 self._log.exception("Error stopping: ", e)
             ExecutableDevice.releaseObject(self)
 

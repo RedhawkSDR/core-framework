@@ -23,14 +23,14 @@ from _unitTestHelpers import scatest
 from omniORB import URI, any, CORBA
 from ossie.cf import CF
 from ossie import properties
-import commands
+import subprocess
 import CosNaming
 import tempfile
-import commands
+import subprocess
 import shutil
 
 def getChildren(parentPid):
-    process_listing = commands.getoutput('ls /proc').split('\n')
+    process_listing = subprocess.getoutput('ls /proc').split('\n')
     children = []
     for entry in process_listing:
         try:
@@ -71,27 +71,27 @@ class DeviceManagerCacheTest(scatest.CorbaTestCase):
     def tearDown(self):
         scatest.CorbaTestCase.tearDown(self)
         killChildProcesses(os.getpid())
-        (status,output) = commands.getstatusoutput('chmod 755 '+os.getcwd()+'/sdr/cache/.BasicTestDevice_node')
-        (status,output) = commands.getstatusoutput('rm -rf devmgr_runtest.props')
+        (status,output) = subprocess.getstatusoutput('chmod 755 '+os.getcwd()+'/sdr/cache/.BasicTestDevice_node')
+        (status,output) = subprocess.getstatusoutput('rm -rf devmgr_runtest.props')
 
     def test_NoWriteCache(self):
         cachedir = os.getcwd()+'/sdr/cache/.BasicTestDevice_node'
-        (status,output) = commands.getstatusoutput('mkdir -p '+cachedir)
-        (status,output) = commands.getstatusoutput('chmod 000 '+cachedir)
+        (status,output) = subprocess.getstatusoutput('mkdir -p '+cachedir)
+        (status,output) = subprocess.getstatusoutput('chmod 000 '+cachedir)
         self.assertFalse(os.access(cachedir, os.R_OK|os.W_OK|os.X_OK), 'Current user can still access directory')
         devmgr_nb = None
         while not devmgr_nb:
             try:
                 devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
-            except Exception, e:
-                print e
+            except Exception as e:
+                print(e)
             if not devmgr_nb:
                 time.sleep(2) # pause before trying again
         begin_time = time.time()
         while time.time()-begin_time < 5 and devmgr_nb.returncode == None:
             devmgr_nb.poll()
             time.sleep(0.1)
-        self.assertEquals(255, devmgr_nb.returncode)
+        self.assertEqual(255, devmgr_nb.returncode)
 
 class DeviceManagerTest(scatest.CorbaTestCase):
     def setUp(self):
@@ -127,7 +127,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         # as per DeviceManager requirement SR:482
         devMgr.shutdown()
 
-        self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+        self.assertTrue(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
 
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 0)
 
@@ -149,7 +149,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
             self.assertEqual(True, True)
 
 
-        self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+        self.assertTrue(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
 
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 0)
 
@@ -170,7 +170,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         # as per DeviceManager requirement SR:482
         devMgr.shutdown()
 
-        self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+        self.assertTrue(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 0)
 
     def test_deadDeviceManager(self):
@@ -220,7 +220,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         # as per DeviceManager requirement SR:482
         devMgr.shutdown()
 
-        self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+        self.assertTrue(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
 
     def test_IgnoreDevMgrDuplicate(self):
         # These two nodes use the same identifier, but have different names to distinguish them
@@ -269,7 +269,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
                 else:
                     devMgr = None
                     break
-        self.assertEquals(devMgr, None)
+        self.assertEqual(devMgr, None)
 
     def test_DeviceInitializeFail(self):
         # These two nodes use the same identifier, but have different names to distinguish them
@@ -383,7 +383,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         nodebooter, devMgr = self.launchDeviceManager("/nodes/cmdline_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
         
-        status,output = commands.getstatusoutput('ps -ww -f | grep cmdline_dev')
+        status,output = subprocess.getstatusoutput('ps -ww -f | grep cmdline_dev')
         lines = output.split('\n')
         for line in lines:
           if 'IOR' in line:
@@ -401,7 +401,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         nodebooter, devMgr = self.launchDeviceManager("/nodes/nocmdline_node/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
         
-        status,output = commands.getstatusoutput('ps -ww -f | grep cmdline_dev')
+        status,output = subprocess.getstatusoutput('ps -ww -f | grep cmdline_dev')
         lines = output.split('\n')
         for line in lines:
           if 'IOR' in line:
@@ -444,7 +444,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         device = devMgr._get_registeredDevices()[0]
         # this device implementation will put a non-nil value on the property (even if a nil has been passed in a configure call)
         configure_called = device.query([CF.DataType(id='configure_called',value=any.to_any(None))])
-        self.assertEquals(configure_called[0].value._v, False)
+        self.assertEqual(configure_called[0].value._v, False)
 
     def test_ComponentPlacementNoPropOverride(self):
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_DCDSimpleSeq_node/DeviceManager.dcd.xml")
@@ -866,11 +866,11 @@ class DeviceManagerTest(scatest.CorbaTestCase):
                 self._domMgr.installApplication(sadpath)
                 appFact = self._domMgr._get_applicationFactories()[0]
                 self._app = appFact.create(appFact._get_name(), [], [])
-            except Exception, e:
+            except Exception as e:
                 pass
         try:
             self._app.start()
-        except Exception, e:
+        except Exception as e:
             pass
 
 
@@ -922,7 +922,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         svcName = URI.stringToName(scatest.getTestDomainName() + "/" + expected_name)
         svcobj = self._root.resolve(svcName)._narrow(CF.PropertySet)
         self.assertNotEqual(svcobj, None)
-        self.assert_(obj._is_equivalent(svcobj))
+        self.assertTrue(obj._is_equivalent(svcobj))
 
         # Check that all the parameters got set correctly
         props = obj.query([])
@@ -934,7 +934,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.assertAlmostEqual(d["PARAM3"], 3.1459)
         self.assertEqual(d["PARAM4"], False)
         self.assertEqual(d["PARAM5"], "Hello World")
-        self.assertEqual(d.has_key("PARAM6"), False)
+        self.assertEqual("PARAM6" in d, False)
 
         # Check that we unregister correctly
         os.kill(devmgr_nb.pid, signal.SIGTERM)
@@ -976,7 +976,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
         # now clean up the test....
         devMgr.shutdown()
-        self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+        self.assertTrue(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
 
     def test_longStartup1ResponseDevice(self):
         from ossie.utils import redhawk
@@ -988,7 +988,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
         # now clean up the test....
         devMgr.shutdown()
-        self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+        self.assertTrue(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
 
     def test_longStartup2ResponseDevice(self):
         from ossie.utils import redhawk
@@ -1000,7 +1000,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
         # now clean up the test....
         devMgr.shutdown()
-        self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+        self.assertTrue(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
 
 
     def test_blockResponseDevice(self):
@@ -1016,7 +1016,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         ld.delay=0
         # now clean up the test....
         devMgr.shutdown()
-        self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+        self.assertTrue(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
 
     def test_normalResponseDevice(self):
         from ossie.utils import redhawk
@@ -1028,7 +1028,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
 
         # now clean up the test....
         devMgr.shutdown()
-        self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+        self.assertTrue(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
 
     def test_processGroupDevSvc(self):
         from ossie.utils import redhawk
@@ -1137,7 +1137,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
             svcName = URI.stringToName(scatest.getTestDomainName() + "/" + svc.serviceName)
             svcobj = self._root.resolve(svcName)._narrow(CF.PropertySet)
             self.assertNotEqual(svcobj, None)
-            self.assert_(obj._is_equivalent(svcobj))
+            self.assertTrue(obj._is_equivalent(svcobj))
 
             # Check that all the parameters got set correctly
             props = obj.query([])
@@ -1149,14 +1149,14 @@ class DeviceManagerTest(scatest.CorbaTestCase):
             self.assertEqual(d["PARAM3"], 3.1459)
             self.assertEqual(d["PARAM4"], False)
             self.assertEqual(d["PARAM5"], "Hello World")
-            self.assertEqual(d.has_key("PARAM6"), False)
+            self.assertEqual("PARAM6" in d, False)
 
         # Make sure a component can communicate with the Service
         self._domMgr.installApplication("/waveforms/ServiceConnection/ServiceConnection.sad.xml")
-        self.assertEquals(len(self._domMgr._get_applicationFactories()), 1)
+        self.assertEqual(len(self._domMgr._get_applicationFactories()), 1)
         factory = self._domMgr._get_applicationFactories()[0]
         app = factory.create(factory._get_name(), [], [])
-        self.assertEquals(len(self._domMgr._get_applications()), 1)
+        self.assertEqual(len(self._domMgr._get_applications()), 1)
 
         # Make sure an app that uses external services can launch
         app.start()
@@ -1178,7 +1178,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
             svcNames.append(URI.stringToName(scatest.getTestDomainName() + "/" + n))
 
         # Needs to allow time for unregistering
-        self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+        self.assertTrue(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
 
         # Don't use assertRaises, so we can simplify things
         for name in svcNames:
@@ -1190,7 +1190,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
                 self.fail("Expected service to not exist in the naming service")
 
         # Makes sure all children are cleaned
-        self.assertEquals(len(getChildren(devmgr_nb.pid)), 0)
+        self.assertEqual(len(getChildren(devmgr_nb.pid)), 0)
 
     def test_RogueService(self):
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
@@ -1225,8 +1225,8 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         time.sleep(1)
 
         # check rogue service is removed
-        self.assertEquals(len(devMgr._get_registeredServices()), 0)
-        self.assertEquals(len(rhdom.services), 0)
+        self.assertEqual(len(devMgr._get_registeredServices()), 0)
+        self.assertEqual(len(rhdom.services), 0)
 
 
     def test_ServiceShutdown_DomMgr(self):
@@ -1246,7 +1246,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.assertEqual(len(devMgr._get_registeredServices()), num_services)
 
         # Makes sure that the correct number of processes forked
-        self.assertEquals(len(getChildren(devmgr_nb.pid)), num_services + num_devices)
+        self.assertEqual(len(getChildren(devmgr_nb.pid)), num_services + num_devices)
 
         svcName = URI.stringToName(scatest.getTestDomainName() + "/BasicService1")
         self._root.resolve(svcName)._narrow(CF.PropertySet)
@@ -1265,7 +1265,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
             svcName = URI.stringToName(scatest.getTestDomainName() + "/" + svc.serviceName)
             svcobj = self._root.resolve(svcName)._narrow(CF.PropertySet)
             self.assertNotEqual(svcobj, None)
-            self.assert_(obj._is_equivalent(svcobj))
+            self.assertTrue(obj._is_equivalent(svcobj))
 
             # Check that all the parameters got set correctly
             props = obj.query([])
@@ -1277,7 +1277,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
             self.assertEqual(d["PARAM3"], 3.1459)
             self.assertEqual(d["PARAM4"], False)
             self.assertEqual(d["PARAM5"], "Hello World")
-            self.assertEqual(d.has_key("PARAM6"), False)
+            self.assertEqual("PARAM6" in d, False)
 
         # Check that we unregister correctly
         os.kill(self._domBooter.pid, signal.SIGINT)
@@ -1288,7 +1288,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
             svcNames.append(URI.stringToName(scatest.getTestDomainName() + "/" + n))
 
         # Needs to allow time for unregistering
-        self.assert_(self.waitTermination(self._domBooter), "Nodebooter did not die after shutdown")
+        self.assertTrue(self.waitTermination(self._domBooter), "Nodebooter did not die after shutdown")
 
         # Don't use assertRaises, so we can simplify things
         for name in svcNames:
@@ -1302,8 +1302,8 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         # Makes sure that all children are dead; on slower systems, the service
         # processes may take a while to exit, so wait for the DeviceManager to
         # exit first
-        self.assert_(self.waitTermination(devmgr_nb), "DeviceManager did not exit after shutdown")
-        self.assertEquals(len(getChildren(devmgr_nb.pid)), 0)
+        self.assertTrue(self.waitTermination(devmgr_nb), "DeviceManager did not exit after shutdown")
+        self.assertEqual(len(getChildren(devmgr_nb.pid)), 0)
 
     def test_ServiceShutdown_DevMgr(self):
         num_services = 5
@@ -1317,7 +1317,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.assertEqual(len(devMgr._get_registeredServices()), num_services)
 
         # Makes sure that the correct number of processes forked
-        self.assertEquals(len(getChildren(devmgr_nb.pid)), num_services + num_devices)
+        self.assertEqual(len(getChildren(devmgr_nb.pid)), num_services + num_devices)
 
         svcName = URI.stringToName(scatest.getTestDomainName() + "/BasicService1")
         self._root.resolve(svcName)._narrow(CF.PropertySet)
@@ -1336,7 +1336,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
             svcName = URI.stringToName(scatest.getTestDomainName() + "/" + svc.serviceName)
             svcobj = self._root.resolve(svcName)._narrow(CF.PropertySet)
             self.assertNotEqual(svcobj, None)
-            self.assert_(obj._is_equivalent(svcobj))
+            self.assertTrue(obj._is_equivalent(svcobj))
 
             # Check that all the parameters got set correctly
             props = obj.query([])
@@ -1348,7 +1348,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
             self.assertEqual(d["PARAM3"], 3.1459)
             self.assertEqual(d["PARAM4"], False)
             self.assertEqual(d["PARAM5"], "Hello World")
-            self.assertEqual(d.has_key("PARAM6"), False)
+            self.assertEqual("PARAM6" in d, False)
 
         # Check that we unregister correctly
         os.kill(devmgr_nb.pid, signal.SIGINT)
@@ -1359,7 +1359,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
             svcNames.append(URI.stringToName(scatest.getTestDomainName() + "/" + n))
 
         # Needs to allow time for unregistering
-        self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+        self.assertTrue(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
 
         # Don't use assertRaises, so we can simplify things
         for name in svcNames:
@@ -1371,7 +1371,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
                 self.fail("Expected service to not exist in the naming service: " + str(name))
 
         # Makes sure that all children are dead
-        self.assertEquals(len(getChildren(devmgr_nb.pid)), 0)
+        self.assertEqual(len(getChildren(devmgr_nb.pid)), 0)
 
     def test_ServicePort_DevMgrShutdown(self):
         num_services = 4
@@ -1385,16 +1385,16 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         self.assertEqual(len(devMgr._get_registeredServices()), num_services)
 
         # Makes sure that the correct number of processes forked
-        self.assertEquals(len(getChildren(devmgr_nb.pid)), num_devices)
+        self.assertEqual(len(getChildren(devmgr_nb.pid)), num_devices)
 
         # Check that we unregister correctly
         os.kill(devmgr_nb.pid, signal.SIGTERM)
 
         # Needs to allow time for unregistering
-        self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+        self.assertTrue(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
 
         # Makes sure that all children are dead
-        self.assertEquals(len(getChildren(devmgr_nb.pid)), 0)
+        self.assertEqual(len(getChildren(devmgr_nb.pid)), 0)
 
     def _test_Valgrind(self, valgrind):
         # Clear the device cache to prevent false positives
@@ -1850,7 +1850,7 @@ class DeviceManagerTest(scatest.CorbaTestCase):
         devmgr_nb, devMgr = self.launchDeviceManager("/nodes/BadPersonaNode/DeviceManager.dcd.xml")
         self.assertNotEqual(devMgr, None)
         num_devices = 1
-        self.assertEquals(len(getChildren(devmgr_nb.pid)), num_devices)
+        self.assertEqual(len(getChildren(devmgr_nb.pid)), num_devices)
 
 class DeviceManagerDepsTest(scatest.CorbaTestCase):
     def setUp(self):
@@ -1871,7 +1871,7 @@ class DeviceManagerDepsTest(scatest.CorbaTestCase):
 
         devMgr.shutdown()
 
-        self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+        self.assertTrue(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
 
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 0)
 
@@ -1884,7 +1884,7 @@ class DeviceManagerDepsTest(scatest.CorbaTestCase):
 
         devMgr.shutdown()
 
-        self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+        self.assertTrue(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
 
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 0)
 
@@ -1898,7 +1898,7 @@ class DeviceManagerDepsTest(scatest.CorbaTestCase):
 
         devMgr.shutdown()
 
-        self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+        self.assertTrue(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
 
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 0)
 
@@ -1915,8 +1915,8 @@ class DeviceManagerDepsTest(scatest.CorbaTestCase):
         devMgr_1.shutdown()
         devMgr_2.shutdown()
 
-        self.assert_(self.waitTermination(devmgr_nb_1), "Nodebooter did not die after shutdown")
-        self.assert_(self.waitTermination(devmgr_nb_2), "Nodebooter did not die after shutdown")
+        self.assertTrue(self.waitTermination(devmgr_nb_1), "Nodebooter did not die after shutdown")
+        self.assertTrue(self.waitTermination(devmgr_nb_2), "Nodebooter did not die after shutdown")
 
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 0)
 
@@ -1931,7 +1931,7 @@ class DeviceManagerDepsTest(scatest.CorbaTestCase):
 
         devMgr.shutdown()
 
-        self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+        self.assertTrue(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
 
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 0)
 
@@ -1945,7 +1945,7 @@ class DeviceManagerDepsTest(scatest.CorbaTestCase):
 
         devMgr.shutdown()
 
-        self.assert_(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
+        self.assertTrue(self.waitTermination(devmgr_nb), "Nodebooter did not die after shutdown")
 
         self.assertEqual(len(self._domMgr._get_deviceManagers()), 0)
 

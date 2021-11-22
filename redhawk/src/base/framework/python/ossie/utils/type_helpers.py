@@ -79,7 +79,7 @@ def _SIStringToNumeric(value):
         if c.isalpha():
             suffix += c
     if len(num) > 0 and len(suffix) > 0:
-        for suffixKey in siMap.keys():
+        for suffixKey in list(siMap.keys()):
             if suffixKey[0] == suffix:
                 if "." in num:
                     return float(num) * pow(1000,siMap[suffixKey])
@@ -96,24 +96,24 @@ def checkValidValue(value, dataType):
     if isinstance(value, str) and dataType != "string":
         value = _SIStringToNumeric(value)
     if dataType in ('char', 'string'):
-        if not isinstance(value, basestring):
-            raise TypeError, '%s is not valid for type %s' % (type(value), dataType)
+        if not isinstance(value, str):
+            raise TypeError('%s is not valid for type %s' % (type(value), dataType))
         if dataType == 'char' and len(value) != 1:
-            raise TypeError, 'expected a character, but string of length %d found' % len(value)
+            raise TypeError('expected a character, but string of length %d found' % len(value))
         return value
     elif dataType == 'utctime':
         if type(value) == str:
             return rhtime.convert(value)
         return value
-    elif isinstance(value, basestring):
-        raise TypeError, "Cannot convert string to type '%s'" % dataType
+    elif isinstance(value, str):
+        raise TypeError("Cannot convert string to type '%s'" % dataType)
     elif dataType in ('double', 'float'):
         return float(value)
     elif dataType in ('octet', 'short', 'ushort', 'long', 'ulong', 'longlong', 'ulonglong'):
         value = int(value)
         typeMin, typeMax = __INT_RANGE[dataType]
         if value > typeMax or value < typeMin:
-            raise OutOfRangeException, '%d is out of range for type %s [%d <= x <= %d]' % (value, dataType, typeMin, typeMax)
+            raise OutOfRangeException('%d is out of range for type %s [%d <= x <= %d]' % (value, dataType, typeMin, typeMax))
         return value
     elif dataType == 'boolean':
         return bool(value)
@@ -122,7 +122,7 @@ def checkValidValue(value, dataType):
     elif isinstance(dataType, list):
         for memberID in value:
             if memberID not in [id for id,propType in dataType]:
-                raise TypeError, '"' + str(memberID) + '" is not a member of this struct'
+                raise TypeError('"' + str(memberID) + '" is not a member of this struct')
         for memberID in value:
             if value[memberID] != None:
                 for id, propType in dataType:
@@ -131,7 +131,7 @@ def checkValidValue(value, dataType):
                     break
         return value
     else:
-        raise TypeError, str(type(value)) + ' is not a valid type for ' + dataType
+        raise TypeError(str(type(value)) + ' is not a valid type for ' + dataType)
 
 def checkValidDataSet(dataSet, dataType):
     value = [checkValidValue(v, dataType) for v in dataSet]

@@ -26,7 +26,7 @@ import re as re_
 
 ExternalEncoding = 'ascii'
 if sys.version_info[0] == 2:
-    BaseStrType_ = basestring
+    BaseStrType_ = str
 else:
     BaseStrType_ = str
 CDATA_pattern_ = re_.compile(r"<!\[CDATA\[.*?\]\]>", re_.DOTALL)
@@ -75,7 +75,7 @@ class GeneratedsSuper(object):
     def convert_unicode(self, instring):
         if isinstance(instring, str):
             result = quote_xml(instring)
-        elif sys.version_info[0] == 2 and isinstance(instring, unicode):
+        elif sys.version_info[0] == 2 and isinstance(instring, str):
             result = quote_xml(instring).encode('utf8')
         else:
             result = GeneratedsSuper.gds_encode(str(instring))

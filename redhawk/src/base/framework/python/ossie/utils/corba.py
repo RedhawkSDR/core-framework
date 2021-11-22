@@ -26,5 +26,5 @@ def objectExists(obj):
         return not obj._non_existent()
     except CORBA.Exception:
         return False
-    except Exception, e:
+    except Exception as e:
         return False

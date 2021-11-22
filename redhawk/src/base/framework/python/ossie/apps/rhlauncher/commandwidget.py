@@ -19,7 +19,7 @@
 #
 from PyQt4 import QtCore, QtGui
 
-import ui
+from . import ui
 
 class CommandWidget(QtGui.QWidget):
     def __init__(self, *args, **kwargs):

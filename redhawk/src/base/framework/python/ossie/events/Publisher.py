@@ -20,7 +20,7 @@
 
 import sys
 import time
-import Queue
+import queue
 import copy
 import logging
 import traceback

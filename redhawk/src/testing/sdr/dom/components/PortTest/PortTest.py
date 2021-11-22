@@ -55,7 +55,7 @@ class UsesPort(ExtendedCF__POA.QueryablePort):
             raise CF.Port.InvalidPort(CF.CF_EINVAL, "No such connection '%s'" % (connectionId,))            
 
     def _get_connections(self):
-        return [ExtendedCF.UsesConnection(k,v) for k, v in self._connections.iteritems()]
+        return [ExtendedCF.UsesConnection(k,v) for k, v in self._connections.items()]
 
     def _connectPort(self, port, connectionId):
         return port
@@ -87,7 +87,7 @@ class PropSetUsesPort(UsesPort):
 
     def query(self, propsIn):
         propsOut = []
-        for propset in self._connections.values():
+        for propset in list(self._connections.values()):
             propsOut += propset.query(propsIn)
         return propsOut
 
@@ -121,7 +121,7 @@ class EventSupplierPort(UsesPort):
         UsesPort.__init__(self, CosEventChannelAdmin.EventChannel)
     
     def sendEvent(self, event):
-        for consumer in self._connections.values():
+        for consumer in list(self._connections.values()):
             try:
                 consumer.push(event)
             except:

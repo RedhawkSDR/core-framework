@@ -37,7 +37,7 @@ from ossie.properties import struct_property
 
 from ossie.events import PropertyEventSupplier
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 
 NOOP = -1
 NORMAL = 0
@@ -162,10 +162,10 @@ class test_collocation_device_base(CF__POA.ExecutableDevice, ExecutableDevice):
         
             def __init__(self, **kw):
                 """Construct an initialized instance of this struct definition"""
-                for classattr in type(self).__dict__.itervalues():
+                for classattr in type(self).__dict__.values():
                     if isinstance(classattr, (simple_property, simpleseq_property)):
                         classattr.initialize(self)
-                for k,v in kw.items():
+                for k,v in list(kw.items()):
                     setattr(self,k,v)
         
             def __str__(self):

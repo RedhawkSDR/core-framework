@@ -24,7 +24,7 @@ from omniORB import URI, any, CORBA
 from ossie.cf import CF, CF__POA
 import CosNaming
 import threading
-import commands
+import subprocess
 import ossie.properties as properties
 import CosEventComm,CosEventComm__POA
 import CosEventChannelAdmin, CosEventChannelAdmin__POA
@@ -86,7 +86,7 @@ class PropertyChangeListenerTest(scatest.CorbaTestCase):
 
         c=None
         a=self.dom.apps[0]
-        c=filter( lambda c : c.name == comp_name, a.comps )[0]
+        c=[c for c in a.comps if c.name == comp_name][0]
         self.assertNotEqual(c,None)
         
         # create listener instance
@@ -106,14 +106,14 @@ class PropertyChangeListenerTest(scatest.CorbaTestCase):
         time.sleep(.6)   # wait for listener to receive notice
         
         # now check results
-        self.assertEquals(self.count,4)
+        self.assertEqual(self.count,4)
 
         # change unmonitored property
         c.prop2 = 100
         time.sleep(.6)   # wait for listener to receive notice
 
         # now check results
-        self.assertEquals(self.count,4)
+        self.assertEqual(self.count,4)
 
         # unregister
         c.unregisterPropertyListener( regid )
@@ -122,7 +122,7 @@ class PropertyChangeListenerTest(scatest.CorbaTestCase):
         time.sleep(.6)   # wait for listener to receive notice
         
         # now check results, should be same... 
-        self.assertEquals(self.count,4)
+        self.assertEqual(self.count,4)
 
         self.assertRaises( CF.InvalidIdentifier,
             c.unregisterPropertyListener, regid )
@@ -156,9 +156,9 @@ class PropertyChangeListenerTest(scatest.CorbaTestCase):
         c=None
         a=self.dom.apps[0]
         # component with external property
-        c=filter( lambda c : c.name == 'PropertyChange_C1', a.comps )[0]
+        c=[c for c in a.comps if c.name == 'PropertyChange_C1'][0]
         # assembly controller
-        c2=filter( lambda c : c.name == 'PropertyChange_P1', a.comps )[0]
+        c2=[c for c in a.comps if c.name == 'PropertyChange_P1'][0]
         self.assertNotEqual(a,None)
         self.assertNotEqual(c,None)
         self.assertNotEqual(c2,None)
@@ -183,7 +183,7 @@ class PropertyChangeListenerTest(scatest.CorbaTestCase):
         time.sleep(.6)   # wait for listener to receive notice
         
         # now check results
-        self.assertEquals(self.count,8)
+        self.assertEqual(self.count,8)
 
         # change unmonitored property
         c.prop2 = 100
@@ -191,7 +191,7 @@ class PropertyChangeListenerTest(scatest.CorbaTestCase):
         time.sleep(.6)   # wait for listener to receive notice
 
         # now check results
-        self.assertEquals(self.count,8)
+        self.assertEqual(self.count,8)
 
         # unregister
         a.unregisterPropertyListener( regid )
@@ -201,7 +201,7 @@ class PropertyChangeListenerTest(scatest.CorbaTestCase):
         time.sleep(.6)   # wait for listener to receive notice
         
         # now check results, should be same... 
-        self.assertEquals(self.count,8)
+        self.assertEqual(self.count,8)
 
         self.assertRaises( CF.InvalidIdentifier,
             a.unregisterPropertyListener, regid )
@@ -280,7 +280,7 @@ class PropertyChangeListenerEventTest(scatest.CorbaTestCase):
 
         c=None
         a=self.dom.apps[0]
-        c=filter( lambda c : c.name == comp_name, a.comps )[0]
+        c=[c for c in a.comps if c.name == comp_name][0]
         self.assertNotEqual(c,None)
 
         # check if channel is valid
@@ -341,9 +341,9 @@ class PropertyChangeListenerEventTest(scatest.CorbaTestCase):
         c=None
         a=self.dom.apps[0]
         # component with external property
-        c=filter( lambda c : c.name == 'PropertyChange_C1', a.comps )[0]
+        c=[c for c in a.comps if c.name == 'PropertyChange_C1'][0]
         # assembly controller
-        c2=filter( lambda c : c.name == 'PropertyChange_P1', a.comps )[0]
+        c2=[c for c in a.comps if c.name == 'PropertyChange_P1'][0]
         self.assertNotEqual(a,None)
         self.assertNotEqual(c,None)
         self.assertNotEqual(c2,None)

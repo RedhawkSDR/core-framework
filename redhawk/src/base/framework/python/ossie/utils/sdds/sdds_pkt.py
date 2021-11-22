@@ -20,6 +20,7 @@
 import ctypes
 import time
 import datetime
+from functools import reduce
 """
 Class definitions that represent SDDS packet structure.  The classes make use of python
 ctypes to pack and unpack bit fields into class's members.  The fields of arranged in
@@ -517,7 +518,7 @@ class ssc_info_struct(ctypes.BigEndianStructure):
       def set_freq(self, freq):
            # frequency units resolution 2^63/125mhz
            sfreq= freq* 73786976294.838211
-           self.freq =  long(sfreq)
+           self.freq =  int(sfreq)
 
       def get_dfdt(self):
            sdfdt = self.dfdt * 9.3132257461547852e-10
@@ -1219,8 +1220,8 @@ class sdds_packet(ctypes.Structure):
            if bps == None:
                 bps=self.get_bps()
            
-           for x in self.FORMATS.values():
-                if x.has_key('bps' ) and x['bps'] == bps:
+           for x in list(self.FORMATS.values()):
+                if 'bps' in x and x['bps'] == bps:
                      return x['samples']
 
            return None
@@ -1306,14 +1307,14 @@ class sdds_packet(ctypes.Structure):
       def get_format(self):
            dm=self.header.get_dmode()
            fmt='SB'
-           for k, v in sdds_packet.FORMATS.items():
+           for k, v in list(sdds_packet.FORMATS.items()):
                 if v['dmode'] == dm :
                      fmt=k
            return fmt
 
       def set_format(self, fmt):
            ret=1
-           if fmt in sdds_packet.FORMATS.keys():
+           if fmt in list(sdds_packet.FORMATS.keys()):
                 _fmt = sdds_packet.FORMATS[fmt]
                 ret=0
                 cplx = _fmt['cplx']
@@ -1323,7 +1324,7 @@ class sdds_packet(ctypes.Structure):
 
       def get_data(self, start=None, end=None ):
            bps=self.header.get_bps()
-           for k, v in sdds_packet.FORMATS.items():
+           for k, v in list(sdds_packet.FORMATS.items()):
                 if v['bps'] == bps :
                      attr = getattr(self.payload, k.lower())
                      return v['get_data'](attr)

@@ -23,7 +23,7 @@ import struct
 import os
 import array
 import threading
-import bulkio_helpers
+from . import bulkio_helpers
 import time
 import logging
 from new import classobj
@@ -79,9 +79,9 @@ class ArraySource(object):
         self.sri = H
         try:
             try:
-                for connId, port in self.outPorts.items():
+                for connId, port in list(self.outPorts.items()):
                     if port != None: port.pushSRI(H)
-            except Exception, e:
+            except Exception as e:
                 msg = "The call to pushSRI failed with %s " % e
                 msg += "connection %s instance %s" % (connId, port)
                 log.warn(msg)
@@ -98,14 +98,14 @@ class ArraySource(object):
         self.port_lock.acquire()
         try:
             try:
-                for connId, port in self.outPorts.items():
+                for connId, port in list(self.outPorts.items()):
                     if port != None:
                         interface = self.port_type._NP_RepositoryId
                         if interface == 'IDL:BULKIO/dataChar:1.0' or interface == 'IDL:BULKIO/dataOctet:1.0':
                             if len(data) == 0:
                                 data = ''
                         port.pushPacket(data, T, EOS, streamID)
-            except Exception, e:
+            except Exception as e:
                 msg = "The call to pushPacket failed with %s " % e
                 msg += "connection %s instance %s" % (connId, port)
                 log.warn(msg)
@@ -315,7 +315,7 @@ class ArraySink(object):
             if self.sri != None and self.sri.subsize != 0:
                 frameLength = self.sri.subsize if not self.sri.mode else 2*self.sri.subsize
                 if float(length)/frameLength != length/frameLength:
-                    print 'The requested length divided by the subsize ('+str(length)+'/'+str(self.sri.subsize)+') is not a whole number. Cannot return framed data'
+                    print('The requested length divided by the subsize ('+str(length)+'/'+str(self.sri.subsize)+') is not a whole number. Cannot return framed data')
                     return (None,None)
 
             # Wait for there to be enough data.
@@ -485,8 +485,8 @@ class ProbeSink(object):
         """
         self.port_lock.acquire()
         try:
-            if not self.valid_streams.has_key(stream_id):
-                log.warn("the received packet has the invalid stream ID: "+stream_id+". Valid stream IDs are:"+str(self.valid_streams.keys()))
+            if stream_id not in self.valid_streams:
+                log.warn("the received packet has the invalid stream ID: "+stream_id+". Valid stream IDs are:"+str(list(self.valid_streams.keys())))
             self.received_data[stream_id] = (self.received_data[stream_id][0] + len(data), self.received_data[stream_id][1] + 1)
             if EOS:
                 self.invalid_streams[stream_id] = self.valid_streams[stream_id]
@@ -588,9 +588,9 @@ class XmlArraySource(ArraySource):
         self.port_lock.acquire()
         try:
             try:
-                for connId, port in self.outPorts.items():
+                for connId, port in list(self.outPorts.items()):
                     if port != None: port.pushPacket(data, EOS, streamID)
-            except Exception, e:
+            except Exception as e:
                 msg = "The call to pushPacket failed with %s " % e
                 msg += "connection %s instance %s" % (connId, port)
                 log.warn(msg)
@@ -649,7 +649,7 @@ class SDDSSource(object):
         retval = None
         try:
             try:
-                for connId, port in self.outPorts.items():
+                for connId, port in list(self.outPorts.items()):
                     if port != None:
                         retval_ = port.attach(streamDef, user_id)
                         if retval == None:
@@ -659,7 +659,7 @@ class SDDSSource(object):
                         else:
                             retval.append(retval_)
 
-            except Exception, e:
+            except Exception as e:
                 msg = "The call to attach failed with %s " % e
                 msg += "connection %s instance %s" % (connId, port)
                 log.warn(msg)
@@ -671,11 +671,11 @@ class SDDSSource(object):
         self.port_lock.acquire()
         try:
             try:
-                for connId, port in self.outPorts.items():
+                for connId, port in list(self.outPorts.items()):
                     if port != None:
                         port.detach(attachId)
 
-            except Exception, e:
+            except Exception as e:
                 msg = "The call to detach failed with %s " % e
                 msg += "connection %s instance %s" % (connId, port)
                 log.warn(msg)
@@ -849,9 +849,9 @@ class FileSource(object):
         self.sri = H
         try:
             try:
-                for connId, port in self.outPorts.items():
+                for connId, port in list(self.outPorts.items()):
                     if port != None: port.pushSRI(H)
-            except Exception, e:
+            except Exception as e:
                 msg = "The call to pushSRI failed with %s " % e
                 msg += "connection %s instance %s" % (connId, port)
                 log.warn(msg)
@@ -871,14 +871,14 @@ class FileSource(object):
         self.port_lock.acquire()
         try:
             try:
-                for connId, port in self.outPorts.items():
+                for connId, port in list(self.outPorts.items()):
                     if port != None:
-                        if self.connectionNormalization.has_key(connId):
-                            new_data = range(len(data))
+                        if connId in self.connectionNormalization:
+                            new_data = list(range(len(data)))
                             for idx in range(len(data)):
                                 new_data[idx] = float(data[idx]) * self.connectionNormalization[connId]
                             data = new_data
-                        elif self.connectionTranslation.has_key(connId):
+                        elif connId in self.connectionTranslation:
                             new_data_str = ''
                             for idx in range(len(data)):
                                 new_data_str = new_data_str + data[idx] + self.connectionTranslation[connId][0]
@@ -889,7 +889,7 @@ class FileSource(object):
                             port.pushPacket(data, EOS, streamID)
                         else:
                             port.pushPacket(data, T, EOS, streamID)
-            except Exception, e:
+            except Exception as e:
                 msg = "The call to pushPacket failed with %s " % e
                 msg += "connection %s instance %s" % (connId, port)
                 log.warn(msg)
@@ -1041,12 +1041,12 @@ class SDDSSink(object):
         return BULKIO.dataSDDS.ACTIVE
 
     def getUser(self, attachId):
-        if self.attachments.has_key(attachId):
+        if attachId in self.attachments:
             return self.attachments[attachId][1]
         return ''
 
     def getStreamDefinition(self, attachId):
-        if self.attachments.has_key(attachId):
+        if attachId in self.attachments:
             return self.attachments[attachId][0]
         return None
 
@@ -1055,7 +1055,7 @@ class SDDSSink(object):
 
     def detach(self, attachId):
         self.port_lock.acquire()
-        if self.attachments.has_key(attachId):
+        if attachId in self.attachments:
             self.attachments.pop(attachId)
         self.port_lock.release()
         self.parent.detach_cb(attachId)
@@ -1212,7 +1212,7 @@ class FileSink(object):
                         self.sd_fp[stream_id] = self.outFile
                 else:
                     if self.stream_derived:
-                        if self.sd_fp.has_key(stream_id):
+                        if stream_id in self.sd_fp:
                             self.outFile = self.sd_fp[stream_id]
                         else:
                             self.outFile = open(stream_id+'_out', "wb")
@@ -1223,7 +1223,7 @@ class FileSink(object):
                 if self.outFile != None:
                     self.outFile.close()
                     if self.stream_derived:
-                        if self.sd_fp.has_key(stream_id):
+                        if stream_id in self.sd_fp:
                             self.sd_fp.pop(stream_id)
         finally:
             self.port_lock.release()

@@ -30,7 +30,7 @@ from ossie.device import Device
 from ossie.threadedcomponent import *
 from ossie.properties import simple_property
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 from ossie.resource import usesport, providesport
 from ossie.cf import ExtendedCF
 from ossie.cf import ExtendedCF__POA
@@ -138,7 +138,7 @@ class PortCFPropertySetOut_i(svc_connect_dev_base.PortCFPropertySetOut):
     def _get_connections(self):
         self.port_lock.acquire()
         try:
-            return [ExtendedCF.UsesConnection(name, port) for name, port in self.outConnections.iteritems()]
+            return [ExtendedCF.UsesConnection(name, port) for name, port in self.outConnections.items()]
         finally:
             self.port_lock.release()
 
@@ -146,7 +146,7 @@ class PortCFPropertySetOut_i(svc_connect_dev_base.PortCFPropertySetOut):
         self.port_lock.acquire()
 
         try:
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if port != None:
                     try:
                         port.configure(configProperties)
@@ -160,7 +160,7 @@ class PortCFPropertySetOut_i(svc_connect_dev_base.PortCFPropertySetOut):
         self.port_lock.acquire()
 
         try:
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if port != None:
                     try:
                         retVal = port.query(configProperties)

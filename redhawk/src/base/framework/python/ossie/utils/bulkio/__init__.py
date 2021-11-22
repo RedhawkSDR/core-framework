@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import bulkio_helpers
-from bulkio_helpers import *
-import bulkio_data_helpers
-from bulkio_data_helpers import *
+from . import bulkio_helpers
+from .bulkio_helpers import *
+from . import bulkio_data_helpers
+from .bulkio_data_helpers import *

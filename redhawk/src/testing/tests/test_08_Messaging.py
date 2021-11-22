@@ -55,10 +55,10 @@ class Foo(object):
 
     def __init__(self, **kw):
         """Construct an initialized instance of this struct definition"""
-        for classattr in type(self).__dict__.itervalues():
+        for classattr in type(self).__dict__.values():
             if isinstance(classattr, (simple_property, simpleseq_property)):
                 classattr.initialize(self)
-        for k,v in kw.items():
+        for k,v in list(kw.items()):
             setattr(self,k,v)
 
     def __str__(self):
@@ -85,10 +85,10 @@ class MyMsg(object):
 
     def __init__(self, **kw):
         """Construct an initialized instance of this struct definition"""
-        for classattr in type(self).__dict__.itervalues():
+        for classattr in type(self).__dict__.values():
             if isinstance(classattr, (simple_property, simpleseq_property)):
                 classattr.initialize(self)
-        for k,v in kw.items():
+        for k,v in list(kw.items()):
             setattr(self,k,v)
 
     def __str__(self):
@@ -159,7 +159,7 @@ class MessagMarshalErrorTest(scatest.CorbaTestCase):
         except:
             pass
         number_warnings = log_contents.count('Maximum message size exceeded')
-        self.assertEquals(number_warnings, 2)
+        self.assertEqual(number_warnings, 2)
         self.assertEqual(self.messages_passed, 101)
 
     @scatest.requireJava
@@ -198,8 +198,8 @@ class MessagMarshalErrorTest(scatest.CorbaTestCase):
         except:
             pass
 
-        self.assertEquals(number_warnings_1, 1)
-        self.assertEquals(number_warnings_2, 3)
+        self.assertEqual(number_warnings_1, 1)
+        self.assertEqual(number_warnings_2, 3)
         self.assertEqual(self.messages_passed, 101)
 
 
@@ -230,9 +230,9 @@ class MessagMarshalErrorTest(scatest.CorbaTestCase):
         except:
             pass
         number_warnings = log_contents.count('Could not deliver the message. Maximum message size exceeded, trying individually')
-        self.assertEquals(number_warnings, 1)
+        self.assertEqual(number_warnings, 1)
         number_warnings = log_contents.count('Maximum message size exceeded')
-        self.assertEquals(number_warnings, 3)
+        self.assertEqual(number_warnings, 3)
         self.assertEqual(self.messages_passed, 101)
 
 class MessagingCompatibilityTest(scatest.CorbaTestCase):
@@ -268,27 +268,27 @@ class MessagingCompatibilityTest(scatest.CorbaTestCase):
             if self.rcv_msg != None:
                 break
             _now = time.time()
-        self.assertEquals(self.rcv_msg.a, 'A')
-        self.assertEquals(self.rcv_msg.b, 'B')
-        self.assertEquals(self.rcv_msg.c, 'C')
+        self.assertEqual(self.rcv_msg.a, 'A')
+        self.assertEqual(self.rcv_msg.b, 'B')
+        self.assertEqual(self.rcv_msg.c, 'C')
         self.rcv_msg = None
         src.sendMessage({'a':'A','b':'B','c':'C'})
         while _now - _begin < 5:
             if self.rcv_msg != None:
                 break
             _now = time.time()
-        self.assertEquals(self.rcv_msg.a, 'A')
-        self.assertEquals(self.rcv_msg.b, 'B')
-        self.assertEquals(self.rcv_msg.c, 'C')
+        self.assertEqual(self.rcv_msg.a, 'A')
+        self.assertEqual(self.rcv_msg.b, 'B')
+        self.assertEqual(self.rcv_msg.c, 'C')
         self.rcv_msg = None
         src.sendMessage({'a':'A','c':'C'})
         while _now - _begin < 5:
             if self.rcv_msg != None:
                 break
             _now = time.time()
-        self.assertEquals(self.rcv_msg.a, 'A')
-        self.assertEquals(self.rcv_msg.b, None)
-        self.assertEquals(self.rcv_msg.c, 'C')
+        self.assertEqual(self.rcv_msg.a, 'A')
+        self.assertEqual(self.rcv_msg.b, None)
+        self.assertEqual(self.rcv_msg.c, 'C')
         self.rcv_msg = None
 
     def test_MessagingCpp(self):
@@ -305,27 +305,27 @@ class MessagingCompatibilityTest(scatest.CorbaTestCase):
             if self.rcv_msg != None:
                 break
             _now = time.time()
-        self.assertEquals(self.rcv_msg.a, 'A')
-        self.assertEquals(self.rcv_msg.b, 'B')
-        self.assertEquals(self.rcv_msg.c, 'C')
+        self.assertEqual(self.rcv_msg.a, 'A')
+        self.assertEqual(self.rcv_msg.b, 'B')
+        self.assertEqual(self.rcv_msg.c, 'C')
         self.rcv_msg = None
         src.sendMessage({'a':'A','b':'B','c':'C'})
         while _now - _begin < 5:
             if self.rcv_msg != None:
                 break
             _now = time.time()
-        self.assertEquals(self.rcv_msg.a, 'A')
-        self.assertEquals(self.rcv_msg.b, 'B')
-        self.assertEquals(self.rcv_msg.c, 'C')
+        self.assertEqual(self.rcv_msg.a, 'A')
+        self.assertEqual(self.rcv_msg.b, 'B')
+        self.assertEqual(self.rcv_msg.c, 'C')
         self.rcv_msg = None
         src.sendMessage({'a':'A','c':'C'})
         while _now - _begin < 5:
             if self.rcv_msg != None:
                 break
             _now = time.time()
-        self.assertEquals(self.rcv_msg.a, 'A')
-        self.assertEquals(self.rcv_msg.b, '')
-        self.assertEquals(self.rcv_msg.c, 'C')
+        self.assertEqual(self.rcv_msg.a, 'A')
+        self.assertEqual(self.rcv_msg.b, '')
+        self.assertEqual(self.rcv_msg.c, 'C')
         self.rcv_msg = None
 
     @scatest.requireJava
@@ -343,27 +343,27 @@ class MessagingCompatibilityTest(scatest.CorbaTestCase):
             if self.rcv_msg != None:
                 break
             _now = time.time()
-        self.assertEquals(self.rcv_msg.a, 'A')
-        self.assertEquals(self.rcv_msg.b, 'B')
-        self.assertEquals(self.rcv_msg.c, 'C')
+        self.assertEqual(self.rcv_msg.a, 'A')
+        self.assertEqual(self.rcv_msg.b, 'B')
+        self.assertEqual(self.rcv_msg.c, 'C')
         self.rcv_msg = None
         src.sendMessage({'a':'A','b':'B','c':'C'})
         while _now - _begin < 5:
             if self.rcv_msg != None:
                 break
             _now = time.time()
-        self.assertEquals(self.rcv_msg.a, 'A')
-        self.assertEquals(self.rcv_msg.b, 'B')
-        self.assertEquals(self.rcv_msg.c, 'C')
+        self.assertEqual(self.rcv_msg.a, 'A')
+        self.assertEqual(self.rcv_msg.b, 'B')
+        self.assertEqual(self.rcv_msg.c, 'C')
         self.rcv_msg = None
         src.sendMessage({'a':'A','c':'C'})
         while _now - _begin < 5:
             if self.rcv_msg != None:
                 break
             _now = time.time()
-        self.assertEquals(self.rcv_msg.a, 'A')
-        self.assertEquals(self.rcv_msg.b, None)
-        self.assertEquals(self.rcv_msg.c, 'C')
+        self.assertEqual(self.rcv_msg.a, 'A')
+        self.assertEqual(self.rcv_msg.b, None)
+        self.assertEqual(self.rcv_msg.c, 'C')
         self.rcv_msg = None
 
     def __MessageCycle(self, comp):
@@ -522,13 +522,13 @@ class EventPortConnectionsTest(scatest.CorbaTestCase):
         time.sleep(2)
         components = app._get_registeredComponents()
         for component in components:
-            print component.componentObject._get_identifier()
+            print(component.componentObject._get_identifier())
             if 'MessageReceiverPy_1' in component.componentObject._get_identifier():
                 stuff = component.componentObject.query([])
         recval = any.from_any(stuff[0].value)
-        self.assertEquals(6, len(recval))
+        self.assertEqual(6, len(recval))
         for val in recval:
-            self.assertEquals('test_message' in val, True)
+            self.assertEqual('test_message' in val, True)
 
     def test_QueryablePortPython(self):
         self._devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml", self._domMgr)

@@ -11,7 +11,7 @@ from ossie.device import Device
 from ossie.threadedcomponent import *
 from ossie.properties import simple_property
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 from ossie.resource import usesport, providesport, PortCallError
 
 class svc_port_base(CF__POA.Device, Device, ThreadedComponent):
@@ -130,7 +130,7 @@ class PortCFLogConfigurationIn_i(svc_port_base.PortCFLogConfigurationIn):
         self.parent = parent
         self.name = name
         self.sri = None
-        self.queue = Queue.Queue()
+        self.queue = queue.Queue()
         self.port_lock = threading.Lock()
 
     def getLogLevel(self, logger_id):

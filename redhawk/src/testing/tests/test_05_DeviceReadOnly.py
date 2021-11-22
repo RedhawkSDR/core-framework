@@ -43,7 +43,7 @@ class TestDeviceJava(scatest.CorbaTestCase):
         self.assertNotEqual(self._domain, None, "DomainManager not available")
         self.assertNotEqual(self._devMgr, None, "Failed to launch device manager")
 
-        dev=filter( lambda c : c._id == 'TestJavaDevice_1', self._domain.devices )[0]
+        dev=[c for c in self._domain.devices if c._id == 'TestJavaDevice_1'][0]
         self.assertNotEqual(dev,None)
         props = dev.query([CF.DataType("readOnly", any.to_any(None))])
         self.assertEqual(props[0].value._v, "set_once")
@@ -70,7 +70,7 @@ class TestDevice(scatest.CorbaTestCase):
         self.assertNotEqual(self._domain, None, "DomainManager not available")
         self.assertNotEqual(self._devMgr, None, "Failed to launch device manager")
 
-        dev=filter( lambda c : c._id == 'TestPythonDevice_1', self._domain.devices )[0]
+        dev=[c for c in self._domain.devices if c._id == 'TestPythonDevice_1'][0]
         self.assertNotEqual(dev,None)
         props = dev.query([CF.DataType("readOnly", any.to_any(None))])
         self.assertEqual(dev.readOnly, 'set_once')
@@ -83,7 +83,7 @@ class TestDevice(scatest.CorbaTestCase):
         self.assertNotEqual(self._domain, None, "DomainManager not available")
         self.assertNotEqual(self._devMgr, None, "Failed to launch app")
 
-        dev=filter( lambda c : c._id == 'TestCppDevice_1', self._domain.devices )[0]
+        dev=[c for c in self._domain.devices if c._id == 'TestCppDevice_1'][0]
         self.assertNotEqual(dev,None)
         props = dev.query([CF.DataType("readOnly", any.to_any(None))])
         self.assertEqual(props[0].value._v, "set_once")

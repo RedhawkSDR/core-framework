@@ -26,7 +26,7 @@ import time
 import os
 import sys
 import contextlib
-import cStringIO
+import io
 import re
 
 logcfg="""
@@ -89,7 +89,7 @@ class Test_Log4py_DateFormat(unittest.TestCase):
         if len(conv) > 2:
             logline = logline.split(conv[2])[0]
             pval = pval.split(conv[2])[0]
-        self.assertEquals( pval, logline)
+        self.assertEqual( pval, logline)
 
 
     def test_date1(self):
@@ -171,7 +171,7 @@ class Log4PyAppenders(unittest.TestCase):
 
         fp = None
         fp = open(fname,'r')
-        self.assertNotEquals(fp,None)
+        self.assertNotEqual(fp,None)
         try:
             os.remove(fname)
         except:
@@ -204,16 +204,16 @@ class Log4PyAppenders(unittest.TestCase):
         floc = os.getcwd()
         fp = None
         fp = open(fname,'r')
-        self.assertNotEquals(fp,None)
+        self.assertNotEqual(fp,None)
         try:
             os.remove(fname)
-        except Exception, e:
+        except Exception as e:
             pass
 
         try:
             os
             os.rmdir('tmp/foo/bar')
-        except Exception, e:
+        except Exception as e:
             pass
         try:
             os.rmdir('tmp/foo')
@@ -323,7 +323,7 @@ class Log4PyConfigFile(unittest.TestCase):
     def _try_config_test(self, logcfg, epattern, foundTest=None ):
         import ossie.utils.log4py.config
 
-        with stdout_redirect(cStringIO.StringIO()) as new_stdout:
+        with stdout_redirect(io.StringIO()) as new_stdout:
             ossie.utils.log4py.config.strConfig(logcfg,None)
 
         new_stdout.seek(0)

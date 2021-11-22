@@ -27,24 +27,24 @@
 
 PROPERTIES = (
               (
-               u'DCE:6b298d70-6735-43f2-944d-06f754cd4eb9', # ID
-               u'no_default_prop', # NAME
-               u'string', # TYPE
-               u'readwrite', # MODE
+               'DCE:6b298d70-6735-43f2-944d-06f754cd4eb9', # ID
+               'no_default_prop', # NAME
+               'string', # TYPE
+               'readwrite', # MODE
                None, # DEFAULT
                None, # UNITS
                'external', # ACTION
-               (u'configure',), # KINDS
+               ('configure',), # KINDS
               ),
               (
-               u'DCE:456310b2-7d2f-40f5-bfef-9fdf4f3560ea', # ID
-               u'default_prop', # NAME
-               u'string', # TYPE
-               u'readwrite', # MODE
+               'DCE:456310b2-7d2f-40f5-bfef-9fdf4f3560ea', # ID
+               'default_prop', # NAME
+               'string', # TYPE
+               'readwrite', # MODE
                'default', # DEFAULT
                None, # UNITS
                'external', # ACTION
-               (u'configure',), # KINDS
+               ('configure',), # KINDS
               ),
             )
 

@@ -180,7 +180,7 @@ class ConnectionManagerTest(scatest.CorbaTestCase):
         uses = CF.ConnectionManager.EndpointRequest(uses, 'resource_out')
         provides = CF.ConnectionManager.EndpointResolutionType(deviceId=self.devId1)
         provides = CF.ConnectionManager.EndpointRequest(provides, '')
-        self.failUnlessRaises(CF.Port.InvalidPort, self._connMgr.connect, uses, provides, 'test_environment', 'test_connection')
+        self.assertRaises(CF.Port.InvalidPort, self._connMgr.connect, uses, provides, 'test_environment', 'test_connection')
 
         # Try to make a connection to an application that does not exist, again
         # verifying that it raises an exception
@@ -188,7 +188,7 @@ class ConnectionManagerTest(scatest.CorbaTestCase):
         uses = CF.ConnectionManager.EndpointRequest(uses, 'resource_out')
         provides = CF.ConnectionManager.EndpointResolutionType(applicationId='not_there')
         provides = CF.ConnectionManager.EndpointRequest(provides, '')
-        self.failUnlessRaises(CF.Port.InvalidPort, self._connMgr.connect, uses, provides, 'test_environment', 'test_connection')
+        self.assertRaises(CF.Port.InvalidPort, self._connMgr.connect, uses, provides, 'test_environment', 'test_connection')
 
 class ConnectionManagerTestRedhawkUtils(scatest.CorbaTestCase):
     def setUp(self):
@@ -518,10 +518,10 @@ class ConnectionManagerTestRedhawkUtils(scatest.CorbaTestCase):
         # verify that it raises an exception
         uses = self.cm.applicationEndPoint('not_there', 'resource_out')
         provides = self.cm.deviceEndPoint( self.devId1, '')
-        self.failUnlessRaises(CF.Port.InvalidPort, self.cm.connect, uses, provides, 'test_environment', 'test_connection')
+        self.assertRaises(CF.Port.InvalidPort, self.cm.connect, uses, provides, 'test_environment', 'test_connection')
 
         # Try to make a connection to an application that does not exist, again
         # verifying that it raises an exception
         uses = self.cm.deviceEndPoint(self.devId2, 'resource_out')
         provides = self.cm.applicationEndPoint('not_there', '')
-        self.failUnlessRaises(CF.Port.InvalidPort, self.cm.connect, uses, provides, 'test_environment', 'test_connection')
+        self.assertRaises(CF.Port.InvalidPort, self.cm.connect, uses, provides, 'test_environment', 'test_connection')

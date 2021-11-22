@@ -171,7 +171,7 @@ class SADConnectionsTest(scatest.CorbaTestCase):
         self.assertEqual(len(ids), 1)
         usedDevId = any.from_any(ids[0].value).split('/')[0]
         devIds = [dev._get_identifier() for dev in self._devMgr._get_registeredDevices()]
-        self.assert_(usedDevId in devIds)
+        self.assertTrue(usedDevId in devIds)
 
     def test_ExternalPorts(self):
         self._createApp('ExternalPort')
@@ -345,7 +345,7 @@ class SADConnectionsTest(scatest.CorbaTestCase):
 
         component = self._getComponents()['PortTest2']
         plist = component.getPortSet()
-        pinfo = filter(lambda x : x.name == 'resource_out', plist)
+        pinfo = [x for x in plist if x.name == 'resource_out']
         nports = len(plist)
         self.assertEqual(nports, 7 )
         self.assertEqual(pinfo[0].name, 'resource_out')

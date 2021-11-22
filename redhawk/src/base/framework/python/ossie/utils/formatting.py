@@ -84,9 +84,9 @@ class TablePrinter(object):
         template = template % tuple(widths)
 
         if self._enable_header:
-            print >>f, template % self._headers
-            print >>f, template % tuple('-'*len(h) for h in self._headers)
+            print(template % self._headers, file=f)
+            print(template % tuple('-'*len(h) for h in self._headers), file=f)
 
         for fields in self._lines:
             fields = tuple(self._limit_field(f, w) for f, w in zip(fields, widths))
-            print >>f, template % fields
+            print(template % fields, file=f)

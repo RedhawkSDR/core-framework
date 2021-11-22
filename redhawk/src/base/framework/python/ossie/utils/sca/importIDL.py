@@ -425,7 +425,7 @@ def importStandardIdl(std_idl_path='/usr/local/share/idl/ossie', std_idl_include
     std_idl_path = os.path.normpath(std_idl_path)
 
     if not os.path.exists(std_idl_path):
-        print "Cannot find OSSIE installation location:\n" + std_idl_path
+        print("Cannot find OSSIE installation location:\n" + std_idl_path)
         return
 
     # list to hold IDL files
@@ -438,7 +438,7 @@ def importStandardIdl(std_idl_path='/usr/local/share/idl/ossie', std_idl_include
     # don't want them asscociated with anything other than cf.idl
     cfdir = os.path.join(std_idl_path, "ossie/CF")
     if not os.path.isdir(cfdir):
-        print "Cannot find CF idl files in the OSSIE installation location:\n" + cfdir
+        print("Cannot find CF idl files in the OSSIE installation location:\n" + cfdir)
 
     for file in os.listdir(cfdir):
         if os.path.splitext(file)[1] == '.idl':
@@ -455,7 +455,7 @@ def importStandardIdl(std_idl_path='/usr/local/share/idl/ossie', std_idl_include
 
     if len(idlList) <= 0:
         tmpstr = "Can't find any files in: " + std_idl_path
-        print tmpstr
+        print(tmpstr)
         return
 
     # Add the CF interfaces first - in case another file includes them, we
@@ -521,4 +521,4 @@ if __name__ == '__main__':
         if options.include:
             includepaths = [x for x in options.include.split(",") if x]
 
-        print getInterfacesFromFileAsString(options.filepath, includepaths)
+        print(getInterfacesFromFileAsString(options.filepath, includepaths))

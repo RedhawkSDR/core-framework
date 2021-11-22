@@ -80,14 +80,14 @@ class CppDomainEventLoggingConfig(scatest.CorbaTestCase):
         for _c in clist:
             if _c.channel_name == 'TEST_EVT_CH1':
                 reg_count = _c.reg_count
-        self.assertEquals(reg_count, 2) # both the instance and static root loggers
+        self.assertEqual(reg_count, 2) # both the instance and static root loggers
         self.app.releaseObject()
         clist,citer = self._rhDom._get_eventChannelMgr().listChannels(5)
         reg_count = -1
         for _c in clist:
             if _c.channel_name == 'TEST_EVT_CH1':
                 reg_count = _c.reg_count
-        self.assertEquals(reg_count, 0)
+        self.assertEqual(reg_count, 0)
 
 class PyDomainEventLoggingConfig(scatest.CorbaTestCase):
     def setUp(self):
@@ -129,14 +129,14 @@ class PyDomainEventLoggingConfig(scatest.CorbaTestCase):
         for _c in clist:
             if _c.channel_name == 'TEST_EVT_CH1':
                 reg_count = _c.reg_count
-        self.assertEquals(reg_count, 1)
+        self.assertEqual(reg_count, 1)
         self.app.releaseObject()
         clist,citer = self._rhDom._get_eventChannelMgr().listChannels(5)
         reg_count = -1
         for _c in clist:
             if _c.channel_name == 'TEST_EVT_CH1':
                 reg_count = _c.reg_count
-        self.assertEquals(reg_count, 0)
+        self.assertEqual(reg_count, 0)
 
 @scatest.requireJava
 class JavaDomainEventLoggingConfig(scatest.CorbaTestCase):
@@ -179,14 +179,14 @@ class JavaDomainEventLoggingConfig(scatest.CorbaTestCase):
         for _c in clist:
             if _c.channel_name == 'TEST_EVT_CH1':
                 reg_count = _c.reg_count
-        self.assertEquals(reg_count, 1)
+        self.assertEqual(reg_count, 1)
         self.app.releaseObject()
         clist,citer = self._rhDom._get_eventChannelMgr().listChannels(5)
         reg_count = -1
         for _c in clist:
             if _c.channel_name == 'TEST_EVT_CH1':
                 reg_count = _c.reg_count
-        self.assertEquals(reg_count, 0)
+        self.assertEqual(reg_count, 0)
 
 @scatest.requireLog4cxx
 class CppLoggingConfig(scatest.CorbaTestCase):
@@ -246,25 +246,25 @@ class CppLoggingConfig(scatest.CorbaTestCase):
     def test_log_level(self):
         self.comp.ref._set_log_level( CF.LogLevels.OFF )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, CF.LogLevels.OFF )
+        self.assertEqual( lvl, CF.LogLevels.OFF )
         self.comp.ref._set_log_level( CF.LogLevels.FATAL )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, CF.LogLevels.FATAL)
+        self.assertEqual( lvl, CF.LogLevels.FATAL)
         self.comp.ref._set_log_level( CF.LogLevels.ERROR )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, CF.LogLevels.ERROR)
+        self.assertEqual( lvl, CF.LogLevels.ERROR)
         self.comp.ref._set_log_level( CF.LogLevels.WARN )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, CF.LogLevels.WARN)
+        self.assertEqual( lvl, CF.LogLevels.WARN)
         self.comp.ref._set_log_level( CF.LogLevels.INFO )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, CF.LogLevels.INFO)
+        self.assertEqual( lvl, CF.LogLevels.INFO)
         self.comp.ref._set_log_level( CF.LogLevels.DEBUG )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, CF.LogLevels.DEBUG)
+        self.assertEqual( lvl, CF.LogLevels.DEBUG)
         self.comp.ref._set_log_level( CF.LogLevels.TRACE )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, CF.LogLevels.TRACE)
+        self.assertEqual( lvl, CF.LogLevels.TRACE)
         self.comp.ref._set_log_level( CF.LogLevels.ERROR )
 
     def test_default_logconfig(self):
@@ -279,7 +279,7 @@ class CppLoggingConfig(scatest.CorbaTestCase):
         ## remove extra white space
         cfg=cfg.replace(" ","")
         c_cfg=c_cfg.replace(" ","")
-        self.assertEquals( cfg, c_cfg)
+        self.assertEqual( cfg, c_cfg)
 
 
     def test_logconfig(self):
@@ -294,7 +294,7 @@ class CppLoggingConfig(scatest.CorbaTestCase):
         c_cfg=self.comp.ref.getLogConfig()
         cfg=cfg.replace(" ","")
         c_cfg=c_cfg.replace(" ","")
-        self.assertEquals( cfg, c_cfg)
+        self.assertEqual( cfg, c_cfg)
 
 
     def test_comp_macro_config(self):
@@ -310,14 +310,14 @@ class CppLoggingConfig(scatest.CorbaTestCase):
 
         res=c_cfg.find(self.cname)
 
-        self.assertNotEquals( res, -1 )
+        self.assertNotEqual( res, -1 )
 
     def test_comp_macro_config2(self):
         cfg = "@@@COMPONENT.NAME@@@"
         self.comp.ref.setLogConfig(cfg)
         c_cfg=self.comp.ref.getLogConfig()
         res=c_cfg.find(self.cname)
-        self.assertNotEquals( res, -1 )
+        self.assertNotEqual( res, -1 )
 
 
     def test_comp_log_event_appender(self):
@@ -358,25 +358,25 @@ class JavaLoggingConfig(scatest.CorbaTestCase):
     def test_log_level(self):
         self.comp.ref._set_log_level( CF.LogLevels.OFF )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, CF.LogLevels.OFF )
+        self.assertEqual( lvl, CF.LogLevels.OFF )
         self.comp.ref._set_log_level( CF.LogLevels.FATAL )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, CF.LogLevels.FATAL)
+        self.assertEqual( lvl, CF.LogLevels.FATAL)
         self.comp.ref._set_log_level( CF.LogLevels.ERROR )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, CF.LogLevels.ERROR)
+        self.assertEqual( lvl, CF.LogLevels.ERROR)
         self.comp.ref._set_log_level( CF.LogLevels.WARN )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, CF.LogLevels.WARN)
+        self.assertEqual( lvl, CF.LogLevels.WARN)
         self.comp.ref._set_log_level( CF.LogLevels.INFO )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, CF.LogLevels.INFO)
+        self.assertEqual( lvl, CF.LogLevels.INFO)
         self.comp.ref._set_log_level( CF.LogLevels.DEBUG )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, CF.LogLevels.DEBUG)
+        self.assertEqual( lvl, CF.LogLevels.DEBUG)
         self.comp.ref._set_log_level( CF.LogLevels.TRACE )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, CF.LogLevels.TRACE)
+        self.assertEqual( lvl, CF.LogLevels.TRACE)
         self.comp.ref._set_log_level( CF.LogLevels.ERROR )
 
     def test_default_logconfig(self):
@@ -389,7 +389,7 @@ class JavaLoggingConfig(scatest.CorbaTestCase):
         c_cfg=self.comp.ref.getLogConfig()
         cfg=cfg.replace(" ","")
         c_cfg=c_cfg.replace(" ","")
-        self.assertEquals( cfg, c_cfg)
+        self.assertEqual( cfg, c_cfg)
 
 
     def test_logconfig(self):
@@ -405,7 +405,7 @@ class JavaLoggingConfig(scatest.CorbaTestCase):
         cfg=cfg.replace(" ","")
         c_cfg=c_cfg.replace(" ","")
 
-        self.assertEquals( cfg, c_cfg)
+        self.assertEqual( cfg, c_cfg)
 
 
     def test_comp_macro_config(self):
@@ -421,14 +421,14 @@ class JavaLoggingConfig(scatest.CorbaTestCase):
 
         res=c_cfg.find(self.cname)
 
-        self.assertNotEquals( res, -1 )
+        self.assertNotEqual( res, -1 )
 
     def test_comp_macro_config2(self):
         cfg = "@@@COMPONENT.NAME@@@"
         self.comp.ref.setLogConfig(cfg)
         c_cfg=self.comp.ref.getLogConfig()
         res=c_cfg.find(self.cname)
-        self.assertNotEquals( res, -1 )
+        self.assertNotEqual( res, -1 )
 
 
     def test_comp_log_event_appender(self):
@@ -484,7 +484,7 @@ class FileLoggingConfig(scatest.CorbaTestCase):
             os.rmdir('foo')
         except:
             pass
-        self.assertNotEquals(fp, None)
+        self.assertNotEqual(fp, None)
 
     @scatest.requireLog4cxx
     def test_comp_macro_directories_config_cpp(self):
@@ -507,7 +507,7 @@ class FileLoggingConfig(scatest.CorbaTestCase):
             os.rmdir('foo')
         except:
             pass
-        self.assertNotEquals(fp, None)
+        self.assertNotEqual(fp, None)
 
     @scatest.requireJava
     def test_comp_macro_directories_config_java(self):
@@ -530,7 +530,7 @@ class FileLoggingConfig(scatest.CorbaTestCase):
             os.rmdir('foo')
         except:
             pass
-        self.assertNotEquals(fp, None)
+        self.assertNotEqual(fp, None)
 
 class TokenLoggingConfig(scatest.CorbaTestCase):
     def setUp(self):
@@ -573,7 +573,7 @@ class TokenLoggingConfig(scatest.CorbaTestCase):
             fp = open('sdr/foo/bar/test.log','r')
         except:
             pass
-        self.assertNotEquals(fp, None)
+        self.assertNotEqual(fp, None)
         logfile_content = fp.readlines()
         found_line = None
         for line in logfile_content:
@@ -582,9 +582,9 @@ class TokenLoggingConfig(scatest.CorbaTestCase):
                     continue
                 found_line = line
                 break
-        self.assertNotEquals(found_line, None)
-        self.assertNotEquals(found_line.find(logstr), -1)
-        self.assertNotEquals(found_line.find('DeviceManager.parsers'), -1)
+        self.assertNotEqual(found_line, None)
+        self.assertNotEqual(found_line.find(logstr), -1)
+        self.assertNotEqual(found_line.find('DeviceManager.parsers'), -1)
 
     @scatest.requireLog4cxx
     def test_token_config_dev_cpp(self):
@@ -593,16 +593,16 @@ class TokenLoggingConfig(scatest.CorbaTestCase):
             if devmgr._instanceName == 'ExecutableDevice_node':
                 found_devmgr = devmgr
                 break
-        self.assertNotEquals(found_devmgr, None)
+        self.assertNotEqual(found_devmgr, None)
         found_dev = None
         for dev in found_devmgr.devs:
             if dev.name == 'ExecutableDevice':
                 found_dev = dev
                 break
-        self.assertNotEquals(found_dev, None)
+        self.assertNotEqual(found_dev, None)
         logcfg = found_dev.getLogConfig()
         logstr = '|||WAVEFORM.NO_INST|||'+found_devmgr._instanceName+'|||'+self._rhDom.name+'-'+os.uname()[1]+'-'+found_devmgr._instanceName+'_'+str(self.devBooter.pid)
-        self.assertNotEquals(logcfg.find(logstr), -1)
+        self.assertNotEqual(logcfg.find(logstr), -1)
 
     def test_token_config_dev_py(self):
         self.devBooter_2, self._devMgr_2 = self.launchDeviceManager("/nodes/py_dev_n/DeviceManager.dcd.xml", loggingURI='file://'+os.getcwd()+'/macro_config.cfg')
@@ -611,16 +611,16 @@ class TokenLoggingConfig(scatest.CorbaTestCase):
             if devmgr._instanceName == 'py_dev_n':
                 found_devmgr = devmgr
                 break
-        self.assertNotEquals(found_devmgr, None)
+        self.assertNotEqual(found_devmgr, None)
         found_dev = None
         for dev in found_devmgr.devs:
             if dev.name == 'py_dev':
                 found_dev = dev
                 break
-        self.assertNotEquals(found_dev, None)
+        self.assertNotEqual(found_dev, None)
         logcfg = found_dev.getLogConfig()
         logstr = '|||WAVEFORM.NO_INST|||'+found_devmgr._instanceName+'|||'+self._rhDom.name+'-'+os.uname()[1]+'-'+found_devmgr._instanceName+'_'+str(self.devBooter_2.pid)
-        self.assertNotEquals(logcfg.find(logstr), -1)
+        self.assertNotEqual(logcfg.find(logstr), -1)
 
     @scatest.requireJava
     def test_token_config_dev_java(self):
@@ -630,20 +630,20 @@ class TokenLoggingConfig(scatest.CorbaTestCase):
             if devmgr._instanceName == 'java_dev_n':
                 found_devmgr = devmgr
                 break
-        self.assertNotEquals(found_devmgr, None)
+        self.assertNotEqual(found_devmgr, None)
         found_dev = None
         for dev in found_devmgr.devs:
             if dev.name == 'java_dev':
                 found_dev = dev
                 break
-        self.assertNotEquals(found_dev, None)
+        self.assertNotEqual(found_dev, None)
         begin = time.time()
         logcfg = None
         while time.time()-begin < 1 or not logcfg:
             logcfg = found_dev.getLogConfig()
-        self.assertNotEquals(logcfg, None)
+        self.assertNotEqual(logcfg, None)
         logstr = '|||WAVEFORM.NO_INST|||'+found_devmgr._instanceName+'|||'+self._rhDom.name+'-'+os.uname()[1]+'-'+found_devmgr._instanceName+'_'+str(self.devBooter_2.pid)
-        self.assertNotEquals(logcfg.find(logstr), -1)
+        self.assertNotEqual(logcfg.find(logstr), -1)
 
     @scatest.requireLog4cxx
     def test_token_config_comp_cpp(self):
@@ -653,10 +653,10 @@ class TokenLoggingConfig(scatest.CorbaTestCase):
             if comp.name == 'PropertyChange_C1':
                 found_comp = comp
                 break
-        self.assertNotEquals(found_comp, None)
+        self.assertNotEqual(found_comp, None)
         logcfg = found_comp.getLogConfig()
         logstr = '|||'+app._instanceName+'|||DEV_MGR.NO_NAME|||DEV_MGR.NO_INST'
-        self.assertNotEquals(logcfg.find(logstr), -1)
+        self.assertNotEqual(logcfg.find(logstr), -1)
 
     def test_token_config_comp_py(self):
         app = self._rhDom.createApplication("/waveforms/PropertyChangeListenerNoJava/PropertyChangeListenerNoJava.sad.xml")
@@ -665,10 +665,10 @@ class TokenLoggingConfig(scatest.CorbaTestCase):
             if comp.name == 'PropertyChange_P1':
                 found_comp = comp
                 break
-        self.assertNotEquals(found_comp, None)
+        self.assertNotEqual(found_comp, None)
         logcfg = found_comp.getLogConfig()
         logstr = '|||'+app._instanceName+'|||DEV_MGR.NO_NAME|||DEV_MGR.NO_INST'
-        self.assertNotEquals(logcfg.find(logstr), -1)
+        self.assertNotEqual(logcfg.find(logstr), -1)
 
     @scatest.requireJava
     def test_token_config_comp_java(self):
@@ -678,10 +678,10 @@ class TokenLoggingConfig(scatest.CorbaTestCase):
             if comp.name == 'PropertyChange_J1':
                 found_comp = comp
                 break
-        self.assertNotEquals(found_comp, None)
+        self.assertNotEqual(found_comp, None)
         logcfg = found_comp.getLogConfig()
         logstr = '|||'+app._instanceName+'|||DEV_MGR.NO_NAME|||DEV_MGR.NO_INST'
-        self.assertNotEquals(logcfg.find(logstr), -1)
+        self.assertNotEqual(logcfg.find(logstr), -1)
 
 class PythonLoggingConfig(scatest.CorbaTestCase):
     def setUp(self):
@@ -700,25 +700,25 @@ class PythonLoggingConfig(scatest.CorbaTestCase):
         self.comp = sb.launch(self.cname, impl="python", execparams={'DISABLE_CB': 'True'} )
         self.comp.ref._set_log_level( CF.LogLevels.OFF )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, CF.LogLevels.OFF )
+        self.assertEqual( lvl, CF.LogLevels.OFF )
         self.comp.ref._set_log_level( CF.LogLevels.FATAL )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, CF.LogLevels.FATAL)
+        self.assertEqual( lvl, CF.LogLevels.FATAL)
         self.comp.ref._set_log_level( CF.LogLevels.ERROR )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, CF.LogLevels.ERROR)
+        self.assertEqual( lvl, CF.LogLevels.ERROR)
         self.comp.ref._set_log_level( CF.LogLevels.WARN )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, CF.LogLevels.WARN)
+        self.assertEqual( lvl, CF.LogLevels.WARN)
         self.comp.ref._set_log_level( CF.LogLevels.INFO )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, CF.LogLevels.INFO)
+        self.assertEqual( lvl, CF.LogLevels.INFO)
         self.comp.ref._set_log_level( CF.LogLevels.DEBUG )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, CF.LogLevels.DEBUG)
+        self.assertEqual( lvl, CF.LogLevels.DEBUG)
         self.comp.ref._set_log_level( CF.LogLevels.TRACE )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, CF.LogLevels.TRACE)
+        self.assertEqual( lvl, CF.LogLevels.TRACE)
         self.comp.ref._set_log_level( CF.LogLevels.ERROR )
 
     def test_default_logconfig(self):
@@ -731,7 +731,7 @@ class PythonLoggingConfig(scatest.CorbaTestCase):
         c_cfg=self.comp.ref.getLogConfig()
         cfg=cfg.replace(" ","")
         c_cfg=c_cfg.replace(" ","")
-        self.assertEquals( cfg, c_cfg)
+        self.assertEqual( cfg, c_cfg)
 
 
     def test_logconfig(self):
@@ -746,7 +746,7 @@ class PythonLoggingConfig(scatest.CorbaTestCase):
         c_cfg=self.comp.ref.getLogConfig()
         cfg=cfg.replace(" ","")
         c_cfg=c_cfg.replace(" ","")
-        self.assertEquals( cfg, c_cfg)
+        self.assertEqual( cfg, c_cfg)
 
 
     def test_comp_macro_config(self):
@@ -762,7 +762,7 @@ class PythonLoggingConfig(scatest.CorbaTestCase):
 
         res=c_cfg.find(self.cname)
 
-        self.assertNotEquals( res, -1 )
+        self.assertNotEqual( res, -1 )
 
 
     def test_comp_log_event_appender(self):
@@ -818,11 +818,11 @@ class PythonLoggingConfig(scatest.CorbaTestCase):
         orig = self.comp.ref._get_log_level()
         self.comp.ref._set_log_level( CF.LogLevels.TRACE )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, orig )
+        self.assertEqual( lvl, orig )
 
         # change config
         c_cfg=self.comp.ref.setLogConfig(cfg)
-        self.assertEquals( self.comp.new_log_cfg, exp_cfg)
+        self.assertEqual( self.comp.new_log_cfg, exp_cfg)
         
 
 class PythonDeviceLoggingConfig(scatest.CorbaTestCase):
@@ -843,25 +843,25 @@ class PythonDeviceLoggingConfig(scatest.CorbaTestCase):
         self.comp = sb.launch(self.cname, impl="python", execparams={'DISABLE_CB': 'True'} )
         self.comp.ref._set_log_level( CF.LogLevels.OFF )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, CF.LogLevels.OFF )
+        self.assertEqual( lvl, CF.LogLevels.OFF )
         self.comp.ref._set_log_level( CF.LogLevels.FATAL )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, CF.LogLevels.FATAL)
+        self.assertEqual( lvl, CF.LogLevels.FATAL)
         self.comp.ref._set_log_level( CF.LogLevels.ERROR )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, CF.LogLevels.ERROR)
+        self.assertEqual( lvl, CF.LogLevels.ERROR)
         self.comp.ref._set_log_level( CF.LogLevels.WARN )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, CF.LogLevels.WARN)
+        self.assertEqual( lvl, CF.LogLevels.WARN)
         self.comp.ref._set_log_level( CF.LogLevels.INFO )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, CF.LogLevels.INFO)
+        self.assertEqual( lvl, CF.LogLevels.INFO)
         self.comp.ref._set_log_level( CF.LogLevels.DEBUG )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, CF.LogLevels.DEBUG)
+        self.assertEqual( lvl, CF.LogLevels.DEBUG)
         self.comp.ref._set_log_level( CF.LogLevels.TRACE )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, CF.LogLevels.TRACE)
+        self.assertEqual( lvl, CF.LogLevels.TRACE)
         self.comp.ref._set_log_level( CF.LogLevels.ERROR )
 
     def test_default_logconfig(self):
@@ -874,7 +874,7 @@ class PythonDeviceLoggingConfig(scatest.CorbaTestCase):
         c_cfg=self.comp.ref.getLogConfig()
         cfg=cfg.replace(" ","")
         c_cfg=c_cfg.replace(" ","")
-        self.assertEquals( cfg, c_cfg)
+        self.assertEqual( cfg, c_cfg)
 
 
     def test_logconfig(self):
@@ -889,7 +889,7 @@ class PythonDeviceLoggingConfig(scatest.CorbaTestCase):
         c_cfg=self.comp.ref.getLogConfig()
         cfg=cfg.replace(" ","")
         c_cfg=c_cfg.replace(" ","")
-        self.assertEquals( cfg, c_cfg)
+        self.assertEqual( cfg, c_cfg)
 
 
     def test_comp_macro_config(self):
@@ -905,7 +905,7 @@ class PythonDeviceLoggingConfig(scatest.CorbaTestCase):
 
         res=c_cfg.find(self.cname)
 
-        self.assertNotEquals( res, -1 )
+        self.assertNotEqual( res, -1 )
 
 
     def test_comp_log_event_appender(self):
@@ -962,11 +962,11 @@ class PythonDeviceLoggingConfig(scatest.CorbaTestCase):
         orig = self.comp.ref._get_log_level()
         self.comp.ref._set_log_level( CF.LogLevels.TRACE )
         lvl = self.comp.ref._get_log_level()
-        self.assertEquals( lvl, orig )
+        self.assertEqual( lvl, orig )
 
         # change config
         c_cfg=self.comp.ref.setLogConfig(cfg)
-        self.assertEquals( self.comp.new_log_cfg, exp_cfg)
+        self.assertEqual( self.comp.new_log_cfg, exp_cfg)
 
 class DomainTestLogEventAppender(scatest.CorbaTestCase):
     def setUp(self):
@@ -995,7 +995,7 @@ class DomainTestLogEventAppender(scatest.CorbaTestCase):
         fp = open(self.stderr_filename, 'r')
         contents = fp.read()
         fp.close()
-        self.assertEquals(len(contents), 0)
+        self.assertEqual(len(contents), 0)
 
 class LoggingConfigCategory(scatest.CorbaTestCase):
     def setUp(self):
@@ -1024,7 +1024,7 @@ class LoggingConfigCategory(scatest.CorbaTestCase):
 
         self.comp.setLogConfig(x)
         lvl=self.comp.log_level()
-        self.assertEquals( orig, lvl )
+        self.assertEqual( orig, lvl )
 
 
         # change component's  logger level state from WARN to TRACE
@@ -1038,7 +1038,7 @@ class LoggingConfigCategory(scatest.CorbaTestCase):
     log4j.category.TestLoggingAPI_1=TRACE,stdout\n\n'
         self.comp.setLogConfig(y)
         lvl=self.comp.log_level()
-        self.assertEquals( proj, lvl )
+        self.assertEqual( proj, lvl )
 
     @scatest.requireJava
     def test_LoggingCategoryJava(self):
