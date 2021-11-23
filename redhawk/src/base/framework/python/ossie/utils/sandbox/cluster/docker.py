@@ -57,8 +57,6 @@ class DockerProcess(LocalProcess):
             dockerCmd = "docker run --rm -d --network host -P --name " + arguments[-1].replace(":", "") + mountCmd + " --entrypoint " + command + " " + image
             dockerArgs = shlex.split(dockerCmd) + arguments
 
-        print(dockerArgs)
-
         super(DockerProcess, self).__init__(dockerArgs[0], dockerArgs[1:], environment=None, stdout=None)
         self.__pod_name = arguments[7]
         self.__tracker = None
@@ -72,7 +70,6 @@ class DockerProcess(LocalProcess):
         if not self.__tracker:
             # Nothing is currently waiting for notification, start monitor.
             name = self.__pod_name  # set the name of your container
-            print("setTerminateCallback " + name)
             self.__tracker = threading.Thread(name=name, target=self._monitorProcess)
             self.__tracker.daemon = False
             self.__tracker.start()
@@ -85,7 +82,14 @@ class DockerProcess(LocalProcess):
             print('Component %s (pid=%d) exited with status %d' % (name, pid, status))
         elif status < 0:
             print('Component %s (pid=%d) terminated with signal %d' % (name, pid, -status))
-            
+    
+    def terminate(self):
+        arguments = ["docker", "container", "stop", self.__pod_name]
+        try:
+            self.__status = subprocess.check_output(arguments)
+        except:
+            self.__status = "Not Running"
+
     def timeout(self):
         return self.__timeout
             
@@ -98,7 +102,7 @@ class DockerProcess(LocalProcess):
             self.__status = subprocess.check_output(arguments)
         except:
             self.__status = "Not Running"
-        print("Status: " + self.__status.replace("\n", ""))
+        self.__status = str(self.__status)
 
         if "true" in self.__status:
             return True

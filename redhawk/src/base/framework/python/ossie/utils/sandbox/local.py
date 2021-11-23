@@ -263,7 +263,23 @@ class LocalLauncher(SandboxLauncher):
             component_path = os.path.dirname(comp._profile)
             _sdrroot_path = os.path.dirname(component_path)
             entry_point = '$SDRROOT/dom/components'+component_path[len(_sdrroot_path):]+'/'+impl.get_code().get_entrypoint()
-            process = device.executeContainer(entry_point, deps, execparams, debugger, window, self._stdout, self._orchestrationType)
+            componenthostid = 'component_host_'+str(uuid4())[:8]
+            process = device.executeContainer(entry_point, deps, execparams, debugger, window, self._stdout, self._orchestrationType, componenthostid)
+            command, arguments, environment, stdout = device.getExecArgs(entry_point, deps, execparams, debugger, window, self._stdout, self._orchestrationType)
+            entryPoint = command.split("::")[0]
+            if entryPoint[-3:] == '.so':
+                class tmp_comphost:
+                    def __init__(self, comp_name):
+                        self._instanceName = comp_name
+                comphost = tmp_comphost(componenthostid)
+                while self.getReference(comphost) == None:
+                    time.sleep(0.5)
+                running_host = self.getReference(comphost)
+
+                entryPoint = entryPoint.replace("$SDRROOT/", "/var/redhawk/sdr/")
+                params = [CF.DataType(k, to_any(str(v))) for k, v in execparams.items()]
+                running_host.executeLinked(entryPoint, [], params, deps)
+
             name = comp._instanceName
             process.setTerminationCallback(process.terminate_callback)
 
@@ -366,7 +382,6 @@ class LocalLauncher(SandboxLauncher):
             # Kill child process (may be multiple processes in the case of a debugger)
             comp._process.terminate()
             comp._process = None
-
 
 class LocalComponentLauncher(LocalLauncher):
     def launch(self, *args, **kwargs):

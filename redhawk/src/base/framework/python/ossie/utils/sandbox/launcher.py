@@ -33,6 +33,7 @@ from .process import LocalProcess
 from ossie.utils import log4py
 from ossie import parsers
 from ossie.utils.popen import Popen
+from ossie.utils import uuid as _uuid
 
 __all__ = ('VirtualDevice')
 
@@ -167,7 +168,7 @@ class VirtualDevice(object):
 
         return process
 
-    def executeContainer(self, entryPoint_image, deps, execparams, debugger, window, stdout=None, orchestrationType=None):
+    def executeContainer(self, entryPoint_image, deps, execparams, debugger, window, stdout=None, orchestrationType=None, componenthostid=None):
         image = ""
         if "::" in entryPoint_image:
             entryPoint = entryPoint_image.split("::")[0]
@@ -176,7 +177,14 @@ class VirtualDevice(object):
             raise RuntimeError("No docker image was found in the spd file")
 
         command, arguments, environment, stdout = self.getExecArgs(entryPoint, deps, execparams, debugger, window, stdout, True)
-        
+
+        if command[-3:] == '.so':
+            c_command, c_arguments, c_environment, c_stdout = command, arguments, environment, stdout
+            command = "/var/redhawk/sdr/dom/mgr/rh/ComponentHost/ComponentHost"
+            arguments[1] = 'DCE:'+str(_uuid.uuid4())
+            arguments[5] = "/var/redhawk/sdr/dom/mgr/rh/ComponentHost/ComponentHost.spd.xml"
+            arguments[7] = componenthostid
+
         process = cluster.executeCluster(command, arguments, image, environment, stdout, orchestrationType)
         return process
 
