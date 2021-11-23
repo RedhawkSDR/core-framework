@@ -44,21 +44,6 @@ rhAssetNewSource:
 redhawkBuild:
 	$(call IMAGE_BUILD_2,$@,${repo_url},${branch_or_tag},rh.$@)
 
-componentHost:
-	$(call IMAGE_BUILD_2,$@,${repo_url},${branch_or_tag},rh.$@)
-
-sharedRhAsset: checkCompHost
-	$(call IMAGE_BUILD,$@,shared_asset,${ASSET},sharedmakefile)
-	docker tag sharedmakefile:$(VERSION) rh.componenthost:$(VERSION)
-	docker tag sharedmakefile:latest rh.componenthost:latest
-	docker image rm -f sharedmakefile
-
-sharedCustom: checkCompHost checkDirectory checkCompsExist
-	$(call IMAGE_BUILD,$@,shared_asset,${CUSTOM},sharedmakefile)
-	docker tag sharedmakefile:$(VERSION) rh.componenthost:$(VERSION)
-	docker tag sharedmakefile:latest rh.componenthost:latest
-	docker image rm -f sharedmakefile
-
 clean:
 	rm -rf ./Dockerfiles/tmpCustom/*
 	rm -rf ./Dockerfiles/rhSharedLibrary/root/*
