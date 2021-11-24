@@ -32,7 +32,7 @@
 using namespace ossie;
 
 SoftPkg::SoftPkg() :
-    _spd(0),
+    _spd(),
     _spdFile()
 {
 }

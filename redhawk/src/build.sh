@@ -22,6 +22,7 @@
 config_ac='configure.ac'
 make_am='Makefile.am'
 makefile='Makefile'
+uname=$(uname)
 
 set -e
 
@@ -31,7 +32,11 @@ else
  if [[ $config_ac -nt $makefile || $make_am -nt $makefile ]]; then
   set -x
   ./reconf
-  CXXFLAGS=-Wno-deprecated ./configure -C --disable-java --disable-persistence #XXX --disable-log4cxx
+  if [[ $uname = "Darwin" ]]; then
+    PYTHON=python3.9 CXXFLAGS=-std=c++14 ./configure -C -with-expat=/usr/local/Cellar/expat/2.4.1  --disable-log4cxx --without-tests --disable-java --disable-persistence
+  else
+    CXXFLAGS=-Wno-deprecated ./configure -C --disable-java --disable-persistence
+  fi
  fi
  make -j
 fi

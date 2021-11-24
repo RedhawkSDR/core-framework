@@ -302,7 +302,7 @@ namespace ossie {
             void loadDescriptor(std::istream& file);
 
         protected:
-            std::auto_ptr<SPD> _spd;
+            std::unique_ptr<SPD> _spd;
             boost::shared_ptr<Properties> _properties;
             boost::shared_ptr<ComponentDescriptor> _descriptor;
             std::string _spdFile;

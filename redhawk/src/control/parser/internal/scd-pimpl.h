@@ -56,11 +56,11 @@ namespace scd {
       virtual void
       propertyfile ();
 
-      virtual std::auto_ptr<ossie::ComponentDescriptor::SCD>
+      virtual std::unique_ptr<ossie::ComponentDescriptor::SCD>
       post_softwarecomponent ();
 
       private:
-      std::auto_ptr<ossie::ComponentDescriptor::SCD> _data;
+      std::unique_ptr<ossie::ComponentDescriptor::SCD> _data;
     };
 
     class propertyFile_pimpl: public virtual propertyFile_pskel

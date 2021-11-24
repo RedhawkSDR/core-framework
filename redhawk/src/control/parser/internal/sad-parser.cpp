@@ -23,7 +23,7 @@
 #include "sad-parser.h"
 #include "sad-pimpl.h"
 
-std::auto_ptr<ossie::SoftwareAssembly::SAD>
+std::unique_ptr<ossie::SoftwareAssembly::SAD>
 ossie::internalparser::parseSAD(std::istream& input) throw (ossie::parser_error)
 {
     try {

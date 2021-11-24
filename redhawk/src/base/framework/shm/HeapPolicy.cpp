@@ -8,8 +8,34 @@
 #include <sys/syscall.h>
 #include <sys/types.h>
 
+#ifdef __APPLE__
+//
+// from https://stackoverflow.com/questions/33745364/sched-getcpu-equivalent-for-os-x
+//
+#include <cpuid.h>
+
+#define CPUID(INFO, LEAF, SUBLEAF) __cpuid_count(LEAF, SUBLEAF, INFO[0], INFO[1], INFO[2], INFO[3])
+
+static size_t sched_getcpu() {
+        uint32_t CPUInfo[4];
+        CPUID(CPUInfo, 1, 0);
+        size_t CPU;
+        /* CPUInfo[1] is EBX, bits 24-31 are APIC ID */
+        if ( (CPUInfo[3] & (1 << 9)) == 0) {
+          CPU = -1;  /* no APIC on chip */
+        }
+        else {
+          CPU = (size_t)CPUInfo[1] >> 24;
+        }
+        if (CPU < 0) {
+            CPU = 0;
+        }
+        return CPU;
+      }
+#endif
+
 namespace {
-    static int getCpuCount()
+    int getCpuCount()
     {
         static int count = sysconf(_SC_NPROCESSORS_CONF);
         return std::max(count, 1);

@@ -28,7 +28,7 @@ using namespace ossie;
 // When the XSD changes you will need to update these functions.
 PREPARE_CF_LOGGING(DomainManagerConfiguration)
 
-DomainManagerConfiguration::DomainManagerConfiguration(std::istream& input) throw (ossie::parser_error) : _dmd(0) {
+DomainManagerConfiguration::DomainManagerConfiguration(std::istream& input) throw (ossie::parser_error) : _dmd() {
     this->load(input);
 }
 
@@ -38,7 +38,7 @@ DomainManagerConfiguration::~DomainManagerConfiguration() {
 
 DomainManagerConfiguration& DomainManagerConfiguration::operator=(DomainManagerConfiguration other) {
     // Pass ownership
-    this->_dmd = other._dmd;
+    this->_dmd = std::move(other._dmd);
     return *this;
 }
 

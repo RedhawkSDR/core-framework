@@ -23,7 +23,14 @@
 #include <cstring>
 #include <set>
 
+#ifdef __linux__
 #include <elf.h>
+#else
+#define EI_NIDENT   (16)
+#define ELFMAG		"\177ELF"
+#define SELFMAG		4
+#endif
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>

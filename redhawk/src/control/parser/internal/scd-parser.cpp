@@ -23,7 +23,7 @@
 #include "scd-parser.h"
 #include "scd-pimpl.h"
 
-std::auto_ptr<ossie::ComponentDescriptor::SCD>
+std::unique_ptr<ossie::ComponentDescriptor::SCD>
 ossie::internalparser::parseSCD(std::istream& input) throw (ossie::parser_error)
 {
     using namespace scd;

@@ -211,7 +211,7 @@ namespace ossie {
         void validateExternalPorts(std::vector<Port>& ports);
         void validateExternalProperties(std::vector<Property>& properties);
 
-        std::auto_ptr<SAD> _sad;
+        std::unique_ptr<SAD> _sad;
     };
 }
 #endif

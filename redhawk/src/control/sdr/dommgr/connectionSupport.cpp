@@ -143,7 +143,7 @@ AppConnectionManager::~AppConnectionManager()
 
 bool AppConnectionManager::resolveConnection(const Connection& connection)
 {
-    std::auto_ptr<ConnectionNode> connectionNode(ConnectionNode::ParseConnection(connection));
+    std::unique_ptr<ConnectionNode> connectionNode(ConnectionNode::ParseConnection(connection));
     if (!connectionNode.get()) {
         RH_ERROR(_connectionLog, "Unable to parse connection");
         return false;
@@ -640,14 +640,14 @@ PREPARE_CF_LOGGING(ConnectionNode);
 ConnectionNode* ConnectionNode::ParseConnection(const Connection& connection)
 {
     // Parse the uses port.
-    std::auto_ptr<Endpoint> usesEndpoint(Endpoint::ParsePort(connection.getUsesPort()));
+    std::unique_ptr<Endpoint> usesEndpoint(Endpoint::ParsePort(connection.getUsesPort()));
     if (!usesEndpoint.get()) {
         RH_ERROR(connectionSupportLog, "Unable to parse uses endpoint");
         return 0;
     }
 
     // Parse the provides port.
-    std::auto_ptr<Endpoint> providesEndpoint(Endpoint::ParseProvidesEndpoint(connection));
+    std::unique_ptr<Endpoint> providesEndpoint(Endpoint::ParseProvidesEndpoint(connection));
     if (!providesEndpoint.get()) {
         RH_ERROR(connectionSupportLog, "Unable to parse provides endpoint");
         return 0;

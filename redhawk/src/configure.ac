@@ -81,7 +81,7 @@ PKG_CHECK_MODULES([OMNIORB], [omniORB4 >= 4.0.0])
 OMNIORB_INCLUDEDIR=`pkg-config --variable=includedir omniORB4`
 AC_SUBST(OMNIORB_INCLUDEDIR)
 PKG_CHECK_EXISTS([omniORB4 >= 4.2.0],[AC_DEFINE([OMNIORB4_2],[1],[])])
-PKG_CHECK_MODULES([OMNITHREAD], [omnithread4 >= 4.0.0])
+PKG_CHECK_MODULES([OMNITHREAD], [omnithread3 >= 0.29.2])
 PKG_CHECK_MODULES([OMNIDYNAMIC], [omniDynamic4 >= 4.0.0])
 
 dnl Use PKG_CHECK_EXISTS because it won't throw error messages like PKG_CHECK_MODULES will
@@ -115,12 +115,13 @@ fi
 # Get the XSD version
 AC_MSG_CHECKING([xsd version])
 xsd_version=`${XSD} version 2>&1 | head -n 1 | awk '{print $8}'`
-oldest_version=`echo -e "${xsd_version}\n3.3.0" | sort -t '.' -k 1,1 -k 2,2 -k 3,3 -k 4,4 -g | head -n 1`
-if test "x$oldest_version" != "x3.3.0"; then
-    AC_MSG_FAILURE([XSD version 3.3.0 required])
-else
-    AC_MSG_RESULT([$xsd_version])
-fi
+AC_MSG_RESULT([$xsd_version])
+### oldest_version=`echo -e "${xsd_version}\n4.0.0" | sort -t '.' -k 1,1 -k 2,2 -k 3,3 -k 4,4 -g | head -n 1`
+### if test "x$oldest_version" != "x4.0.0"; then
+###     AC_MSG_FAILURE([XSD version 4.0.0 required])
+### else
+###     AC_MSG_RESULT([$xsd_version])
+### fi
 AC_CHECK_HEADER([xsd/cxx/config.hxx], [], [AC_MSG_ERROR([missing XSD headers])])
 AC_CHECK_PROG([XMLCATALOG], [xmlcatalog], [xmlcatalog], [no])
 AM_CONDITIONAL(HAVE_XMLCATALOG, test $XMLCATALOG != "no")
@@ -198,13 +199,13 @@ fi
 AC_SUBST([HAVE_JAVASUPPORT], $HAVE_JAVASUPPORT)
 AM_CONDITIONAL(HAVE_JAVASUPPORT, test $HAVE_JAVASUPPORT = yes)
 
-AM_PATH_PYTHON([2.4])
+AM_PATH_PYTHON([2.7])
 
 AC_CHECK_PYMODULE(logging ,[], [AC_MSG_ERROR([the python logging module is required])])
 AC_CHECK_PYMODULE(subprocess, [], [AC_MSG_ERROR([the python subprocess module is required])])
 AC_CHECK_PYMODULE(omniORB, [], [AC_MSG_ERROR([the python omniORB module is required])])
-if test -d /usr/lib/omniidl; then # for debian-based systems
-  export PYTHONPATH=${PYTHONPATH}:/usr/lib/omniidl
+if test -d /usr/local/lib/${PYTHON}/site-packages/omniidl; then # for debian-based systems
+  export PYTHONPATH=/usr/local/lib/${PYTHON}/site-packages:${PYTHONPATH}
 fi
 AC_CHECK_PYMODULE(omniidl, [], [AC_MSG_ERROR([the python omniidl module is required])])
 
@@ -226,7 +227,7 @@ fi
 
 # Use libuuid from e2fsprogs to generate UUIDs.
 AC_CHECK_HEADER([uuid/uuid.h], [], [AC_MSG_ERROR([uuid/uuid.h is required])])
-AC_CHECK_LIB([uuid], [uuid_generate], [], [AC_MSG_ERROR([libuuid is required])])
+#XXX AC_CHECK_LIB([uuid], [uuid_generate], [], [AC_MSG_ERROR([libuuid is required])])
 
 # Set flags for building against the main C++ library.
 AC_SUBST(OSSIE_CFLAGS, '-I$(top_srcdir)/base/include')

@@ -35,7 +35,7 @@ namespace redhawk {
                 READWRITE
             };
 
-            static const size_t PAGE_SIZE;
+            static const size_t SC_PAGE_SIZE;
 
             MappedFile(const std::string& name);
             ~MappedFile();

@@ -236,11 +236,11 @@ namespace prf
       virtual void
       structsequence (ossie::StructSequenceProperty*);
 
-      virtual std::auto_ptr<ossie::PRF>
+      virtual std::unique_ptr<ossie::PRF>
       post_properties ();
 
       public:
-      std::auto_ptr<ossie::PRF> _prf;
+      std::unique_ptr<ossie::PRF> _prf;
     };
 
     class PropertyValueType_pimpl: public virtual PropertyValueType_pskel,
@@ -348,7 +348,7 @@ namespace prf
       bool _commandline;
       bool _optional;
       ossie::Property::Kinds _kinds;
-      std::auto_ptr<std::string> _value;
+      std::unique_ptr<std::string> _value;
     };
 
     class simpleRef_pimpl: public virtual simpleRef_pskel
@@ -519,7 +519,7 @@ namespace prf
       std::string _name;
       ossie::Property::AccessType _mode;
       ossie::Property::Kinds _kinds;
-      std::auto_ptr<ossie::StructProperty> _struct;
+      std::unique_ptr<ossie::StructProperty> _struct;
       std::vector<ossie::StructProperty> _values;
     };
 

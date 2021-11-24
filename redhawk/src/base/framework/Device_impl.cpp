@@ -21,7 +21,10 @@
 #include <iostream>
 #include <string.h>
 #include <signal.h>
+
+#ifdef __linux__
 #include <sys/signalfd.h>
+#endif
 
 #include "ossie/Device_impl.h"
 #include "ossie/CorbaUtils.h"
@@ -1276,12 +1279,16 @@ void Device_impl::start_device(Device_impl::ctor_type ctor, struct sigaction sa,
         RH_NL_FATAL(logname, "Failed to create signalfd for SIGCHLD");
         exit(EXIT_FAILURE);
       }
+
+#ifdef __linux__
       /* Create the signalfd */
       sig_fd = signalfd(-1, &sigset,0);
       if ( sig_fd == -1 ) {
         RH_NL_FATAL(logname, "Failed to create signalfd for SIGCHLD");
         exit(EXIT_FAILURE);
       }
+#endif
+
     }
 
     // The ORB must be initialized before configuring logging, which may use

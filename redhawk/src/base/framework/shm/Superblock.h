@@ -31,7 +31,7 @@ namespace redhawk {
     namespace shm {
 
         class ThreadState;
-        class Block;
+        struct Block;
 
         class Superblock {
         public:

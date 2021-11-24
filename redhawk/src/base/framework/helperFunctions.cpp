@@ -20,6 +20,7 @@
 
 
 #include <string>
+#include <unistd.h>
 #include <uuid/uuid.h>
 #include <ossie/ossieSupport.h>
 
@@ -39,7 +40,13 @@ std::string ossie::generateUUID()
 std::string ossie::getCurrentDirName()
 {
   std::string retval;
+
+#ifdef __APPLE__
+  char* tdir = getcwd(NULL,0);
+#else
   char *tdir = get_current_dir_name();
+#endif
+
   if ( tdir ) {
     retval = tdir;
     free(tdir);

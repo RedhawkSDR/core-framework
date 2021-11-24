@@ -87,7 +87,7 @@ public:
     virtual void setCurrentWorkingDirectory(std::string& cwd);
     virtual std::string& getCurrentWorkingDirectory();
     
-    virtual void setAdditionalParameters(std::string &softwareProfile, std::string &application_registrar_ior, std::string &nic);
+    virtual void setAdditionalParameters(std::string &softwareProfile, std::string &application_registrar_ior, const std::string &nic);
     /*
      * Return a pointer to the Domain Manager that the Resource is deployed on
      */

@@ -31,7 +31,7 @@ public:
     Component(const char* _uuid);
     Component(const char* _uuid, const char *label);
     virtual ~Component();
-    void setAdditionalParameters(std::string &softwareProfile, std::string &application_registrar_ior, std::string &nic);
+    void setAdditionalParameters(std::string &softwareProfile, std::string &application_registrar_ior, const std::string &nic);
     /*
      * Return a pointer to the Application that the Resource is deployed on 
      */

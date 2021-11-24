@@ -29,7 +29,6 @@
 #include <fstream>
 #include <stdexcept>
 #include <limits>
-#include <linux/limits.h>
 #include <dirent.h>
 #include <signal.h>
 #include <errno.h>
@@ -38,7 +37,12 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+
+#ifdef __linux__
+#include <linux/limits.h>
 #include <sys/signalfd.h>
+#endif
+
 #include <sys/time.h>
 #include <sys/utsname.h>
 #include <sys/sysinfo.h>

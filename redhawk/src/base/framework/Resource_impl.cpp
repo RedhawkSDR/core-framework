@@ -56,7 +56,7 @@ Resource_impl::~Resource_impl ()
 }
 
 
-void Resource_impl::setAdditionalParameters(std::string& softwareProfile, std::string &application_registrar_ior, std::string &nic)
+void Resource_impl::setAdditionalParameters(std::string& softwareProfile, std::string &application_registrar_ior, const std::string &nic)
 {
     _softwareProfile = softwareProfile;
     CORBA::ORB_ptr orb = ossie::corba::Orb();
@@ -375,7 +375,13 @@ void Resource_impl::start_component(Resource_impl::ctor_type ctor, int argc, cha
             if (++index < argc) {
                 std::string value = argv[index];
                 value = value.substr(0, 15);
+
+#ifdef __APPLE__
+                (void)pthread_setname_np(value.c_str());
+#else
                 pthread_setname_np(pthread_self(), value.c_str());
+#endif
+
             }
             break;
         }

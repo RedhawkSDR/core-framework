@@ -111,10 +111,10 @@ namespace sad
       _sad->name = name;
   }
 
-  ::std::auto_ptr<ossie::SoftwareAssembly::SAD> softwareassembly_pimpl::
+  ::std::unique_ptr<ossie::SoftwareAssembly::SAD> softwareassembly_pimpl::
   post_softwareassembly ()
   {
-      return _sad;
+      return std::move(_sad);
   }
 
   // componentfiles_pimpl
@@ -727,13 +727,13 @@ namespace sad
   void structref_pimpl::
   simpleref (const ossie::SimplePropertyRef& simpleref)
   {
-    structref._values.insert(simpleref._id,std::auto_ptr<ossie::ComponentProperty>(simpleref.clone()) );
+    structref._values.insert(simpleref._id,std::unique_ptr<ossie::ComponentProperty>(simpleref.clone()) );
   }
 
   void structref_pimpl::
   simplesequenceref (const ossie::SimpleSequencePropertyRef& simplesequenceref)
   {
-    structref._values.insert(simplesequenceref._id,std::auto_ptr<ossie::ComponentProperty>(simplesequenceref.clone()) );
+    structref._values.insert(simplesequenceref._id,std::unique_ptr<ossie::ComponentProperty>(simplesequenceref.clone()) );
   }
 
   void structref_pimpl::
@@ -788,13 +788,13 @@ namespace sad
   void structvalue_pimpl::
   simpleref (const ossie::SimplePropertyRef& simpleref)
   {
-    values.insert(simpleref._id,std::auto_ptr<ossie::ComponentProperty>(simpleref.clone()) );
+    values.insert(simpleref._id,std::unique_ptr<ossie::ComponentProperty>(simpleref.clone()) );
   }
 
   void structvalue_pimpl::
   simplesequenceref (const ossie::SimpleSequencePropertyRef& simplesequenceref)
   {
-    values.insert(simplesequenceref._id,std::auto_ptr<ossie::ComponentProperty>(simplesequenceref.clone()) );
+    values.insert(simplesequenceref._id,std::unique_ptr<ossie::ComponentProperty>(simplesequenceref.clone()) );
   }
 
   const ossie::ComponentPropertyMap& structvalue_pimpl::

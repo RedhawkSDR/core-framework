@@ -20,16 +20,17 @@
 #
 
 
-libtoolize --force --automake
+# NOTE: on Darwin with brew libtoolize is named glibtoolize! CK
+glibtoolize --force --automake || libtoolize --force --automake
 aclocal -I acinclude
 rm -f config.cache
 autoconf -f
 automake --foreign --add-missing
 
-# Due to strange autotools bootstrap issues, 
+# Due to strange autotools bootstrap issues,
 # if ltmain.sh doesn't exists we have to run both again
 if [ ! -f ltmain.sh ]; then
-  libtoolize --force --automake
+  glibtoolize --force --automake || libtoolize --force --automake
   automake --foreign --add-missing
 fi
 

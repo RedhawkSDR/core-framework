@@ -23,7 +23,7 @@
 #include "prf-parser.h"
 #include "prf-pimpl.h"
 
-std::auto_ptr<ossie::PRF> ossie::internalparser::parsePRF(std::istream& input) throw (ossie::parser_error)
+std::unique_ptr<ossie::PRF> ossie::internalparser::parsePRF(std::istream& input) throw (ossie::parser_error)
 {
     using namespace prf;
 

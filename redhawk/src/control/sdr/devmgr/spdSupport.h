@@ -258,7 +258,7 @@ namespace ossie
 				       const char* _SPDFile,
 				       CF::FileSystem_ptr depFileSys );
 
-    static std::auto_ptr<ProgramProfile> LoadProgramProfile(CF::FileSystem_ptr fileSystem, 
+    static std::unique_ptr<ProgramProfile> LoadProgramProfile(CF::FileSystem_ptr fileSystem, 
 							    const char* _SPDFile,
 							    CF::FileSystem_ptr depFileSys );
 

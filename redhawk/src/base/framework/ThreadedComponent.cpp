@@ -50,7 +50,13 @@ void ProcessThread::run()
     //     fails if the name exceeds that limit
     if (!_name.empty()) {
         std::string name = _name.substr(0, 15);
+
+#ifdef __APPLE__
+        (void)pthread_setname_np(name.c_str());
+#else
         pthread_setname_np(pthread_self(), name.c_str());
+#endif
+
     }
 
     while (_running) {
