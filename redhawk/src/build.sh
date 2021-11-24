@@ -33,7 +33,7 @@ else
   set -x
   ./reconf
   if [[ $uname = "Darwin" ]]; then
-    PYTHON=python3.9 CXXFLAGS=-std=c++14 ./configure -C -with-expat=/usr/local/Cellar/expat/2.4.1  --disable-log4cxx --without-tests --disable-java --disable-persistence
+    PYTHON=python3.9 CXXFLAGS="-std=c++14 -Wno-deprecated-declarations" ./configure -C -with-expat=/usr/local/Cellar/expat/2.4.1  --disable-log4cxx --without-tests --disable-java --disable-persistence
   else
     CXXFLAGS=-Wno-deprecated ./configure -C --disable-java --disable-persistence
   fi

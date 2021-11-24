@@ -84,8 +84,8 @@ XSDFLAGS = --hxx-suffix .h --cxx-suffix .cpp --xml-parser expat --output-dir int
 # from the generated parser's validation (this is what the sed command is for).
 internal/%-pskel.cpp: $(top_srcdir)/xml/xsd/%.xsd internal/%.map
 	$(AM_V_GEN)$(XSD) cxx-parser --type-map internal/$*.map $(XSDFLAGS) $<
-	$(AM_V_at)$(SED) -i 's/ns == "urn:mil:jpeojtrs:sca:$*"/ns.empty()/g' $@
-	$(AM_V_at)$(SED) -i 's/"urn:mil:jpeojtrs:sca:$*"/""/g' $@
+	$(AM_V_at)$(SED) -i.bak 's/ns == "urn:mil:jpeojtrs:sca:$*"/ns.empty()/g' $@
+	$(AM_V_at)$(SED) -i.bak 's/"urn:mil:jpeojtrs:sca:$*"/""/g' $@
 
 # The DPD and profile parsers aren't used by the framework
 internal/dpd-pskel.cpp: $(top_srcdir)/xml/xsd/dpd.xsd
