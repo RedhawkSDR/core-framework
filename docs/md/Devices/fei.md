@@ -6,6 +6,23 @@ Tuner devices can provide individual tuners to other REDHAWK entities through tu
 
 Physical devices often need to be split into multiple logical REDHAWK tuners to fully describe their functionality. Splitting physical devices often involves multiple tuners of the same, or mixed, types.
 
+## Common FEI Terminology
+
+| **Terminology**  | **Description**                                                                                                                                |
+| :--------------- | :--------------------------------------------------------------------------------------------------------------------------------------------- |
+| device           | A REDHAWK device.                                                                                                                              |
+| FEI device       | Devices that have a device_kind of FRONTEND and implement one of the FEI IDLs. Typically, GPS and navigation devices fall into this category. |
+| tuner            | A specific tuner capability in an FEI device.                                                                                                  |
+| FEI tuner device | Devices that have a device_kind of FRONTEND::TUNER. These devices must implement the TunerControl IDL and contain tuners for allocation.      |
+
+## Required Properties for an FEI Tuner
+
+| **Name** / **ID**                                        | **Description**                                                                                                      |
+| :------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------- |
+| device_kind / DCE:cdc5ee18-7ceb-4ae6-bf4c-31f983179b4d  | Must be set to FRONTEND or FRONTEND::TUNER.                                                                          |
+| device_model / DCE:0f99b2e4-9903-4631-9846-ff349d18ecfb | Used to specify the model of the hardware device.                                                                    |
+| frontend_tuner_status / FRONTEND::tuner_status        | A struct sequence where each struct in the sequence represents a single tuner. The structure is defined further in [Tuner Status](#tuner-status). |
+
 ## Device Types
 
 The set of FEI devices is:
