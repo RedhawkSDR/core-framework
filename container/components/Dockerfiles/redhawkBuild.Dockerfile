@@ -9,7 +9,6 @@ ARG target_env=${arch}-redhat-linux-gnu
 
 ENV CXXFLAGS=$cxxflags \
     JACORB_HOME=/usr/share/java/jacorb \
-    JAVA_HOME_TMP=/etc/alternatives/java_sdk_11 \
     LD_LIBRARY_PATH=/usr/local/redhawk/core/lib64:/usr/local/redhawk/core/lib \
     OMNIEVENTS_LOGDIR=/var/log/omniEvents \
     OSSIEHOME=/usr/local/redhawk/core \
@@ -22,6 +21,10 @@ ENV CXXFLAGS=$cxxflags \
 #   - tmp/redhawk-dependencies-<version>-<dist>-<arch>.tar.gz (Available for download from https://github.com/RedhawkSDR/)
 COPY tmp/core-framework /src/core-framework
 ADD  tmp/redhawk-dependencies-$redhawk_deps_ver-$dist-$arch.tar.gz /src
+
+RUN yum install -y epel-release && \
+    yum install -y centos-release-scl && \
+    yum clean all
 
 # Configure redhawk-dependencies-<version>-<dist>-<arch>.tar.gz file as a yum repository
 RUN dname=redhawk-dependencies-$redhawk_deps_ver-$dist-$arch && \
@@ -84,6 +87,7 @@ RUN dname=redhawk-dependencies-$redhawk_deps_ver-$dist-$arch && \
     yum clean all
 
 # Use the CentOS `alternatives` mechanism to set the active `java` and `javac` to Java 11
+ARG JAVA_HOME_TMP=/etc/alternatives/java_sdk_11
 RUN path_java=$(alternatives --display java | grep -e '^\/.*java-11-openjdk' | cut -d ' ' -f 1) && \
     alternatives --set java $path_java && \
     path_javac=$(alternatives --display javac | grep -e '^\/.*java-11-openjdk' | cut -d ' ' -f 1) && \
@@ -97,7 +101,6 @@ RUN path_java=$(alternatives --display java | grep -e '^\/.*java-11-openjdk' | c
     printf "%s\n" "InitRef = NameService=corbaname::127.0.0.1:2809"             >  /etc/omniORB.cfg && \
     printf "%s\n" "supportBootstrapAgent = 1"                                   >> /etc/omniORB.cfg && \
     printf "%s\n" "InitRef = EventService=corbaloc::127.0.0.1:11169/omniEvents" >> /etc/omniORB.cfg
-ENV JAVA_HOME_TMP=
 
 # Build and install Redhawk RPMs
 WORKDIR /src/core-framework/redhawk
