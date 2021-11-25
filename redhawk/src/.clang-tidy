@@ -1,0 +1,31 @@
+---
+Checks: "-*,\
+-cert-*,\
+-misc-*,\
+modernize-*,\
+-modernize-avoid-c-arrays,\
+-modernize-loop-convert,\
+-modernize-raw-string-literal,\
+-modernize-return-braced-init-list,\
+-modernize-use-auto,\
+-modernize-use-bool-literals,\
+-modernize-use-equals-default,\
+-modernize-use-equals-delete,\
+-modernize-use-default-member-init,\
+-modernize-use-trailing-return-type,\
+-modernize-use-nullptr,\
+-modernize-use-using,\
+-performance-*,\
+portability-*,\
+-readability-*,\
+-readability-named-parameter,\
+-readability-braces-around-statements,\
+-readability-implicit-bool-conversion,\
+-readability-else-after-return,\
+-cppcoreguidelines-*,\
+-cppcoreguidelines-owning-memory,\
+-cppcoreguidelines-special-member-functions,\
+-cppcoreguidelines-pro-*\
+"
+HeaderFilterRegex: '.*'
+...
