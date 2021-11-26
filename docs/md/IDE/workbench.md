@@ -4,7 +4,7 @@ The Eclipse introductory screen displays a **<abbr title="See Glossary.">Workben
 
 At the center of the IDE workbench is the editor window, which is empty at initial startup. The editor is the primary window used when developing code within the REDHAWK IDE. An Eclipse editor is a context-sensitive window within the workbench; the language of opened files dictates the type of editor that is opened, impacting editing features such as syntax highlighting.
 
-For a more detailed understanding of the Eclipse environment and nomenclature, consult the online Eclipse documentation at <http://help.eclipse.org/> or the embedded documentation within the REDHAWK IDE by selecting **Help > Search**.
+For a more detailed understanding of the Eclipse environment and nomenclature, consult the online Eclipse documentation at <https://help.eclipse.org> or the embedded documentation within the REDHAWK IDE by selecting **Help > Search**.
 
 ### Perspectives
 
@@ -50,4 +50,4 @@ While the REDHAWK perspective combines views that are commonly used while viewin
 
 For example, the Java perspective combines views that are commonly used while editing Java source files, while the Debug perspective contains the views that are used while debugging Java programs.
 
-For more information on perspectives, particularly the Eclipse default and the programming language-specific perspectives packaged with the REDHAWK IDE, refer to <http://help.eclipse.org/>.
+For more information on perspectives, particularly the Eclipse default and the programming language-specific perspectives packaged with the REDHAWK IDE, refer to <https://help.eclipse.org>.

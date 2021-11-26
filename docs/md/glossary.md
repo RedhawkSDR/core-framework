@@ -19,7 +19,7 @@ Connection Manager
   : An implementation of the `ConnectionManager` interface, the Connection Manager provides a central access point for connections between domain objects.
 
 Console View
-  : Displays a variety of console types depending on the type of development and the current set of user settings. The Console view is a part of Eclipse, and the basic use is well documented by the Eclipse documentation: http://help.eclipse.org/. The REDHAWK IDE uses multiple Console views for different purposes. There are also third party plug-ins within REDHAWK that have their own Console views.
+  : Displays a variety of console types depending on the type of development and the current set of user settings. The Console view is a part of Eclipse, and the basic use is well documented by the Eclipse documentation: https://help.eclipse.org. The REDHAWK IDE uses multiple Console views for different purposes. There are also third party plug-ins within REDHAWK that have their own Console views.
 
 CORBA Name Browser
   : Maps names to specific CORBA Servants. The CORBA Name Browser can be used to examine the current contents of the Naming Service as well as perform basic manipulation of that context. The contents of the view displays all currently bound name contexts (folders) and objects.
@@ -76,7 +76,7 @@ NUMA
   : Non-Uniform Memory Access.
 
 Outline View
-  : Displays an outline of a structured file that is currently open in the editor area. The Outline view is a part of Eclipse, and the basic use is well documented by the Eclipse documentation: <http://help.eclipse.org>.
+  : Displays an outline of a structured file that is currently open in the editor area. The Outline view is a part of Eclipse, and the basic use is well documented by the Eclipse documentation: <https://help.eclipse.org>.
 
 Persona
   : The load or programming files used to load functionality onto programmable hardware (for example, bit files).
@@ -85,13 +85,13 @@ Persona Device
   : A REDHAWK device that encapsulates a single load for specific programmable hardware and any corresponding ports/properties (defined in the REDHAWK XML descriptor files).
 
 Perspective
-  : Each workbench window contains one or more perspectives. A perspective defines the initial set and layout of views in the Workbench window. Within the window, each perspective shares the same set of editors. Each perspective provides a set of functionality aimed at accomplishing a specific type of task or works with specific types of resources. For example, the Java perspective combines views that you would commonly use while editing Java source files, while the Debug perspective contains the views that you would use while debugging Java programs. As you work in the workbench, you will probably switch perspectives frequently. Perspectives control what appears in certain menus and toolbars. They define visible action sets, which you can change to customize a perspective. You can save a perspective that you build in this manner, making your own custom perspective that you can open again later. Source: <http://help.eclipse.org>.
+  : Each workbench window contains one or more perspectives. A perspective defines the initial set and layout of views in the Workbench window. Within the window, each perspective shares the same set of editors. Each perspective provides a set of functionality aimed at accomplishing a specific type of task or works with specific types of resources. For example, the Java perspective combines views that you would commonly use while editing Java source files, while the Debug perspective contains the views that you would use while debugging Java programs. As you work in the workbench, you will probably switch perspectives frequently. Perspectives control what appears in certain menus and toolbars. They define visible action sets, which you can change to customize a perspective. You can save a perspective that you build in this manner, making your own custom perspective that you can open again later. Source: <https://help.eclipse.org>.
 
 Port
   : A CORBA object that produces or consumes data and/or commands. A port is referred to as "uses" when it is a source/producer/output, and as a "provides" when it is a sink/consumer/input. A uses port implements the `CF::Port` interface (see SCA v2.2.2 for a description of `CF::Port`).
 
 Problems View
-  : As you work with resources in the workbench, various builders may automatically log problems, errors, or warnings in the Problems view. The Problems view is a part of Eclipse, and the basic use is well documented by the Eclipse documentation: <http://help.eclipse.org>.
+  : As you work with resources in the workbench, various builders may automatically log problems, errors, or warnings in the Problems view. The Problems view is a part of Eclipse, and the basic use is well documented by the Eclipse documentation: <https://help.eclipse.org>.
 
 Programmable Device
   : A REDHAWK device that is the main proxy into physical hardware. It maintains which Persona (child) device should be loaded onto the hardware.
@@ -100,10 +100,10 @@ Programmable Hardware
   : Hardware that may be dynamically programmed to operate with specific functionality (such as FPGAs and some microprocessors).
 
 Project Explorer View
-  : Provides a hierarchical view of the resources in the workbench. The Project Explorer view is a part of Eclipse, and the basic use is well documented by the Eclipse documentation: <http://help.eclipse.org>.
+  : Provides a hierarchical view of the resources in the workbench. The Project Explorer view is a part of Eclipse, and the basic use is well documented by the Eclipse documentation: <https://help.eclipse.org>.
 
 Properties View
-  : Displays property names and basic properties of a selected resource. The Properties view is a part of Eclipse, and the basic use is well documented by the Eclipse documentation: <http://help.eclipse.org>.
+  : Displays property names and basic properties of a selected resource. The Properties view is a part of Eclipse, and the basic use is well documented by the Eclipse documentation: <https://help.eclipse.org>.
 
 Property
   : An SCA Property is a variable that contains a value of a specific type. Configuration Properties are parameters to the configure and query operations of the `PropertySet` interface. Allocation Properties define the capabilities required of a Device by a Resource." Source: SCA v2.2.2.
@@ -136,7 +136,7 @@ Target SDR
   : A logical association between a component and a specific device that provides some capacity to that component.
 
 View
-  : A view is a workbench part that can navigate a hierarchy of information or display properties for an object. Only one instance of any given view is open in a workbench page. When the user makes selections or other changes in a view, those changes are immediately reflected in the workbench. Views are often provided to support a corresponding editor. For example, an outline view shows a structured view of the information in an editor. A properties view shows the properties of an object that is currently being edited. Source: <http://help.eclipse.org>.
+  : A view is a workbench part that can navigate a hierarchy of information or display properties for an object. Only one instance of any given view is open in a workbench page. When the user makes selections or other changes in a view, those changes are immediately reflected in the workbench. Views are often provided to support a corresponding editor. For example, an outline view shows a structured view of the information in an editor. A properties view shows the properties of an object that is currently being edited. Source: <https://help.eclipse.org>.
 
 Waveform
   : A REDHAWK waveform is analogous to an SCA Waveform Application. A REDHAWK waveform is defined as a composition of components, their interconnections, and their configuration overrides. This composition is defined in a Software Assembly Descriptor file.
@@ -145,7 +145,7 @@ Waveform Editor
   : The Waveform Editor is opened by double-clicking a Software Assembly Descriptor (SAD) file from the Project Explorer view. It presents all the content that can be found within the sad.xml file in an editing environment designed for human use. The Waveform Editor contains an Overview, Diagram, and raw XML tab, which contains the SAD file content.
 
 Workbench
-  : The term workbench refers to the desktop development environment. The workbench aims to achieve seamless tool integration and controlled openness by providing a common paradigm for the creation, management, and navigation of workspace resources. Source: <http://help.eclipse.org/>.
+  : The term workbench refers to the desktop development environment. The workbench aims to achieve seamless tool integration and controlled openness by providing a common paradigm for the creation, management, and navigation of workspace resources. Source: <https://help.eclipse.org/>.
 
 Workspace
-  : In Eclipse, a workspace is a logical collection of projects on which you are actively working. Source: <http://help.eclipse.org>.
+  : In Eclipse, a workspace is a logical collection of projects on which you are actively working. Source: <https://help.eclipse.org>.

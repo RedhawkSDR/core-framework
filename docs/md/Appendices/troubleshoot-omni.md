@@ -25,25 +25,18 @@ If the runtime-error indicates a <abbr title="See Glossary.">Naming Service</abb
 ```bash
 # CentOS 7 command
 sudo systemctl restart omniNames
-
-# CentOS 6 command
-sudo /sbin/service omniNames restart
 ```
 
 This process first performs a stop and then performs a start. If the stop process fails, `omniNames` was never started, stopped due to an error condition, or is in a non-recoverable state. If the start process fails, `omniNames` is either misconfigured or already running (i.e., `omniNames` was not stopped).
 
 
-> **NOTE**  
-> `omniNames` can potentially report a successful start and then fail soon after. If the `omniNames` service appears to fail after reporting a successful start, a reconfiguration and hard reset of `omniNames` may be necessary. For more information, refer to [Common Failures](#common-causes-for-omninames-failure) and [Using `cleanomni`](#performing-a-hard-reset-using-the-cleanomni-script).  
+> **NOTE**:  `omniNames` can potentially report a successful start and then fail soon after. If the `omniNames` service appears to fail after reporting a successful start, a reconfiguration and hard reset of `omniNames` may be necessary. For more information, refer to [Common Failures](#common-causes-for-omninames-failure) and [Using `cleanomni`](#performing-a-hard-reset-using-the-cleanomni-script).
 
 A restart of `omniEvents` may be necessary when restarting `omniNames`. To perform a soft reset of `omniEvents`, enter the following commands:
 
 ```bash
 # CentOS 7 command
 sudo systemctl restart omniEvents
-
-# CentOS 6 command
-sudo /sbin/service omniEvents restart
 ```
 
 ## Setting Omni Log Levels
@@ -56,7 +49,7 @@ When diagnosing `omniNames/omniEvents` problems, it is often useful to set the o
     traceLevel = 10
     ```
 
-Details on the available trace levels can be found in Chapter 4 of the omniORB User's Guide (http://omniorb.sourceforge.net/omni41/omniORB/omniORB004.html) (CentOS 6) and (http://omniorb.sourceforge.net/omni42/omniORB/omniORB004.html) (CentOS 7) or on your local system at <file:///usr/share/doc/omniORB-devel-4.1.6/doc/omniORB/omniORB004.html> (CentOS 6) and at <file:///usr/share/doc/omniORB-devel-4.2.0/doc/omniORB/omniORB004.html> (CentOS 7).
+Details on the available trace levels can be found in Chapter 4 of the omniORB User's Guide (http://omniorb.sourceforge.net/omni42/omniORB/omniORB004.html) or on your local system at <file:///usr/share/doc/omniORB-devel-4.2.4/doc/omniORB/omniORB004.html>.
 
 For the changes to take effect, restart `omniNames/omniEvents`.
 
@@ -109,5 +102,4 @@ The line pertaining to IPv6 can also be completely removed from the file; howeve
 
 Invalid entries in the `/etc/hosts` file may induce an `omniNames` failure. Invalid entries may be in the form of an IP address that cannot be reached or in the form of an entry that is not valid according to the `/etc/hosts` grammar.
 
-> **NOTE**  
-> Firewall IP and port settings on both the server and client side may cause the target `omniNames` service to be unreachable.  
+> **NOTE**:  Firewall IP and port settings on both the server and client side may cause the target `omniNames` service to be unreachable.

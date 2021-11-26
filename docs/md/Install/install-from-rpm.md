@@ -83,7 +83,7 @@ supportBootstrapAgent = 1
     sudo systemctl enable omniEvents.service
     ```
 
-For more information about omniORB configuration file settings (`/etc/omniORB.cfg`), refer to Chapter 4 of the omniORB [User's Guide](http://omniorb.sourceforge.net/omni42/omniORB/omniORB004.html), or on your local system, [here](file:///usr/share/doc/omniORB-devel-4.2.0/doc/omniORB/omniORB004.html).
+For more information about omniORB configuration file settings (`/etc/omniORB.cfg`), refer to Chapter 4 of the omniORB [User's Guide](http://omniorb.sourceforge.net/omni42/omniORB/omniORB004.html), or on your local system, [here](file:///usr/share/doc/omniORB-devel-4.2.4/doc/omniORB/omniORB004.html).
 
 ### for Distributed Systems
 

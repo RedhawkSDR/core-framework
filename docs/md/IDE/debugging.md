@@ -2,7 +2,7 @@
 
 The REDHAWK IDE uses the debugging capabilities from the JDT, CDT, <abbr title="See Glossary.">PyDev</abbr>, and REDHAWK <abbr title="See Glossary.">sandbox</abbr>. The debugger provides tools to detect and diagnose errors in an <abbr title="See Glossary.">application</abbr> during execution. The debugger allows control of execution of the program by setting breakpoints, suspending launched programs, stepping through source code, and examining the contents of variables.
 
-For more details on debugging concepts, consult the Eclipse documentation at <http://help.eclipse.org/> or view the embedded documentation from within the REDHAWK IDE by selecting **Help > Help Contents**.
+For more details on debugging concepts, consult the Eclipse documentation at <https://help.eclipse.org> or view the embedded documentation from within the REDHAWK IDE by selecting **Help > Help Contents**.
 
 In the Eclipse documentation browser refer to the following sections for additional debugging concepts and details:
 

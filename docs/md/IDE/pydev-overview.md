@@ -16,6 +16,6 @@ PyDev's many features include:
 
 PyDev has its own set of documentation and getting started details. First time users are strongly advised to read the Getting Started Guide, which explains how to properly configure PyDev. The PyDev documentation can be found in the following locations:
 
-  - PyDev Getting Started, <http://pydev.org/manual_101_root.html>
-  - PyDev Configuring Interpreter, <http://pydev.org/manual_101_interpreter.html>
-  - PyDev Manual, <http://pydev.org/manual.html>
+  - PyDev Getting Started, <https://pydev.org/manual_101_root.html>
+  - PyDev Configuring Interpreter, <https://pydev.org/manual_101_interpreter.html>
+  - PyDev Manual, <https://pydev.org/manual.html>
