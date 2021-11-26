@@ -40,8 +40,8 @@ checkossiehome:
 
 install: checkossiehome
 	mkdir -p ${OSSIEHOME}/docs
-	#cp -dr css font html img js md README.md ${OSSIEHOME}/docs/
-	(test -e RedhawkManual.pdf && cp RedhawkManual.pdf ${OSSIEHOME}/docs/) || true
+	cp -dr css font img js Makefile md py README.md ${OSSIEHOME}/docs/
+	cd ${OSSIEHOME}/docs && make
 
 pdf: FORCE
 	py/generate_pdf.py

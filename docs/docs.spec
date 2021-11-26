@@ -1,19 +1,24 @@
-Name:           redhawk-docs
-Version:        3.0.0
-Release:        1%{?dist}
-Summary:        The Redhawk Manual
+Name:             redhawk-docs
+Version:          3.0.0
+Release:          1%{?dist}
+Summary:          The Redhawk Manual
 
-License:        LGPLv3+
-Group:          Applications/Engineering
-URL:            https://redhawksdr.org
-Source:         %{name}-%{version}.tar.gz
-Vendor:         REDHAWK
+License:          LGPLv3+
+Group:            Applications/Engineering
+URL:              https://redhawksdr.org
+Source:           %{name}-%{version}.tar.gz
+Vendor:           REDHAWK
 
-BuildArch:      noarch
+BuildArch:        noarch
 
-Requires:       redhawk >= 3.0.0
-BuildRequires:  pandoc
-BuildRequires:  python3
+BuildRequires:    make
+BuildRequires:    pandoc
+BuildRequires:    python3
+BuildRequires:    redhawk >= 3.0.0
+
+%{!?_ossiehome:  %global _ossiehome  /usr/local/redhawk/core}
+%global _prefix %{_ossiehome}
+Prefix: %{_ossiehome}
 
 %description
 REDHAWK Manual
@@ -21,22 +26,25 @@ REDHAWK Manual
  * Source Date/Time: __DATETIME__
 
 %prep
-%setup -q
+%setup
 
 %build
-make
 
 %install
-mkdir -p ${buildroot}/usr/local/redhawk/core/docs
-cp -dr css font html img js md README.md ${buildroot}/usr/local/redhawk/core/docs/
+mkdir -p %{buildroot}%{_prefix}/docs
+cp -dr css font img js md py Makefile README.md %{buildroot}%{_prefix}/docs/
 
 %files
-%{_prefix}/usr/local/redhawk/core/docs
-%{_prefix}/usr/local/redhawk/core/docs/font
-%{_prefix}/usr/local/redhawk/core/docs/html
-%{_prefix}/usr/local/redhawk/core/docs/img
-%{_prefix}/usr/local/redhawk/core/docs/js
-%{_prefix}/usr/local/redhawk/core/docs/md
-%{_prefix}/usr/local/redhawk/core/docs/py
-%{_prefix}/usr/local/redhawk/core/docs/README*
+%{_prefix}/docs/css
+%{_prefix}/docs/font
+%{_prefix}/docs/img
+%{_prefix}/docs/js
+%{_prefix}/docs/md
+%{_prefix}/docs/py
+%{_prefix}/docs/Makefile
+%{_prefix}/docs/README*
+
+%post
+cd %{_prefix}/docs && make
+cd %{_prefix}/docs && make install
 
