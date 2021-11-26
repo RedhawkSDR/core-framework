@@ -2595,6 +2595,8 @@ void createHelper::attemptClusterExecution (CF::ApplicationRegistrar_ptr registr
     size_t pos = entryPoint_image.find(delimiter);
     std::string entryPoint;
     std::string image;
+    std::string c_entryPoint;
+    redhawk::PropertyMap c_execParameters;
     if (pos == std::string::npos) {
         RH_WARN(_createHelperLog, "There was no image found. For containers the entrypoint must be in the format <entrypoint>::<image>");
         entryPoint = entryPoint_image;
@@ -2609,6 +2611,30 @@ void createHelper::attemptClusterExecution (CF::ApplicationRegistrar_ptr registr
     if (entryPoint.empty()) {
         RH_WARN(_createHelperLog, "executing using code file as entry point; this is non-SCA compliant behavior; entrypoint must be set");
         entryPoint = deployment->getLocalFile();
+    }
+
+    bool isCppContainer = false;
+    std::string tmp_id = ossie::generateUUID();
+    if ((entryPoint.find(".so") == entryPoint.size()-3) and (deployment->getImplementation()->getCodeType() == SPD::Code::CONTAINER)) {
+        isCppContainer = true;
+        c_entryPoint = "/var/redhawk/sdr/dom"+entryPoint;
+        c_execParameters = execParameters;
+
+        std::string tmp_dompath = "/var/redhawk/sdr/dom";
+        c_execParameters["DOM_PATH"] = tmp_dompath;
+
+        execParameters = CF::Properties();
+        entryPoint = "/mgr/rh/ComponentHost/ComponentHost";
+        execParameters["COMPONENT_IDENTIFIER"] = tmp_id;
+        std::string tmp_profile_name = "/mgr/rh/ComponentHost/ComponentHost.spd.xml";
+        execParameters["PROFILE_NAME"] = tmp_profile_name;
+        execParameters["NAMING_CONTEXT_IOR"] = ossie::corba::objectToString(registrar);
+        std::string tmp_name = "component_host_";
+        tmp_name += ossie::generateUUID();
+        tmp_name.erase(tmp_name.find("DCE:"), 4);
+        execParameters["NAME_BINDING"] = tmp_name;
+        redhawk::ApplicationComponent *tmp_comphost = _application->addComponent(tmp_id, tmp_profile_name);
+        tmp_comphost->setVisible(false);
     }
 
     // Get entry point
@@ -2676,7 +2702,23 @@ void createHelper::attemptClusterExecution (CF::ApplicationRegistrar_ptr registr
             app_component->setProcessId(pid);
         }
     } else if (deployment->getImplementation()->getCodeType() == SPD::Code::CONTAINER) {
-	    RH_INFO(_createHelperLog, "NOT Executing a cluster yet");
+        if (isCppContainer) {
+            redhawk::ApplicationComponent* comp = _application->findComponent(tmp_id);
+            while (not comp) {
+                usleep(1000);
+                comp = _application->findComponent(tmp_id);
+            }
+            redhawk::PropertyMap options = deployment->getOptions();
+            CORBA::Object_ptr comphost_objref = CORBA::Object::_nil();
+            while (CORBA::is_nil(comphost_objref)) {
+                usleep(1000);
+                comphost_objref = comp->getComponentObject();
+            }
+            CF::ExecutableDevice_var comphost_ref = ossie::corba::_narrowSafe<CF::ExecutableDevice>(comphost_objref);
+            comphost_ref->executeLinked(c_entryPoint.c_str(), options, c_execParameters, dep_seq);
+        } else {
+	        RH_TRACE(_createHelperLog, "NOT Executing a cluster yet");
+        }
         return;
     } else {
         throw "Got a container and expected a cluster";
