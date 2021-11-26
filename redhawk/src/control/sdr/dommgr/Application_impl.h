@@ -271,6 +271,8 @@ public:
     std::string GetStdoutFromCommand(std::string cmd);
     void poll(redhawk::ApplicationComponent& ii);
 
+    redhawk::ApplicationComponent* findComponent(const std::string& identifier);
+
 private:
 
     Application_impl (); // No default constructor
@@ -335,8 +337,6 @@ private:
     boost::mutex metricsLock;
 
     PropertyChangeRegistry   _propertyChangeRegistrations;
-
-    redhawk::ApplicationComponent* findComponent(const std::string& identifier);
 
     // Returns externalpropid if one exists based off of compId and
     // internal propId, returns empty string if no external prop exists
