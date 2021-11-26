@@ -122,6 +122,12 @@ make -j$nproc
 make install
 popd
 
+pushd $docs
+make clean
+make -j$nproc
+make install
+popd
+
 echo
 echo "REDHAWK is now installed."
 echo "Prior to running REDHAWK, you must setup your environment"
