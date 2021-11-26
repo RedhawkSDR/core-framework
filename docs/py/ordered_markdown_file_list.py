@@ -19,13 +19,6 @@ fpaths_ordered = [
     'Install/ide.md',
     'Install/troubleshooting.md',
 
-    'Install-orig/_index.md',
-    'Install-orig/redhawk-yum.md',
-    'Install-orig/dependencies.md',
-    'Install-orig/ide.md',
-    'Install-orig/source-install.md',
-    'Install-orig/troubleshooting.md',
-
     'Components/components.md',
     'Components/redhawk-core-assets.md',
     'Components/creating-a-component.md',
@@ -84,8 +77,7 @@ fpaths_ordered = [
 
     'Connections/connection-callbacks.md',
     'Connections/custom-idl-interfaces.md',
-
-    'add-transport.md',
+    'Connections/add-transport.md',
 
     'Waveforms/_index.md',
     'Waveforms/waveform-editor.md',
@@ -96,7 +88,6 @@ fpaths_ordered = [
 
     'Devices/_index.md',
     'Devices/fei.md',
-    'Devices/fei-old.md',
     'Devices/Interacting-with-Hardware/_index.md',
     'Devices/Interacting-with-Hardware/creating-fei-device-ide.md',
     'Devices/Interacting-with-Hardware/interacting-fei-device-python-package.md',
@@ -160,14 +151,6 @@ fpaths_ordered = [
     'Containers/in-a-domain.md',
     'Containers/plugin-class.md',
     'Containers/containerized-components.md',
-
-    'Containers-orig/containers.md',
-    'Containers-orig/plugin-class.md',
-    'Containers-orig/plugin-docker.md',
-    'Containers-orig/plugin-ekskube.md',
-    'Containers-orig/containerized-components.md',
-    'Containers-orig/containerized-redhawk.md',
-    'Containers-orig/orchestration.md',
 
     'IDE/_index.md',
     'IDE/launching-the-ide.md',

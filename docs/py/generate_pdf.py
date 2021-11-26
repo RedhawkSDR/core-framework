@@ -5,7 +5,6 @@
 import os
 import shlex
 import subprocess
-import sys
 
 from ordered_markdown_file_list import fpaths_ordered
 
@@ -65,6 +64,14 @@ def main():
             fpaths = [fpath_in]
     make_pdf(combined_mds)
 
+def get_version():
+    lines = open('docs.spec', encoding='utf-8').readlines()
+    for line in lines:
+        if line.startswith('Version:'):
+            version = line.split()[1]
+            return version
+    return ''
+
 if __name__ == '__main__':
     """pwd is the location of Makefile."""
     dpath_pdf = 'pdf'
@@ -72,7 +79,5 @@ if __name__ == '__main__':
     subprocess.run(cmd)
     cmd = shlex.split('cp -dr md pdf')
     subprocess.run(cmd)
-    version = ''
-    if len(sys.argv) > 1:
-        version = sys.argv[1]
+    version = get_version()
     main()
