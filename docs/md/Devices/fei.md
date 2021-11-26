@@ -641,6 +641,361 @@ allocation_response = agg_dev.allocate([alloc_tuner_1, coherent_request_any_feed
 
 If scanning functionality is needed, then each device's scan plan needs to be set independently, where the scan strategy is set for each device separately and the scan start time is set to some arbitrary time in the future.
 
+
+## Command and Control
+
+Command and Control of existing allocated tuners is performed through the `DigitalTuner` or `AnalogTuner` port on the FEI device. These commands allow external users to get and set specific settings for each of the tuners. Each FEI tuner device must have a `DigitalTuner` port named `DigitalTuner_in` (or `AnalogTuner_in` for an `AnalogTuner` port) that allows for command and control. All of the functions in the tuner control interface need to be implemented even if only to report that the capability is not supported. Each of these tuner control interface functions uses the Allocation ID to uniquely identify the tuners.
+
+> **NOTE**:  An output control port used to control an FEI device follows the same connectivity rules explained in [Custom IDL Interfaces](Connections/custom-idl-interfaces.md).
+
+### Tuner Control Interface
+
+The tuner control interface describes two interfaces for control. The first is the `AnalogTuner`, which describes all of the functions common for Digital and Analog tuners. `DigitalTuner` inherits `AnalogTuner` and adds `setOutputSampleRate()` and `getOutputSampleRate()`.
+
+#### Tuner Control Functions
+
+The following table describes the functions that can be accessed via the Tuner Control IDL.
+
+| **Function Prototype**                 | **Description** |
+| :----------------------- | :------- |
+|`string getTunerType(in string id)`   | Get the type of tuner (e.g., RX or DDC) associated with this Allocation ID.  |
+|`boolean getTunerDeviceControl(in string id)`   | Returns whether this Allocation ID has control (modification privileges) over the tuner.  |
+|`string getTunerGroupId(in string id)`   | Retrieves the Group ID (may be empty) for this Allocation ID.  |
+|`string getTunerRfFlowId(in string id)`   | Retrieves the RF Flow ID (may be empty) for this Allocation ID.  |
+|`CF::Properties getTunerStatus(in string id)`   | Key/Value pair of entire tuner status structure. Note: The return is a sequence of simple properties, not a single struct property.  |
+|`void setTunerCenterFrequency(in string id,  in double freq)`   | Set the current center frequency in Hz.  |
+|`double getTunerCenterFrequency(in string id)`   | Get the current center frequency in Hz.  |
+|`void setTunerBandwidth(in string id, in double bw)`   | Set the current bandwidth in Hz.  |
+|`double getTunerBandwidth(in string id)`   | Get the current bandwidth in Hz.  |
+|`void setTunerAgcEnable(in string id, in boolean enable)`  | Enable or disable the Auto Gain Control (AGC). True indicates that the AGC should be enabled.  |
+|`boolean getTunerAgcEnable(in string id)` | Get the current status of AGC. True indicates enabled. |
+|`void setTunerGain(in string id, in float gain)` | Set tuner gain in dB.  |
+|`float getTunerGain(in string id)`| Get current tuner gain in dB.  |
+|`void setTunerReferenceSource(in string id, in long source)`   | Set the tuner reference source. Zero is defined as internal and one is defined as external.  |
+|`long getTunerReferenceSource(in string id)`   | Get the current tuner reference source.  |
+|`void setTunerEnable(in string id,  in boolean enable)`   | Set the output enable state of the tuner. True indicates output is enabled.  |
+|`boolean getTunerEnable(in string id)`   | Get the current output enable state of the tuner. True indicates output is enabled.  |
+|`void setTunerOutputSampleRate(in string id, in double sr)`   | Set the output sample rate in samples/sec.  |
+|`double getTunerOutputSampleRate(in string id)`  | Get the output sample rate in samples/sec.  |
+|`void configureTuner(in string id, in CF::Properties tunerSettings)` | |
+|`CF::Properties getTunerSettings(in string id)` | |
+
+#### Scanner Tuner Control Functions
+
+The following table describes additional tuner control functions, which are present when the device is of type `RX_SCANNER_DIGITIZER`.
+
+| **Function Prototype**                 | **Description** |
+| :----------------------- | :------- |
+|`ScanStatus getScanStatus(in string id)`   | Get the current scanner status. The return structure is of type FRONTEND::ScanningTuner::ScanStatus, which contains information on the scanning strategy, the scheduled start time, the list of center frequencies that the plan will execute, and whether or not the scan has started  |
+|`void setScanStartTime(in string id, in BULKIO::PrecisionUTCTime start_time)`   | Schedule when a scan plan should start (in epoch time). Setting the time to 0 or a previous time with the tcstatus flag set to true starts a scan immediately. To disable the scan, set the start_time's tcstatus flag to false. |
+|`void setScanStrategy(in string id, in ScanStrategy scan_strategy)`   | Provide a plan for what frequencies the scanner will cover and how it will cover them. |
+
+#### Tuner Control Exceptions
+
+The following table describes exceptions that may occur during calls to tuner control functions.
+
+| **Exception**           | **Description**                | **Notes**                                                                                                                                  |
+| :---------------------- | :----------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------- |
+| `BadParameterException` | Parameter provided is invalid. | Indicates the value provided is out of bounds for the capability of the device or that the value was invalid (e.g., a negative frequency). |
+| `NotSupportedException` | Capability is not supported.   | Indicates the tuner does not support the setting (or getting) of this capability.                                                          |
+| `FrontendException`     | Generic FrontEnd exception.    | Indicates there is a FrontEnd issue preventing the command, often because the Allocation ID does not match any currently allocated tuners. |
+
+### Scanning Interface
+
+A scanning tuner requires a definition of how it should scan.  This is provided with the `ScanStrategy` data structure.
+
+#### ScanStrategy Description
+
+The following table describes the members of the `ScanStrategy` data structure.
+
+| **Member**       | **Type**          | **Description** |
+| :----------------------- | :------- | :------- |
+|`scan_mode` | `ScanMode`  | ScanMode is an enumerated type that can be set to MANUAL_SCAN, SPAN_SCAN, or DISCRETE_SCAN  |
+|`scan_definition` | `ScanModeDefinition` | ScanModeDefinition is a union that provides the mode-specific information: `double center_frequency` for MANUAL_SCAN, `ScanSpanRanges freq_scan_list` for SPAN_SCAN, and `Frequencies discrete_freq_list` for DISCRETE_SCAN |
+|`control_mode` | `OutputControlMode` | OutputControlMode is an enumerated type that can be set to TIME_BASED or SAMPLE_BASED |
+|`control_value` | `double` | This is the value for control_mode. The unit is seconds for TIME_BASED and samples for SAMPLE_BASED |
+
+#### ScanSpanRange Description
+
+The data structures `Frequencies` and `ScanSpanRanges` provide more detail for their respective modes. `Frequencies` is a sequence of doubles. `ScanSpanRanges` is a sequence of `ScanSpanRange`.  The following table describes the members of `ScanSpanRange`.
+
+| **Member**       | **Type**          | **Description** |
+| :----------------------- | :------- | :------- |
+|`begin_frequency` | `double`  | The beginning center frequency for the scan in Hz  |
+|`end_frequency` | `double` | The ending center frequency for the scan in Hz |
+|`step` | `double` | The change in center frequency in Hz |
+
+### GPS Interface
+
+The GPS IDL provides an interface to retrieve GPS information from a device that is GPS-enabled. The GPS interface is composed of two attributes and no functions. However, the data structures returned by these attributes contain a large amount of detail.
+
+> **NOTE**:  This interface's attributes are read/write, therefore, this interface can be used to read GPS information or to receive GPS information.
+
+#### GPS Attributes
+
+The GPS attributes are listed in the following table.
+
+| **Attribute Prototype**                 | **Description** |
+| :----------------------- | :------- |
+|`GPSInfo gps_info`   | Get a detailed description of the GPS information on the device.  |
+|`GpsTimePos gps_time_pos`   | Return the position generated by GPS as well as the timestamp for that position estimate.  |
+
+#### GPSInfo
+
+The GPSInfo descriptions are listed in the following table.
+
+| **Member**       | **Type**          | **Description** |
+| :----------------------- | :------- | :------- |
+|`source_id` | `string`  | Device identifier for the device that generated the GPS location report (this device's ID if accessing the hardware directly) |
+|`rf_flow_id` | `string` | Identifier for the RF source (antenna) |
+|`mode` | `string` | "Locked" if the GPS Receiver has locked onto the signal, and "Unlocked" if the GPS Receiver has not locked onto the signal. Use "Tracking" if the GPS Receiver has found but not locked onto the signal (if available). |
+|`fom` | `long` | Position figure-of-merit (refer to the Figure of Merit table) |
+|`tfom` | `long` | Time figure-of-merit (refer to the Time Figure of Merit table) |
+|`datumID` | `long` | Identifier for the reference ellipsoid (datum). Use 47 for WGS 1984, the GPS datum |
+|`time_offset` | `double` | Receiver oscillator's most recent time offset (seconds). Usually 0 |
+|`freq_offset` | `double` | Receiver's center frequency offset (Hz) |
+|`time_variance` | `double` | Receiver oscillator's time offset variance (seconds**2). Usually 0 |
+|`freq_variance` | `double` | Receiver's center frequency offset variance (Hz**2) |
+|`satellite_count` | `short` | Number of satellites visible to the receiver |
+|`snr` | `float` | GPS receiver's reported signal to noise ratio. The definition of this value is not standardized and varies by manufacturer. |
+|`status_message` | `string` | Device-specific status message |
+|`timestamp` | `BULKIO::PrecisionUTCTime` | Timestamp for the GPS information |
+|`additional_info` | `CF::Properties` | Device-specific additional information |
+
+#### Figure of Merit
+
+The figure of merit (fom) provides the expected position error (EPE).  The following table describes the possible values of the `fom`.
+
+| **Value**       | **Error (meters)**          |
+| :----------------------- | :------- |
+| 1 | less than 25  |
+| 2 | less than 50  |
+| 3 | less than 75  |
+| 4 | less than 100  |
+| 5 | less than 200  |
+| 6 | less than 500  |
+| 7 | less than 1000  |
+| 8 | less than 5000  |
+| 9 | greater than or equal to 5000  |
+
+#### Time Figure of Merit
+
+The time figure of merit (tfom) provides the expected time error (ETE).  The following table describes the possible values of the `tfom`.
+
+| **Value**       | **Error (nanoseconds)**          |
+| :----------------------- | :------- |
+| 1 | less than 1 |
+| 2 | less than 10 |
+| 3 | less than 100 |
+| 4 | less than 1e3 |
+| 5 | less than 1e4 |
+| 6 | less than 1e5 |
+| 7 | less than 1e6 |
+| 8 | less than 1e7 |
+| 9 | greater than or equal to 1e7 |
+
+#### GPS Interface Helpers
+
+The GPS Interface helpers identify whether the GPS receiver has locked in on a signal or only found the receiver.  The helper details are listed in the table below.
+
+| **Member**       | **Value**          | **Description** |
+| :----------------------- | :------- | :------- |
+|`GPS_MODE_LOCKED` | `Locked`  | GPS Receiver has locked onto the signal |
+|`GPS_MODE_UNLOCKED` | `Unlocked` | GPS Receiver has not locked onto the signal |
+|`GPS_MODE_TRACKING` | `Tracking` | GPS Receiver has found, but not locked onto the signal (optional) |
+
+#### GpsTimePos
+
+The GPSTimePos reports the location and the timestamp associated with the location report.  The GPSTimePos details are listed in the table below.
+
+| **Member**       | **Type**          | **Description** |
+| :----------------------- | :------- | :------- |
+|`position` | `PositionInfo`  | Position report |
+|`timestamp` | `BULKIO::PrecisionUTCTime` | Timestamp for the location report |
+
+#### GPS Support Types
+
+The following table lists the type used by GpsTimePos for communicating position information.
+
+| **Member**       | **Type**          | **Description** |
+| :----------------------- | :------- | :------- |
+|`valid` | `boolean`  | The report is valid |
+|`datum` | `string` | Reference ellipsoid. Set to DATUM_WGS84 |
+|`lat` | `double` | Latitude (degrees) |
+|`lon` | `double` | Longitude (degrees) |
+|`alt` | `double` | Altitude (meters) |
+
+### NavData Interface
+
+This interface provides basic navigational information such as position, velocity, and so forth. The NavData interface is composed of one attribute and no functions. While the interface returns a single attribute, that attribute contains multiple positional structures, some of which may not be supported by the navigation data source. Structures contain a "valid" flag, allowing the hardware to indicate whether or not the source provides that specific data set.
+
+> **NOTE**:  This interface's attributes are read/write, therefore, this interface can be used to read navigation information or to receive navigation information.
+
+#### NavData Attribute
+
+The NavData attribute is used to retrieve additional detailed navigation information from devices.
+
+| **Attribute Prototype**                 | **Description** |
+| :----------------------- | :------- |
+|`NavigationPacket nav_packet`   | Get detailed navigational information from the device.  |
+
+#### `NavigationPacket`
+
+The NavigationPacket provides all of the detail required for communicating navigational information for a device.
+
+| **Member**       | **Type**          | **Description** |
+| :----------------------- | :------- | :------- |
+|`source_id` | `string`  | Device identifier for the device that generated the navigation report (this device's ID if accessing the hardware directly) |
+|`rf_flow_id` | `string` | Identifier for the RF source (antenna) |
+|`position` | `PositionInfo` | Location information in lat/long/altitude |
+|`cposition` | `CartesianPositionInfo` | Location information in x/y/z |
+|`velocity` | `VelocityInfo` | Velocity vector |
+|`acceleration` | `AccelerationInfo` | Acceleration vector |
+|`attitude` | `AttitudeInfo` | Attitude info (pitch/yaw/roll) |
+|`timestamp` | `BULKIO::PrecisionUTCTime` | Timestamp for the navigation data information |
+|`additional_info` | `CF::Properties` | Device-specific additional information |
+
+#### NavData Support Types
+
+The following tables list the types that are used by the `NavigationPacket` for communicating position, velocity, acceleration, and attitude information.
+
+##### `PositionInfo`
+| **Member**       | **Type**          | **Description** |
+| :----------------------- | :------- | :------- |
+|`valid` | `boolean`  | The report is valid |
+|`datum` | `string` | Reference ellipsoid. Set to DATUM_WGS84 |
+|`lat` | `double` | Latitude (degrees) |
+|`lon` | `double` | Longitude (degrees) |
+|`alt` | `double` | Altitude (meters) |
+
+##### `CartesianPositionInfo`
+| **Member**       | **Type**          | **Description** |
+| :----------------------- | :------- | :------- |
+|`valid` | `boolean`  | The report is valid |
+|`datum` | `string` | Reference ellipsoid. Set to DATUM_WGS84 |
+|`x` | `double` | X-axis (meters) |
+|`y` | `double` | Y-axis (meters) |
+|`z` | `double` | Z-axis (meters) |
+
+##### VelocityInfo
+| **Member**       | **Type**          | **Description** |
+| :----------------------- | :------- | :------- |
+|`valid` | `boolean`  | The report is valid |
+|`datum` | `string` | Reference ellipsoid. Set to DATUM_WGS84 |
+|`coordinate_system` | `string` | CS_ECF (Earth-Centered Earth-Fixed), CS_ENU (East, North, Up), CS_NED (North, East, Down) |
+|`x` | `double` | X-axis (meters/second) |
+|`y` | `double` | Y-axis (meters/second) |
+|`z` | `double` | Z-axis (meters/second) |
+
+##### AccelerationInfo
+| **Member**       | **Type**          | **Description** |
+| :----------------------- | :------- | :------- |
+|`valid` | `boolean`  | The report is valid |
+|`datum` | `string` | Reference ellipsoid. Set to DATUM_WGS84 |
+|`coordinate_system` | `string` | CS_ECF (Earth-Centered Earth-Fixed), CS_ENU (East, North, Up), CS_NED (North, East, Down) |
+|`x` | `double` | X-axis (meters/second^2) |
+|`y` | `double` | Y-axis (meters/second^2) |
+|`z` | `double` | Z-axis (meters/second^2) |
+
+##### AttitudeInfo
+| **Member**       | **Type**          | **Description** |
+| :----------------------- | :------- | :------- |
+|`valid` | `boolean` | The report is valid |
+|`pitch` | `double` | Pitch (degrees) |
+|`yaw`   | `double` | Yaw (degrees) |
+|`roll`  | `double` | Roll (degrees) |
+
+### RFInfo Interface
+
+The RFInfo interface describes the contents of an RF feed (antenna/feed); the most direct analogy is that RFInfo describes a wire connecting an antenna to a tuner.
+
+> **NOTE**:  This interface's attributes are read/write, therefore, this interface can be used to send RF feed information or to describe the RF feed information being received.
+
+#### RFInfo Attributes
+
+The RFInfo interface implements the attributes listed in the table below.
+
+| **Attribute Prototype**                 | **Description** |
+| :----------------------- | :------- |
+|`string rf_flow_id`   | A string that uniquely describes the feed |
+|`RFInfoPkt rfinfo_pkt`   | A description of the RF feed |
+
+#### Support Types
+
+The following tables list the types that are used by the RFInfo for communicating RF, sensor, antenna, feed, and frequency, path delay, and frequency range information.
+
+##### RFInfoPkt
+| **Member**       | **Type**          | **Description** |
+| :----------------------- | :------- | :------- |
+|`rf_flow_id` | `string` | The string that uniquely describes the feed |
+|`rf_center_freq` | `double` | Center frequency for the RF Feed (the physical antenna) |
+|`rf_bandwidth`   | `double` | Bandwidth for the RF Feed (the physical antenna) |
+|`if_center_freq`  | `double` | Center frequency for the IF that is output by the feed (if the hardware performs a down-conversion) |
+|`spectrum_inverted` | `boolean` | Set to true if the spectrum for the feed output is inverted |
+|`sensor` | `SensorInfo` | A description of the antenna/feed combination |
+|`ext_path_delays`   | `sequence PathDelay` | Frequency-selective path delays |
+|`capabilities`  | `RFCapabilities` | Potential operating frequency range for the antenna/feed combination |
+|`additional_info` | `CF::Properties` | Device-specific additional information |
+
+##### SensorInfo
+| **Member**       | **Type**          | **Description** |
+| :----------------------- | :------- | :------- |
+|`mission` | `string` | Name for the mission |
+|`collector` | `double` | Name for the collector |
+|`rx`   | `double` | Name for the rx element |
+|`antenna`  | `AntennaInfo` | Description of the antenna's RF characteristics |
+|`feed` | `FeedInfo` | Description of the feed's RF characteristics |
+
+##### AntennaInfo
+| **Member**       | **Type**          | **Description** |
+| :----------------------- | :------- | :------- |
+|`name` | `string` | Name for the antenna |
+|`type` | `string` | Type of antenna |
+|`size`   | `string` | Size of the antenna |
+|`description`  | `string` | Description of the antenna installation |
+
+##### FeedInfo
+| **Member**       | **Type**          | **Description** |
+| :----------------------- | :------- | :------- |
+|`name` | `string` | Name for the feed |
+|`polarization` | `string` | Polarization (for example, "vertical", "horizontal") |
+|`freq_range`   | `FreqRange` | Operating range for the RF feed |
+
+##### FreqRange
+| **Member**       | **Type**          | **Description** |
+| :----------------------- | :------- | :------- |
+|`min_val` | `double` | Minimum frequency |
+|`max_val` | `double` | Maximum frequency |
+|`values`   | `sequence double` | List of specific center frequencies that are available (if not continuous) |
+
+##### PathDelay
+| **Member**       | **Type**          | **Description** |
+| :----------------------- | :------- | :------- |
+|`freq` | `double` | Frequency where this delay applies |
+|`delay_ns` | `double` | Delay at the given frequency (nanoseconds) |
+
+##### RFCapabilities
+| **Member**       | **Type**          | **Description** |
+| :----------------------- | :------- | :------- |
+|`freq_range` | `FreqRange` | Minimum to Maximum center frequency |
+|`bw_range` | `FreqRange` | Minimum to Maximum operating bandwidth |
+
+### RFSource Interface
+
+The RFSource interface describes a device that contains multiple RF feeds and any one can be selected at any one time. This is equivalent to an RF switch connected to multiple antenna subsystems.
+
+> **NOTE**:  This interface's attributes are read/write, therefore, they are meant to be used to control the RF source (RF switch) to select the appropriate RF stream to feed to the tuner.
+
+#### RFSource Attributes
+
+The RFSource interface implements the attributes listed in the table below.
+
+| **Attribute Prototype**                 | **Description** |
+| :----------------------- | :------- |
+|`RFInfoPktSequence available_rf_inputs`   | The list of RF feeds that can be selected. Each RF feed is described by an RFInfoPkt structure |
+|`RFInfoPkt current_rf_input`   | The RF feed that is currently streaming out of the device |
+
+
 ## Tuner status
 
 The FRONTEND::tuner_status property provides the status of every allocated FEI device.
