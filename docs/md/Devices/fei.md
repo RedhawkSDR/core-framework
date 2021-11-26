@@ -646,7 +646,7 @@ If scanning functionality is needed, then each device's scan plan needs to be se
 
 Command and Control of existing allocated tuners is performed through the `DigitalTuner` or `AnalogTuner` port on the FEI device. These commands allow external users to get and set specific settings for each of the tuners. Each FEI tuner device must have a `DigitalTuner` port named `DigitalTuner_in` (or `AnalogTuner_in` for an `AnalogTuner` port) that allows for command and control. All of the functions in the tuner control interface need to be implemented even if only to report that the capability is not supported. Each of these tuner control interface functions uses the Allocation ID to uniquely identify the tuners.
 
-> **NOTE**:  An output control port used to control an FEI device follows the same connectivity rules explained in [Custom IDL Interfaces](Connections/custom-idl-interfaces.md).
+> **NOTE**:  An output control port used to control an FEI device follows the same connectivity rules explained in [Custom IDL Interfaces](../Connections/custom-idl-interfaces.html).
 
 ### Tuner Control Interface
 
