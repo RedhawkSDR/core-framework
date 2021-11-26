@@ -1,6 +1,6 @@
 # Device Interaction with Hardware
 
-REDHAWK <abbr title="See Glossary.">devices</abbr> can be used to interact with hardware receivers and digitizers, for example, a data acquisition board or a USRP. To have a REDHAWK <abbr title="See Glossary.">component</abbr> use a REDHAWK device, you can establish a [*usesdevice* relationship](../../runtime-environment/applications.html#usesdevice-relationship) between a component and a device. The <abbr title="See Glossary.">*usesdevice* relationship</abbr> requires the component to only use that particular type of device. The REDHAWK distribution includes three devices that can be used out-of-the-box: Realtek RTL2832-based DVB dongles with Osmocom's `rtl-sdr` library, Ettus's USRP, and an FM RDS simulator with the `libRfSimulators` library.
+REDHAWK <abbr title="See Glossary.">devices</abbr> can be used to interact with hardware receivers and digitizers, for example, a data acquisition board or a USRP. To have a REDHAWK <abbr title="See Glossary.">component</abbr> use a REDHAWK device, you can establish a [*usesdevice* relationship](../../Runtime-Environment/applications.html#usesdevice-relationship) between a component and a device. The <abbr title="See Glossary.">*usesdevice* relationship</abbr> requires the component to only use that particular type of device. The REDHAWK distribution includes three devices that can be used out-of-the-box: Realtek RTL2832-based DVB dongles with Osmocom's `rtl-sdr` library, Ettus's USRP, and an FM RDS simulator with the `libRfSimulators` library.
 
 The following example explains how to use the `FmRdsSimulator` REDHAWK device to receive and process a generated FM signal, and provide the audio and a plot of the signal.
 
@@ -73,7 +73,7 @@ Given the radio nature of REDHAWK, the interaction between the REDHAWK environme
 
 If you have RF FrontEnd hardware that you want to model in REDHAWK, you can use the FEI module to facilitate this process. The FEI module contains interfaces designed to standardize the interaction (allocation, operation, and development) of tuner devices within the REDHAWK Core Framework (CF) (between applications and radio hardware). This standard breaks the tie between the application and the hardware and provides more flexibility.
 
-The FEI module defines a number of interfaces to enable users to interact with several different generic [types of tuners](../../appendices/fei.html#types-of-tuners), including:
+The FEI module defines a number of interfaces to enable users to interact with several different generic [types of tuners](../../Devices/fei.html#device-types), including:
 
   - Receiver (RX) tuner
   - Receiver Digitizer (RX_DIGITIZER) tuner

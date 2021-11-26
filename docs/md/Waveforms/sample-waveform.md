@@ -33,7 +33,7 @@ To add <abbr title="See Glossary.">components</abbr> to this waveform:
 
 7.  Press `Ctrl+S` to save or select **File > Save**.
 
-8.  Close the [Waveform Editor](../ide/editors-and-views/waveform-editor.html) by selecting the **X** or by selecting **File > Close All**.
+8.  Close the [Waveform Editor](../IDE/Editors-and-Views/waveform-editor.html) by selecting the **X** or by selecting **File > Close All**.
 
 ### Export the Waveform
 
@@ -43,7 +43,7 @@ Below is a description of how to export the waveform in the IDE:
 
 2.  Drag the *demo* project onto the <abbr title="See Glossary.">**Target SDR**</abbr> in the <abbr title="See Glossary.">REDHAWK Explorer view</abbr>.
 
-This installs the waveform into `$SDRROOT/dom/waveforms`. If a permissions denied error is encountered, ensure that the `$SDRROOT` is set up per the installation instructions in [Installing the Framework from Source](../appendices/source-installation.html#installing-the-framework-from-source).
+This installs the waveform into `$SDRROOT/dom/waveforms`. If a permissions denied error is encountered, ensure that the `$SDRROOT` is set up per the installation instructions in [Install from Source](../Install/install-from-source.html#installation-steps).
 
 Verify that the waveform is installed:
 
@@ -59,7 +59,7 @@ This section provides an overview of how to launch a waveform as an application 
 
 #### Launching a Domain
 
-Begin by [starting a Domain Manager and Device Manager](../runtime-environment/launching-a-domain.html).
+Begin by [starting a Domain Manager and Device Manager](../Runtime-Environment/launching-a-domain.html).
 
 #### Launch the Waveform
 
@@ -93,4 +93,4 @@ This opens the waveform explorer. A waveform is displayed in the <abbr title="Se
 
 #### Shutdown the Domain
 
-Finally, [shutdown the Domain Manager and Device Manager](../runtime-environment/launching-a-domain.html#shutting-down-the-domain).
+Finally, [shutdown the Domain Manager and Device Manager](../Runtime-Environment/launching-a-domain.html#shutting-down-the-domain).

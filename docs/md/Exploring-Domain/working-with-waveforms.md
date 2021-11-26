@@ -1,6 +1,6 @@
 # Working with Waveforms on a Running Domain
 
-If you have a running <abbr title="See Glossary.">Domain Manager</abbr> and <abbr title="See Glossary.">Device Manager</abbr>, you may create and work with [waveforms](../waveforms/_index.html).  You can launch the waveform on the <abbr title="See Glossary.">domain</abbr>, launch additional <abbr title="See Glossary.">components</abbr> into the running waveform, stop the running waveform, and release the waveform from the domain.
+If you have a running <abbr title="See Glossary.">Domain Manager</abbr> and <abbr title="See Glossary.">Device Manager</abbr>, you may create and work with [waveforms](../Waveforms/_index.html).  You can launch the waveform on the <abbr title="See Glossary.">domain</abbr>, launch additional <abbr title="See Glossary.">components</abbr> into the running waveform, stop the running waveform, and release the waveform from the domain.
 
 ### Launching a Waveform
 

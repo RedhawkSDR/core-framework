@@ -1,6 +1,6 @@
 # Using an FEI Device in the IDE
 
-After you have created the FrontEnd Interfaces (FEI) <abbr title="See Glossary.">device</abbr>, you can launch the device in the <abbr title="See Glossary.">sandbox</abbr> or launch it in a <abbr title="See Glossary.">domain</abbr> as part of a <abbr title="See Glossary.">node</abbr>. For more information, refer to [Launching Components in the IDE Sandbox](../../sandbox/ide/_index.html#launching-components-in-the-ide-sandbox) or [Creating a New Node](../../nodes/creating-a-new-node.html) and [Launching a Domain](../../runtime-environment/launching-a-domain.html). After launching the device, the **FrontEnd Tuners** folder is displayed under the device in the <abbr title="See Glossary.">**REDHAWK Explorer**</abbr> view and the available tuners are displayed under it with a tuning fork icon:
+After you have created the FrontEnd Interfaces (FEI) <abbr title="See Glossary.">device</abbr>, you can launch the device in the <abbr title="See Glossary.">sandbox</abbr> or launch it in a <abbr title="See Glossary.">domain</abbr> as part of a <abbr title="See Glossary.">node</abbr>. For more information, refer to [Launching Components in the IDE Sandbox](../../Sandbox/IDE/_index.html#launching-components-in-the-ide-sandbox) or [Creating a New Node](../../Nodes/creating-a-new-node.html) and [Launching a Domain](../../Runtime-Environment/launching-a-domain.html). After launching the device, the **FrontEnd Tuners** folder is displayed under the device in the <abbr title="See Glossary.">**REDHAWK Explorer**</abbr> view and the available tuners are displayed under it with a tuning fork icon:
 
 ![Available FEI Tuners](img/FEItuningfork.png)
 
@@ -31,7 +31,7 @@ The following procedure explains how to allocate a FrontEnd tuner using the **Al
       - TX
       - RX_SCANNER_DIGITIZER
 
-    For more information about tuner types, refer to [Types of Tuners](../../appendices/fei.html#types-of-tuners).
+    For more information about tuner types, refer to [Types of Tuners](../../Devices/fei.html#device-types).
 
 5.  In **Center Frequency (MHz)**, specify the center frequency.
 
@@ -42,9 +42,9 @@ The following procedure explains how to allocate a FrontEnd tuner using the **Al
 
 7.  In **Sample Rate (Msps)**, specify the sample rate, or if a specific sample rate is not required, select the **Any Value** checkbox.
 
-8.  Optionally, adjust the **Bandwidth Tolerance (%)** or **Sample Rate Tolerance (%)** (Refer to [Optional Status Elements](../../appendices/fei.html#optional-status-elements)).
+8.  Optionally, adjust the **Bandwidth Tolerance (%)** or **Sample Rate Tolerance (%)** (Refer to [Optional Status Elements](../../Devices/fei.html#optional-elements)).
 
-9. Optionally, specify the ID of the analog feed in [**RF Flow ID**](../../appendices/fei.html#required-status-elements) or the device's [**Group ID**](../../appendices/fei.html#required-status-elements).
+9. Optionally, specify the ID of the analog feed in [**RF Flow ID**](../../Devices/fei.html#required-elements) or the device's [**Group ID**](../../Devices/fei.html#required-elements).
 
 10. If allocating a scanner, click **Next**. For any other allocation, click **Finish**.
 
@@ -157,14 +157,14 @@ Even though it is the property view, the Tuner port is exercised to effect the r
 
 #### Plotting a Tuned Receiver
 
-The process described in [Plotting BulkIO Ports](../../exploring-domain/plotting-bulkio-ports.html) only applies to a single-channel system. In multi-channel devices, a single port is used to send out all the data, so additional structures are used to identify which channel to plot.
+The process described in [Plotting BulkIO Ports](../../Exploring-Domain/plotting-bulkio-ports.html) only applies to a single-channel system. In multi-channel devices, a single port is used to send out all the data, so additional structures are used to identify which channel to plot.
 
 1.  To plot an FEI device, right-click the allocated FrontEnd tuner and select **Plot Port Data**, or any other **Plot Port** option:
 ![Plotting an Allocated Tuner](img/TunerPlotting.png)
 
 2.  If the FrontEnd tuner has multiple BulkIO ports, the **Ambiguous Data Port** dialog is displayed. Select the port to plot.
 
-    For more information about interacting with the plots, refer to [REDHAWK Plot View](../../ide/editors-and-views/redhawk-plot-view.html).
+    For more information about interacting with the plots, refer to [REDHAWK Plot View](../../IDE/Editors-and-Views/redhawk-plot-view.html).
 
 #### Plotting a Tuned Receiver with Multiple Channels
 

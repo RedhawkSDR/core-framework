@@ -10,6 +10,6 @@ The primary consoles found in the REDHAWK IDE are:
 
   - **Code Generators**: When automatically generating code for a component or device, the appropriate code generator console is displayed and contains information pertaining to the code generation.
 
-  - **Python <abbr title="See Glossary.">sandbox</abbr>**: The [Python Sandbox](../../sandbox/python/_index.html) is a powerful tool for testing and interacting with components and devices. A Python sandbox may be created from within the IDE to aid in testing.
+  - **Python <abbr title="See Glossary.">sandbox</abbr>**: The [Python Sandbox](../../Sandbox/Python/_index.html) is a powerful tool for testing and interacting with components and devices. A Python sandbox may be created from within the IDE to aid in testing.
 
   - **Other Consoles**: Additional consoles (not described in this section) are available, including <abbr title="See Glossary.">PyDev</abbr> Scripting, Java Stack Trace, etc. These are part of Eclipse or part of third party plug-ins such as PyDev.

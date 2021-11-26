@@ -6,8 +6,8 @@ To configure and install REDHAWK and associated dependencies, you must have root
 
 The overall installation process includes:
 
-- Install [external dependencies](external-dependencies.md).
-- Setup the [REDHAWK YUM repository](redhawk-yum-repo.md) and install included dependencies.
+- Install [external dependencies](external-dependencies.html).
+- Setup the [REDHAWK YUM repository](redhawk-yum-repo.html) and install included dependencies.
 - If you intend to use Java components, see the section on [Java and JacORB](java-and-jacorb.html).
 - Install REDHAWK software (below).
 - Setup the user environment (below).
@@ -125,7 +125,7 @@ If you want to run a <abbr title="See Glossary.">Domain Manager</abbr> and <abbr
 
 > **NOTE**:  omniORB may have trouble automatically resolving its location. In this case, it may be necessary to set the endpoints in the `omniORB.cfg` files by adding the following to each `omniORB.cfg` file: `endpoint = giop:tcp:<IP address of machine>`. You must restart `omniEvents` and `omniNames` for these changes to take effect.  
 
-> **NOTE**:  Run `rh_net_diag` to help diagnose any problems. Refer to [Diagnosing Problems Using the `rh_net_diag` Script](../appendices/troubleshooting/connections.html#diagnosing-problems-using-the-rh_net_diag-script) for more information on how to use `rh_net_diag`.  
+> **NOTE**:  Run `rh_net_diag` to help diagnose any problems. Refer to [Diagnosing Problems Using the `rh_net_diag` Script](../Appendices/troubleshoot-connections.html#diagnosing-problems-using-the-rh_net_diag-script) for more information on how to use `rh_net_diag`.  
 
 ## Configure JacORB to Support the IDE
 

@@ -9,7 +9,7 @@ The benefit of creating a usesdevice relationship artifact is that the deploymen
 
 To create a usesdevice relationship artifact on the waveform:
 
-1.  Create a [waveform](../waveforms/_index.html)
+1.  Create a [waveform](../Waveforms/_index.html)
 
 2.  Find and place the usesdevice relationship artifact, which is located under the Advanced tab:
 

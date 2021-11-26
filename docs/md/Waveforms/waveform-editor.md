@@ -32,7 +32,7 @@ The Components section displays the following field, which can be selected to mo
 The Logging section displays the following fields, which can be selected to modify the current values:
 
   - Enabled checkbox - Enable or disable a logging configuration element for the selected component instantiation.
-  - Log Level combo box - Select predefined logging Levels, including: `OFF`, `FATAL`, `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`, and `ALL`. For more information, refer to [Logging](../logging/_index.html).
+  - Log Level combo box - Select predefined logging Levels, including: `OFF`, `FATAL`, `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`, and `ALL`. For more information, refer to [Logging](../Logging/_index.html).
   - Logging URI - Specify a URI of a logging configuration file.
 
 ### Diagram Tab
@@ -52,7 +52,7 @@ The following steps explain how to edit the properties of a component in a wavef
 
 #### Editing the `devicerequires` Set in a Waveform
 
-The `devicerequires` set for a component is managed through the Requirements tab of the Properties view. When these Requirements are set, they become specific to the waveform and are written to the `*.sad.xml` file. For more information about the `devicrequires` set, refer to [Binding Components to Executable Devices](../waveforms/deployment-resources.html#binding-components-to-executable-devices).
+The `devicerequires` set for a component is managed through the Requirements tab of the Properties view. When these Requirements are set, they become specific to the waveform and are written to the `*.sad.xml` file. For more information about the `devicrequires` set, refer to [Binding Components to Executable Devices](../Waveforms/deployment-resources.html#binding-components-to-executable-devices).
 
 The following steps explain how to edit the `devicerequires` set.
 

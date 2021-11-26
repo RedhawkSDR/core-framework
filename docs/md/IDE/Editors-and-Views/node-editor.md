@@ -64,7 +64,7 @@ The following steps explain how to add a device to the node and configure its pr
 Like the **Devices/Services** tab, any property modified from the **Diagram** section is specific to this node and does not impact the device's execution in other environments.
 
 #### Editing the `deployerrequires` Set in a Node
-The [`deployerrequires`](../../waveforms/deployment-resources.html#binding-components-to-executable-devices) set for a Node is managed through the Requirements tab of the Properties view. When these Requirements are set, they become specific to the node and are written to the `*.dcd.xml` file.
+The [`deployerrequires`](../../Waveforms/deployment-resources.html#binding-components-to-executable-devices) set for a Node is managed through the Requirements tab of the Properties view. When these Requirements are set, they become specific to the node and are written to the `*.dcd.xml` file.
 
 The following steps explain how to edit the `deployerrequires` set.
 
@@ -77,7 +77,7 @@ The following steps explain how to edit the `deployerrequires` set.
 4.  To remove an ID and value, select the ID and click X.
 
 #### Using the Find By Feature
-From the Diagram tab, a user may also use the [**Find By** feature](../../runtime-environment/applications.html#using-the-find-by-feature). The **Find By** feature enables a user to find a resource by name, a service by name or type, or an <abbr title="See Glossary.">event channel</abbr> by name.
+From the Diagram tab, a user may also use the [**Find By** feature](../../Runtime-Environment/applications.html#using-the-find-by-feature). The **Find By** feature enables a user to find a resource by name, a service by name or type, or an <abbr title="See Glossary.">event channel</abbr> by name.
 
 #### Making Connections
 Connections may be made from input to output <abbr title="See Glossary.">ports</abbr> by clicking and dragging from one port to the other. Ports may have more than one connection drawn to or from them. Any unsupported or erroneous connection detected by the IDE is marked with an appropriate indicator. Hovering over the indicator provides information concerning the error.

@@ -44,7 +44,7 @@ Upon exiting this wizard,the FEI device project to is created, and the Overview 
 
 #### Editing an FEI Device Project
 
-After completing the wizard, you can add ports, properties, and descriptions to an FEI device using the same processes used for all other <abbr title="See Glossary.">components</abbr> and devices. For more information about adding ports, refer to [SoftPkg Editor Overview Tab](../../ide/editors-and-views/softpkg-editor.html#overview-tab). For more information about adding properties, refer to [SoftPkg Editor Properties Tab](../../ide/editors-and-views/softpkg-editor.html#properties-tab)
+After completing the wizard, you can add ports, properties, and descriptions to an FEI device using the same processes used for all other <abbr title="See Glossary.">components</abbr> and devices. For more information about adding ports, refer to [SoftPkg Editor Overview Tab](../../IDE/Editors-and-Views/softpkg-editor.html#overview-tab). For more information about adding properties, refer to [SoftPkg Editor Properties Tab](../../IDE/Editors-and-Views/softpkg-editor.html#properties-tab)
 
 For example, it may be useful to add a property used to uniquely identify the target device, such as an IP address.
 
@@ -82,7 +82,7 @@ This section describes how to generate and customize the source code for an FEI 
     The following table explains what is expected in each function/method.
 
 > **NOTE**  
-> Each of the following functions have `fts` and `tuner_id` passed in as parameters. The `tuner_id` parameter specifies which tuner channel to operate on, and `fts` is a reference to the [FEI tuner status](../../appendices/fei.html#status-elements) associated with the specified tuner channel. Additionally, ` deviceSetTuning` has a parameter called `request`, which defines the parameters of the tuning request.
+> Each of the following functions have `fts` and `tuner_id` passed in as parameters. The `tuner_id` parameter specifies which tuner channel to operate on, and `fts` is a reference to the [FEI tuner status](../../Devices/fei.html#tuner-status) associated with the specified tuner channel. Additionally, ` deviceSetTuning` has a parameter called `request`, which defines the parameters of the tuning request.
 
 **Functions/Methods in the Generated Code**
 
@@ -105,21 +105,19 @@ In addition to the code required for allocation and deallocation, information us
 
     There are two key aspects to an FEI device: 1) how many channels does it support? and 2) how does it interact with the hardware?
 
-    In an FEI device, the number of channels is set through the `setNumChannels` function. By default, this function is included in the generated code with 1 channel. Interaction with the hardware is, obviously, specific to the hardware. The nature of the hardware (i.e.: receiver, transmitter), is specified for the supported channels as the second argument in the `setNumChannels` function. For more information, refer to [Types of Tuners](../../appendices/fei.html#types-of-tuners). By default, `setNumChannels` is populated with RX_DIGITIZER, irrespective of the selections made on the FEI wizard.
+    In an FEI device, the number of channels is set through the `setNumChannels` function. By default, this function is included in the generated code with 1 channel. Interaction with the hardware is, obviously, specific to the hardware. The nature of the hardware (i.e.: receiver, transmitter), is specified for the supported channels as the second argument in the `setNumChannels` function. For more information, refer to [Types of Tuners](../../Devices/fei.html#device-types). By default, `setNumChannels` is populated with RX_DIGITIZER, irrespective of the selections made on the FEI wizard.
 
     The other aspect of the interaction with hardware is the interaction with the actual driver code. While this interaction is hardware-specific, there are some structures that may be useful. The loop function (`serviceFunction` in C++ and Java, `process` in Python), is iteratively called after the device is started. As part of the `deviceEnable` callback, calling `start` on the device starts processing loop. Conversely, as part of the `deviceDisable` callback, calling the `stop` on the device stops the processing loop.
 
-> **NOTE**  
-> The tuner interface provides the ability to set parameters like center frequency and bandwith for the receiver. Any FEI compliant device may not output any data until the transients from any receiver setting change have settled to steady state. In short, all data output from an FEI compliant device must correspond to unambiguous receiver settings.
+> **NOTE**:  The tuner interface provides the ability to set parameters like center frequency and bandwith for the receiver. Any FEI compliant device may not output any data until the transients from any receiver setting change have settled to steady state. In short, all data output from an FEI compliant device must correspond to unambiguous receiver settings.
 
 In the service loop function, the implementation of, in the case of a receiver, reading data from the hardware and pushing it out a port would exist. Conversely, in the case of the transmitter, the service loop function would be used to retrieve data from a port and push it through the driver to the hardware.
 
 5.  Add source code to implement FEI-related port functions.
 
-> **NOTE**  
-> If using an `RFInfo` port, it may be useful to store the `RFInfo` packet as part of the device because it is not stored within the port.
+> **NOTE**:  If using an `RFInfo` port, it may be useful to store the `RFInfo` packet as part of the device because it is not stored within the port.
 
-For each function on a port definition, a callback is created in the device. This callback takes as arguments the same argument list that is provided by the port function with the exception of the types for the arguments. Where possible, the type for each of the arguments is a C++ type that is easier to use than the corresponding CORBA type. For example, in the case of a string argument, the argument on the port is of type `char*`, while the argument on the callback is of type `std::string&`. A thorough description of the different port functions is available in [the FEI description](../../appendices/fei.html#command-and-control).
+For each function on a port definition, a callback is created in the device. This callback takes as arguments the same argument list that is provided by the port function with the exception of the types for the arguments. Where possible, the type for each of the arguments is a C++ type that is easier to use than the corresponding CORBA type. For example, in the case of a string argument, the argument on the port is of type `char*`, while the argument on the callback is of type `std::string&`.  A thorough description of the different port functions is available in [the FEI description](../../Devices/fei.html#command-and-control).
 
 ##### Scanning Tuners in C++
 
@@ -170,7 +168,7 @@ data = range(10000)
 self.port_dataShort_out.pushPacket(data, bulkio.timestamp.now(), False, "my stream id")
 ```
 
-[Install](#installing-the-fei-device) and [launch](../../sandbox/ide/_index.html#launching-devices-in-the-ide-sandbox) the device.
+[Install](#installing-the-fei-device) and [launch](../../Sandbox/IDE/_index.html#launching-devices-in-the-ide-sandbox) the device.
 
 To test-run the device, follow these steps:
 

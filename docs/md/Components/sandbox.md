@@ -1,6 +1,6 @@
 # Sandbox
 
-This section briefly describes how to use the <abbr title="See Glossary.">sandbox</abbr> either from a Python shell or via the REDHAWK IDE; a more detailed description is available in the [Sandbox](../sandbox/_index.html) chapter.
+This section briefly describes how to use the <abbr title="See Glossary.">sandbox</abbr> either from a Python shell or via the REDHAWK IDE; a more detailed description is available in the [Sandbox](../Sandbox/_index.html) chapter.
 
 ### Python Sandbox
 

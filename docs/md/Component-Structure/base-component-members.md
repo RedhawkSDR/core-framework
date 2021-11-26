@@ -22,7 +22,7 @@ self.port_myport
 this.port_myport
 ```
 
-See [Standardized Data Interfaces](../connections/standardized-data-interfaces.html) for details on how to use ports for sending or receiving data.
+See [Standardized Data Interfaces](../Connections/standardized-data-interfaces.html) for details on how to use ports for sending or receiving data.
 
 ### Properties
 

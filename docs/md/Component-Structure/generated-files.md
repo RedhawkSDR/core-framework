@@ -1,6 +1,6 @@
 # Generated Component Files
 
-The [REDHAWK IDE](../ide/_index.html) provides a tool for auto-generating <abbr title="See Glossary.">component</abbr> code for C++, Python, or Java languages. This process takes care of REDHAWK compliance and allows the developer to insert their own custom processing algorithm for working with the data sent/received by the component. The following section provides a brief description of the generated files. Note that some files may be freely modified, while other files should not be modified.
+The [REDHAWK IDE](../IDE/_index.html) provides a tool for auto-generating <abbr title="See Glossary.">component</abbr> code for C++, Python, or Java languages. This process takes care of REDHAWK compliance and allows the developer to insert their own custom processing algorithm for working with the data sent/received by the component. The following section provides a brief description of the generated files. Note that some files may be freely modified, while other files should not be modified.
 
 Modifying particular files is discouraged for two reasons:
 

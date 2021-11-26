@@ -10,8 +10,8 @@
 Three commonly used kinds of properties in REDHAWK include:
 
   - `property` - denotes properties that are used for configuration and status
-  - `allocation` - expresses requirements that will be satisfied by a REDHAWK <abbr title="See Glossary.">device</abbr> (For more information about allocations, refer to [Devices](../sandbox/python/devices.html), [The Allocation Manager](../runtime-environment/allocation-manager.html), and [FrontEnd Interfaces](../appendices/fei.html)).
-  - `message` - used only with structs and indicates that the struct will be used as an event <abbr title="See Glossary.">message</abbr> within REDHAWK (For more information about messages, refer to [Messaging](../connections/messaging/_index.html)).
+  - `allocation` - expresses requirements that will be satisfied by a REDHAWK <abbr title="See Glossary.">device</abbr> (For more information about allocations, refer to [Devices](../Sandbox/Python/devices.html), [The Allocation Manager](../Runtime-Environment/allocation-manager.html), and [FrontEnd Interfaces](../Devices/fei.html)).
+  - `message` - used only with structs and indicates that the struct will be used as an event <abbr title="See Glossary.">message</abbr> within REDHAWK (For more information about messages, refer to [Messaging](../Connections/Messaging/_index.html)).
 
 The property's type corresponds with basic programming language primitive types such as floats, long integers, booleans, etc. Additionally, numeric types can be complex.
 

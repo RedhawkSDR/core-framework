@@ -32,7 +32,7 @@ Components, irrespective of which language is used for their implementation, con
 
 ### Generating Code for Components
 
-After a component project is created and appropriate details for the component are entered in the [SPD editor](../ide/editors-and-views/softpkg-editor.html), the IDE can generate skeleton code for the project. To begin the code generation process, click the **Generate All Implementations** button located in the top-right of the Overview panel of the SPD editor.
+After a component project is created and appropriate details for the component are entered in the [SPD editor](../IDE/Editors-and-Views/softpkg-editor.html), the IDE can generate skeleton code for the project. To begin the code generation process, click the **Generate All Implementations** button located in the top-right of the Overview panel of the SPD editor.
 ![Generate All Implementations Button](img/Generate_Code_Highlighted.png)
 
 When you click the **Generate All Implementations** button, the IDE:
@@ -47,4 +47,4 @@ When you click the **Generate All Implementations** button, the IDE:
 
 ### Installing Components
 
-After a component is compiled, it must be installed in the staging area (`$SDRROOT/dom/components`). To install a component from the <abbr title="See Glossary.">Project Explorer view</abbr>, drag the top-level component project onto the <abbr title="See Glossary.">Target SDR</abbr> section of the <abbr title="See Glossary.">REDHAWK Explorer view</abbr>. See [Deploying Projects to the `SDRROOT`](../ide/deploying-projects.html) for additional information.
+After a component is compiled, it must be installed in the staging area (`$SDRROOT/dom/components`). To install a component from the <abbr title="See Glossary.">Project Explorer view</abbr>, drag the top-level component project onto the <abbr title="See Glossary.">Target SDR</abbr> section of the <abbr title="See Glossary.">REDHAWK Explorer view</abbr>. See [Deploying Projects to the `SDRROOT`](../IDE/deploying-projects.html) for additional information.

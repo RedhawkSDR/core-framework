@@ -19,8 +19,8 @@ By default, the `--ns` (<abbr title="See Glossary.">Naming Service</abbr>), `--d
 
   - Tests that diagnose potential problems with the Naming Service. They are performed if `--ns` is enabled.
       - Check if `omniNames` is running.
-      - Check if `omniEvents` is running and if it is running locally. If it is not running at all, refer to [Performing a Hard Reset Using the cleanonmi Script](../../appendices/troubleshooting/omni.html#performing-a-hard-reset-using-the-cleanomni-script). If it is not running locally, assume it is running on another host.
-      - Retrieve entries currently stored in the Naming Service. Refer to [Common Causes for `omniNames` Failure](../../appendices/troubleshooting/omni.html#common-causes-for-omninames-failure) for further assistance.
+      - Check if `omniEvents` is running and if it is running locally. If it is not running at all, refer to [Performing a Hard Reset Using the cleanonmi Script](troubleshoot-omni.html#performing-a-hard-reset-using-the-cleanomni-script). If it is not running locally, assume it is running on another host.
+      - Retrieve entries currently stored in the Naming Service. Refer to [Common Causes for `omniNames` Failure](troubleshoot-omni.html#common-causes-for-omninames-failure) for further assistance.
       - Check `/etc/omniORB.cfg` to ensure that all defined endPoints are correct.
 
 > **NOTE**  
@@ -30,12 +30,12 @@ By default, the `--ns` (<abbr title="See Glossary.">Naming Service</abbr>), `--d
 
   - Tests that diagnose potential problems with the Domain Manager. They are performed if `--dom` is enabled.
       - Attempt to retrieve entries currently stored in the Naming Service.
-      - Check if `omniEvents` is running and if it is running locally. If it is not running at all, refer to [Performing a Hard Reset Using the cleanonmi Script](../../appendices/troubleshooting/omni.html#performing-a-hard-reset-using-the-cleanomni-script). If it is not running locally, assume it is running on another host.
+      - Check if `omniEvents` is running and if it is running locally. If it is not running at all, refer to [Performing a Hard Reset Using the cleanonmi Script](troubleshoot-omni.html#performing-a-hard-reset-using-the-cleanomni-script). If it is not running locally, assume it is running on another host.
       - Check `/etc/omniORB.cfg` to ensure all defined endPoints are correct.
 
   - Tests that diagnose potential problems with the Device Manager. They are performed if `--dev` is enabled.
       - Check if `InitRef` was overwritten with the `rh_net_diag` script `--ORBInitRef` option or if we are using the `InitRef` specified in `/etc/omniORB.cfg`.
-      - If `InitRef` is valid, attempt to retrieve entries currently stored in the Naming Service. Refer to [Common Causes for `omniNames` Failure](../../appendices/troubleshooting/omni.html#common-causes-for-omninames-failure) for further assistance.
-      - Check if `omniEvents` is running and if it is running locally. If it is not running at all, refer to [Performing a Hard Reset Using the cleanonmi Script](../../appendices/troubleshooting/omni.html#performing-a-hard-reset-using-the-cleanomni-script). If it is not running locally, assume it is running on another host.
+      - If `InitRef` is valid, attempt to retrieve entries currently stored in the Naming Service. Refer to [Common Causes for `omniNames` Failure](troubleshoot-omni.html#common-causes-for-omninames-failure) for further assistance.
+      - Check if `omniEvents` is running and if it is running locally. If it is not running at all, refer to [Performing a Hard Reset Using the cleanonmi Script](troubleshoot-omni.html#performing-a-hard-reset-using-the-cleanomni-script). If it is not running locally, assume it is running on another host.
       - Try to connect to the Domain Manager if one exists in the Naming Service.
       - Check that the IP address for the host running this script is listed in `ifconfig`. If there is no matching entry with the Device Manager, then the Java components fail on initialization.

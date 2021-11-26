@@ -14,7 +14,7 @@ from ossie.utils import redhawk
 
 The REDHAWK module is built on the same foundation as the <abbr title="See Glossary.">sandbox</abbr>, and provides a compatible interface for domain objects. Sandbox objects, including plots, can be dynamically connected to devices, waveforms and components running in the domain.
 
-Refer to [Working with Components, Devices, and Services](../sandbox/python/working_with_components.html) for more information.
+Refer to [Working with Components, Devices, and Services](../Sandbox/Python/working_with_components.html) for more information.
 
 ### Attach
 
@@ -83,7 +83,7 @@ Once finished, the waveform needs to be removed from the domain by using the `re
 
 ### Starting a Domain from within a Python session
 
-Normally, the REDHAWK Python package is used to either interact with a running domain, or to launch some [sandbox](../sandbox/_index.html) components. However, sometimes it may be required to launch a domain from a Python script.
+Normally, the REDHAWK Python package is used to either interact with a running domain, or to launch some [sandbox](../Sandbox/_index.html) components. However, sometimes it may be required to launch a domain from a Python script.
 
 To help in such a scenario, the REDHAWK Python package includes some helper functions. The `kickDomain` feature allows for an easy way to launch domain and <abbr title="See Glossary.">Device Managers</abbr> from within a Python script. With no arguments, the function launches and returns the Domain Manager that is installed in `$SDRROOT`. Additionally, all Device Managers in `$SDRROOT/dev/nodes` are started.
 
@@ -275,4 +275,4 @@ Use the following commands to capture an approximately one second cut from a wav
 
 When the sandbox exits, any connections made between sandbox objects and domain objects are broken to limit interference with normal domain operation.
 
-For more details on using the sandbox, refer to [Sandbox](../sandbox/_index.html).
+For more details on using the sandbox, refer to [Sandbox](../Sandbox/_index.html).

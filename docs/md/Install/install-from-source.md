@@ -3,8 +3,8 @@
 This section describes how to build and install REDHAWK from source and use the environment variables to run REDHAWK.
 
 The overall process includes:
-- Install [external dependencies](external-dependencies.md).
-- Setup the [REDHAWK YUM repository](redhawk-yum-repo.md) and install included dependencies.
+- Install [external dependencies](external-dependencies.html).
+- Setup the [REDHAWK YUM repository](redhawk-yum-repo.html) and install included dependencies.
 - Build and install REDHAWK software (below).
 - Setup the user environment (below).
 
@@ -115,4 +115,4 @@ sudo cp /usr/local/redhawk/core/etc/profile.d/* /etc/profile.d
 
 ## Configure omniORB
 
-Refer to [Configuring omniORB](_index.html#configure-omniorb) for information on how to edit the omniORB configuration file (`/etc/omniORB.cfg`) to provide information about how to reach the CORBA <abbr title="See Glossary.">Event Service</abbr>.
+Refer to [Configuring omniORB](install-from-rpm.html#configure-omniorb) for information on how to edit the omniORB configuration file (`/etc/omniORB.cfg`) to provide information about how to reach the CORBA <abbr title="See Glossary.">Event Service</abbr>.

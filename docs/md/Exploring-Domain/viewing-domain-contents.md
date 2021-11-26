@@ -8,7 +8,7 @@ The Domain Manager's root contains the following folders:
 
     ![Device Managers Folder](img/devman.png)
 
-  - **Event Channels**: Displays the <abbr title="See Glossary.">event channels</abbr> in the domain. Right-click a channel to display the **Refresh** and **Listen to Event Channel** options. Select **Listen to Event Channel** to open the [**Event Viewer** view](../ide/editors-and-views/event-viewer-view.html).
+  - **Event Channels**: Displays the <abbr title="See Glossary.">event channels</abbr> in the domain. Right-click a channel to display the **Refresh** and **Listen to Event Channel** options. Select **Listen to Event Channel** to open the [**Event Viewer** view](../IDE/Editors-and-Views/event-viewer-view.html).
 
     ![Event Channels Folder](img/eventchannel.png)
 

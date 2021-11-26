@@ -1,6 +1,6 @@
 # Running a Node
 
-As part of the REDHAWK install, a <abbr title="See Glossary.">domain</abbr> and <abbr title="See Glossary.">node</abbr> are setup by default. To launch the domain and node, refer to [Launching a Domain](../runtime-environment/launching-a-domain.html).
+As part of the REDHAWK install, a <abbr title="See Glossary.">domain</abbr> and <abbr title="See Glossary.">node</abbr> are setup by default. To launch the domain and node, refer to [Launching a Domain](../Runtime-Environment/launching-a-domain.html).
 
 ### Exploring the Running Node
 
@@ -15,7 +15,7 @@ When a node is running, several attributes about the node, can be viewed in the 
 
 ### Creating a Component that Consumes Resources
 
-All <abbr title="See Glossary.">components</abbr> consume processor resources such as memory and CPU capacity. These resources are automatically tracked by the <abbr title="See Glossary.">GPP</abbr>, and when its thresholds are exceeded, the GPP enters the BUSY state, preventing further [deployments onto the computer](../waveforms/deployment-resources.html). However, in some cases, it is desirable for the component to consume some other capacity on the computer that is not part of the standard REDHAWK deployment model. The GPP contains several `allocation` properties such as `mcastnicIngressCapacity` or `mcastnicVLANs` that are available as a deployment constraint but are not used by the default component deployments.
+All <abbr title="See Glossary.">components</abbr> consume processor resources such as memory and CPU capacity. These resources are automatically tracked by the <abbr title="See Glossary.">GPP</abbr>, and when its thresholds are exceeded, the GPP enters the BUSY state, preventing further [deployments onto the computer](../Waveforms/deployment-resources.html). However, in some cases, it is desirable for the component to consume some other capacity on the computer that is not part of the standard REDHAWK deployment model. The GPP contains several `allocation` properties such as `mcastnicIngressCapacity` or `mcastnicVLANs` that are available as a deployment constraint but are not used by the default component deployments.
 
 In a more generalized way, when a device's specialized capacity is added to the device as a property of kind `allocation`, components can be created that will allocate this attribute of the device, making this `allocation` property a deployment constraint for the component.
 
@@ -47,6 +47,6 @@ The following steps explain how to create a <abbr title="See Glossary.">waveform
 
 The following steps explain how to launch and release a component.
 
-1.  On the running domain, select **GPP_\<localhost\>_localdomain** and note the value for **memCapacity** on the [**Properties** tab for the GPP device](#properties-view-of-a-running-gpp).
+1.  On the running domain, select **GPP_\<localhost\>_localdomain** and note the value for **memCapacity** on the **Properties** tab for the GPP device.
 2.  Launch the <abbr title="See Glossary.">application</abbr> *sample_deploy* on the running domain (right-click domain, select **Launch Waveform... \> sample\_deploy > Finish**). Note **memCapacity** for **GPP_\<localhost\>_localdomain** again; it is 1000 less than before the launch of the application.
 3.  Release the application (**REDHAWK_DEV > Waveforms > sample\_deploy\_\<\#\>** right-click **Release**). Note memCapacity for **GPP_\<localhost\>_localdomain** again; it is restored to the original value.

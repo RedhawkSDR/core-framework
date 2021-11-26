@@ -22,7 +22,7 @@ A <abbr title="See Glossary.">message</abbr> consumer may be created when creati
 
 4.  In the Struct Property section, enter the name of the message you want the component to consume. The ID defaults to the name you enter.
 5.  From the Kind drop-down, select `message`.
-6.  In the All Properties section, select the `struct` property you added. By default, a `simple` member  already exists. You can modify it and create additional members for the `struct` property. For more information about property structures, kinds, and types, refer to [Managing and Defining Properties](../../component-structure/managing-defining-properties.html).
+6.  In the All Properties section, select the `struct` property you added. By default, a `simple` member  already exists. You can modify it and create additional members for the `struct` property. For more information about property structures, kinds, and types, refer to [Managing Properties](../../Component-Structure/manage-properties.html).
 After you modify and/or create them, the members of the structure and corresponding property information is displayed.
   ![Struct Property and Members](img/message.png)
 

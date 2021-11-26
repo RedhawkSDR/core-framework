@@ -23,7 +23,7 @@ A port does not filter its output until an element in the connection table seque
 
 ### Multi-out Port Support in the IDE
 
-When interacting with FrontEnd <abbr title="See Glossary.">devices</abbr>, it is easiest to perform an operation (for example, Plot Port Data) directly on the desired tuner. For more information, refer to [Plotting a Tuned Receiver](../../devices/interacting-with-hardware/using-fei-device-ide.html#plotting-a-tuned-receiver).
+When interacting with FrontEnd <abbr title="See Glossary.">devices</abbr>, it is easiest to perform an operation (for example, Plot Port Data) directly on the desired tuner. For more information, refer to [Plotting a Tuned Receiver](../../Devices/Interacting-with-Hardware/using-fei-device-ide.html#plotting-a-tuned-receiver).
 
 Otherwise, the REDHAWK IDE provides support for the following operations using multi-out ports:
 

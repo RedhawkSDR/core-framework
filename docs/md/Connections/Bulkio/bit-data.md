@@ -174,7 +174,7 @@ Input and output <abbr title="See Glossary.">ports</abbr> use the raw CORBA `BUL
 ### Sandbox
 
 The REDHAWK <abbr title="See Glossary.">sandbox</abbr> has built-in support for working with packed bit data.
-General sandbox features are discussed in more depth in [Sandbox](../../sandbox/_index.html).
+General sandbox features are discussed in more depth in [Sandbox](../../Sandbox/_index.html).
 
 #### Sending Bit Data
 
@@ -218,7 +218,7 @@ By default, plotting a packed bit port automatically brings up a raster plot.
 
 ![Packed Bit Raster](img/PackedBitPlot.png)
 
-General IDE plot use is described in [REDHAWK Plot View](../../ide/editors-and-views/redhawk-plot-view.html).
+General IDE plot use is described in [REDHAWK Plot View](../../IDE/Editors-and-Views/redhawk-plot-view.html).
 
 The Python sandbox plots also support displaying packed bit data.
 In particular, RasterPlot has several attributes that can be modified in real time to make it easy to visualize bit data:

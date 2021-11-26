@@ -2,7 +2,7 @@
 
 This section describes the REDHAWK yum packages and dependencies provided via a yum archive.
 
-> **NOTE**:  [External dependencies](dependencies.html) are also necessary for development with REDHAWK and for building REDHAWK from source.  
+> **NOTE**:  [External dependencies](external-dependencies.html) are also necessary for development with REDHAWK and for building REDHAWK from source.  
 
 ## Download the Archive
 
@@ -114,11 +114,11 @@ The REDHAWK Development yum group includes the following packages:
   - `redhawk-ide`
   - `redhawk-qt-tools`
 
-> **NOTE**:  The Development group will install the Runtime group packages as dependencies.  
+> **NOTE**:  The Development group will install the Runtime group packages as dependencies.
 
 ## Selective Installation
 
-After you set up the REDHAWK yum repository as described in [Setting Up the REDHAWK Repository](/manual/installation/#setting-up-the-redhawk-repository), you can also install individual packages via yum for selective installations.
+After you set up the REDHAWK yum repository, you can also install individual packages via yum for selective installations.
 
 For example, to perform a selective installation that includes the <abbr title="See Glossary.">GPP</abbr>, enter the following command:
 

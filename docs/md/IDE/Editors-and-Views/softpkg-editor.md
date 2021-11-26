@@ -17,7 +17,7 @@ The SoftPkg Editor is organized into four main tabs:
 
   - Basic information about the SoftPkg can be edited from the **Overview** tab
   - <abbr title="See Glossary.">Properties</abbr> and <abbr title="See Glossary.">messages</abbr> can be edited from the **Properties** tab
-  - [Ports](../../components/creating-a-component.html#ports) can be edited from the **Ports** tab
+  - [Ports](../../Components/creating-a-component.html#ports) can be edited from the **Ports** tab
   - Implementations and code generation settings can be edited from the **Implementations** tab.
 
 The following sections describe each of these tabs.
@@ -29,7 +29,7 @@ The Overview tab is a representation of content found in the SPD file and contai
 1.  The **General Information** section provides the ability to view and set (if write permissions are granted) the resource's **ID** and **Name** as well as the location of the PRF and SCD files. The initial content of these fields is auto-generated when the project is created and is generally left unaltered. The optional fields, **Version**, **Title**, and **Description**, may be set to aid in the project's documentation.
 2. The **Project Documentation** section displays a Header hyperlink, which if clicked, provides the option to create and edit the file "HEADER" in the project. When code generation is performed, the header is applied to your project files.
 3.  The **Interfaces** section lists the Interface Description Language (IDL) interfaces that this resource inherits. This includes IDLs used by the resource's ports, lifecycle, and properties. This table is *read only*, and additional IDL interfaces cannot be added here.
-4. The **Testing** section displays two hyperlinks. **Launch resource in the sandbox** launches a local instantiation of this resource within the <abbr title="See Glossary.">sandbox</abbr>. **Debug resource in the sandbox** provides additional runtime control, including the ability to place breakpoints, pause execution, and inspect and modify variables. See [Debugging REDHAWK Components and Devices with Eclipse](../../ide/debugging.html) for more information.
+4. The **Testing** section displays two hyperlinks. **Launch resource in the sandbox** launches a local instantiation of this resource within the <abbr title="See Glossary.">sandbox</abbr>. **Debug resource in the sandbox** provides additional runtime control, including the ability to place breakpoints, pause execution, and inspect and modify variables. See [Debugging REDHAWK Components and Devices with Eclipse](../../IDE/debugging.html) for more information.
 5.  The **Exporting** section provides a hyperlink for deploying a project to the SDRROOT.
     Use the following procedure to export a project using the **Export Wizard**:
 
@@ -40,7 +40,7 @@ The Overview tab is a representation of content found in the SPD file and contai
 
 ### Properties Tab
 
-The Properties tab provides a view of all of the [properties](../../components/creating-a-component.html#properties) defined for a component or <abbr title="See Glossary.">device</abbr>.
+The Properties tab provides a view of all of the [properties](../../Components/creating-a-component.html#properties) defined for a component or <abbr title="See Glossary.">device</abbr>.
 
 ![SoftPkg Editor Properties Tab](img/spdProperties.png)
 
@@ -105,7 +105,7 @@ Click **Add** to create a new port with default values. The **Port Details** sec
 
   
 > **NOTE**  
-> Only [Message Consumer](../../connections/messaging/message-consumer.html) ports should be bidirectional.  
+> Only [Message Consumer](../../Connections/Messaging/message-consumer.html) ports should be bidirectional.  
 
   - The **Type** is optional and strictly informative. A port may have one or more type, defaulting to control if none is selected.
   - Select the IDL **Interface** that this port implements. Click **Browse...** to open the selection dialog.

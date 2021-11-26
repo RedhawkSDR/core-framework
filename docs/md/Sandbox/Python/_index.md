@@ -6,7 +6,7 @@ The sandbox is Python-centric, so its use requires some basic Python knowledge.
 
 ### Setup
 
-In order to run the sandbox, REDHAWK must be installed and the `OSSIEHOME` and `SDRROOT` environment variables must be [set correctly](../../appendices/source-installation.html#installing-the-framework-from-source).
+In order to run the sandbox, REDHAWK must be installed and the `OSSIEHOME` and `SDRROOT` environment variables must be [set correctly](../../Install/install-from-source.html#installation-steps).
 
 To use the sandbox *none* of the following programs need to be running: omniNames, omniEvents, <abbr title="See Glossary.">Domain Manager</abbr>, <abbr title="See Glossary.">Device Manager</abbr>, nodeBooter
 
@@ -74,4 +74,4 @@ The items shown by the `show` command are referenced by a unique name. To recove
 
 #### Connecting to a Running Domain
 
-The Python sandbox allows a developer to not only launch components, but it also allows one to interact with a live Domain. This is accomplished through the [redhawk package](../../runtime-inspection/_index.html#redhawk-module).
+The Python sandbox allows a developer to not only launch components, but it also allows one to interact with a live Domain. This is accomplished through the [redhawk package](../../Runtime-Environment/inspection.html#redhawk-module).

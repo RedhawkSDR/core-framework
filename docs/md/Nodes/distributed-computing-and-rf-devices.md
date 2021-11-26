@@ -26,7 +26,7 @@ Even though capacity allocation can be used to describe any dependency that a co
 
 #### RF Allocation
 
-Although RF capacity dependencies can be declared at either the component level or the application level, it is recommended that the allocation be defined at the application level because the application understands the context for the deployment. REDHAWK defines RF allocations using the `FrontendInterfaces` specification. For more information, refer to [Frontend Interfaces](../appendices/fei.html) (FEI).
+Although RF capacity dependencies can be declared at either the component level or the application level, it is recommended that the allocation be defined at the application level because the application understands the context for the deployment. REDHAWK defines RF allocations using the `FrontendInterfaces` specification. For more information, refer to [Frontend Interfaces](../Devices/fei.html) (FEI).
 
 #### Computing Allocation
 

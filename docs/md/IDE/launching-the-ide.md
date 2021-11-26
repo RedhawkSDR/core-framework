@@ -4,7 +4,7 @@ This section describes the basic process for starting the REDHAWK IDE for the fi
 
 
 > **NOTE**  
-> Before starting the REDHAWK IDE for the first time, the REDHAWK Core Framework (CF) and the IDE must be installed ([Installation](../installation/_index.html#installing-redhawk-from-rpms)).  
+> Before starting the REDHAWK IDE for the first time, the REDHAWK Core Framework (CF) and the IDE must be [Install](../Install/install-from-rpm.html)ed.
 
 1.  Start the REDHAWK IDE by entering the following command:
 

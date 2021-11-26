@@ -32,7 +32,7 @@ Any time a Device Manager, <abbr title="See Glossary.">device</abbr>, <abbr titl
 
 The Domain Manager has CF administrative duties that are required to provide interface access to its registered items. The API of the Device Managers, ApplicationFactories, applications, and the FileManager that are registered in the domain are made available to be accessed from an external piece of software.
 
-This is made available so that changes can be made from outside of the running domain. A Python module is distributed with REDHAWK that allows for simple interfacing with a running domain. This allows for [runtime inspection](../runtime-inspection/_index.html) and tweaking of the environment.
+This is made available so that changes can be made from outside of the running domain. A Python module is distributed with REDHAWK that allows for simple interfacing with a running domain. This allows for [runtime inspection](../Runtime-Environment/inspection.html) and tweaking of the environment.
 
 ### Human Computer Interfacing
 
@@ -48,9 +48,9 @@ By default the Domain Manager will output messages to the console. You can provi
 nodeBooter -D -endlogcfgfile <config file>  -enddebug <5=TRACE,4=DEBUG,3=INFO,2=WARN,1=ERROR,0=FATAL>
 ```
 
-This file location will be used as the default value when resolving the `LOGGING_CONFIG_URI` as well as the `DEBUG_LEVEL` during deployments. For further details about logging configuration files and `LOGGING_CONFIG_URI` resolution, consult [Logging](../logging/_index.html).
+This file location will be used as the default value when resolving the `LOGGING_CONFIG_URI` as well as the `DEBUG_LEVEL` during deployments. For further details about logging configuration files and `LOGGING_CONFIG_URI` resolution, consult [Logging](../Logging/_index.html).
 
-To override the default resolution of the `LOGGING_CONFIG_URI` during deployments, the Domain Manager can be launched with an option to use a [plugin library](../appendices/logging-config-plugin.html) (`libossielogcfg.so`) for this resolution. To activate this feature launch the Domain Manager as follows:
+To override the default resolution of the `LOGGING_CONFIG_URI` during deployments, the Domain Manager can be launched with an option to use a [plugin library](../Logging/logging-config-plugin.html) (`libossielogcfg.so`) for this resolution. To activate this feature launch the Domain Manager as follows:
 
 ```bash
 nodeBooter -D --useloglib
@@ -61,7 +61,7 @@ nodeBooter -D --useloglib
 A unique feature of the Domain Manager is the ability to recover from catastrophic failures through domain persistence.
 In order to make use of persistence, the CF must be compiled with support enabled.
 As of REDHAWK 2.2.1, this is the default build setting.
-To disable this support when building the CF, refer to [Installing the Framework from Source](../appendices/source-installation.html#installing-the-framework-from-source).
+To disable this support when building the CF, refer to [Install from Source](../Install/install-from-source.html#common-configure-options).
 
 With this feature enabled, all bookkeeping data structures that are used to maintain information about services, devices, Device Managers, applications, and Application Factories are written to a database whenever any change is made to them. This database file needs to be specified upon launch of the Domain Manager with the `--dburl <file path>` argument:
 
@@ -69,8 +69,7 @@ With this feature enabled, all bookkeeping data structures that are used to main
 nodeBooter -D --dburl $SDRROOT/dom/persistence.sqlite
 ```
 
-> **NOTE**  
-> The `--dburl` argument only applies to the Domain Manager.  
+> **NOTE**:  The `--dburl` argument only applies to the Domain Manager.  
 > It is an error to provide `--dburl` when only launching a Device Manager.
 
 During normal operation, all IDs and references to objects within the Domain are stored. If the Domain Manager fails, objects such as components, devices, services, and Device Managers continue to run because they are processes separate from the Domain Manager process. This separation allows the Domain Manager to be relaunched. Once relaunched, the Domain Manager is returned to its last known good state by reloading the database file passed as the `dburl` argument to `nodeBooter`. All connections to Device Managers, devices, services, and components are restored; Applications residing in the Domain Manager process space are also restored.

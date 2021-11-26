@@ -1,6 +1,6 @@
 # Port Statistics
 
-All Burst Input/Output (BurstIO) <abbr title="See Glossary.">ports</abbr> support the Bulk Input/Output (BulkIO) statistics interface with additional keywords to track burst-specific metrics. Statistics are tracked over a window of 10 `pushBurst` calls. An input port contains a single `PortStatistics` structure, whereas, an output port contains a sequence of `PortStatistics` structures; one structure per connection. For more information on `BULKIO::PortStatistics`, see [Port Statistics](../bulkio/port-statistics.html). The additional BurstIO metrics for both input and output ports are described in the following tables:
+All Burst Input/Output (BurstIO) <abbr title="See Glossary.">ports</abbr> support the Bulk Input/Output (BulkIO) statistics interface with additional keywords to track burst-specific metrics. Statistics are tracked over a window of 10 `pushBurst` calls. An input port contains a single `PortStatistics` structure, whereas, an output port contains a sequence of `PortStatistics` structures; one structure per connection. For more information on `BULKIO::PortStatistics`, see [Port Statistics](../Bulkio/port-statistics.html). The additional BurstIO metrics for both input and output ports are described in the following tables:
 
 ### C++
 

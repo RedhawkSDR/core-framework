@@ -14,7 +14,7 @@ In many cases, the Octave component can be created without any C++ programming b
 
 ### The createOctaveComponent Script
 
-Octave components can be generated using a command line tool (`createOctaveComponent`) or using the [REDHAWK IDE](../ide/octave-wizard.html). The help string for the command line tool can be accessed by entering the following command:
+Octave components can be generated using a command line tool (`createOctaveComponent`) or using the [REDHAWK IDE](../IDE/octave-wizard.html). The help string for the command line tool can be accessed by entering the following command:
 
 ```bash
 createOctaveComponent --help

@@ -20,7 +20,7 @@ The **Overview** tab contains the following sections:
 
   - The **Project Documentation** section displays a Header hyperlink, which if clicked, provides the option to create and edit the file "HEADER" in the project. When code generation is performed, the header is applied to your project files.
 
-  - The **External Ports** section provides the ability to promote a component's <abbr title="See Glossary.">port</abbr> so it is accessible from the waveform object. By default, an [external port](../../runtime-environment/applications.html#external-ports) name is equal to the name of that port within the component, but the external port can be renamed.
+  - The **External Ports** section provides the ability to promote a component's <abbr title="See Glossary.">port</abbr> so it is accessible from the waveform object. By default, an [external port](../../Runtime-Environment/applications.html#external-ports) name is equal to the name of that port within the component, but the external port can be renamed.
 
     To change the external port name:
 
@@ -49,7 +49,7 @@ Within the **Properties** tab, you can:
   - Filter and search for properties
   - Compare the overridden value to the original Properties File (PRF) value
 
-The properties of the component designated as the <abbr title="See Glossary.">Assembly Controller</abbr> are always accessible externally and are grayed out in the **Properties** tab. Additional properties may be assigned an external ID, which allows for a particular component's property to be designated as accessible to external waveform objects. See [External Properties](../../runtime-environment/applications.html#external-properties) for additional information.
+The properties of the component designated as the <abbr title="See Glossary.">Assembly Controller</abbr> are always accessible externally and are grayed out in the **Properties** tab. Additional properties may be assigned an external ID, which allows for a particular component's property to be designated as accessible to external waveform objects. See [External Properties](../../Runtime-Environment/applications.html#external-properties) for additional information.
 
 To make a property external:
 
@@ -67,7 +67,7 @@ The following sample **Properties** tab displays several properties with assigne
 
 ### Diagram Tab
 
-The **Diagram** tab is used to place components into a waveform, connect components together, set waveform-specific properties for components, make a [port external](../../runtime-environment/applications.html#external-ports), and add a [usesdevice relationship](../../devices/associating-a-waveform.html) to a FrontEnd Tuner <abbr title="See Glossary.">device</abbr>.
+The **Diagram** tab is used to place components into a waveform, connect components together, set waveform-specific properties for components, make a [port external](../../Runtime-Environment/applications.html#external-ports), and add a [usesdevice relationship](../../Devices/associating-a-waveform.html) to a FrontEnd Tuner <abbr title="See Glossary.">device</abbr>.
 
 ![Waveform Editor Diagram Tab](img/sadDiagram.png)
 
@@ -101,7 +101,7 @@ To make a port external:
 
 ![Mark External Ports](img/external_port.png)
 
-From the **Diagram** tab, a user may also use the [**Find By** feature](../../runtime-environment/applications.html#using-the-find-by-feature). The **Find By** feature enables a user to find a resource by name, a <abbr title="See Glossary.">service</abbr> by name or type, or an <abbr title="See Glossary.">event channel</abbr> by name.
+From the **Diagram** tab, a user may also use the [**Find By** feature](../../Runtime-Environment/applications.html#using-the-find-by-feature). The **Find By** feature enables a user to find a resource by name, a <abbr title="See Glossary.">service</abbr> by name or type, or an <abbr title="See Glossary.">event channel</abbr> by name.
 
 Connections may be made from input to output ports by clicking and dragging from one port to the other. Multiple connections can be drawn to or from ports. Any unsupported or erroneous connection that the IDE can detect is marked with an appropriate indicator. Hovering over the indicator provides information concerning the error.
 
@@ -117,7 +117,7 @@ To add a dependency on a FrontEnd Tuner device that the waveform needs to use at
 
 3.  Enter the **Uses Device ID** and optionally, enter the **Device Model**, and then click **Next**.
 
-4.  Enter the appropriate information and click **Next**. For more information, refer to [**Allocating a FrontEnd Tuner**](../../devices/interacting-with-hardware/using-fei-device-ide.html#allocating-a-frontend-tuner).
+4.  Enter the appropriate information and click **Next**. For more information, refer to [**Allocating a FrontEnd Tuner**](../../Devices/Interacting-with-Hardware/using-fei-device-ide.html#allocating-a-frontend-tuner).
 
 ![Identify Ports](img/IdentifyPorts.png)
 

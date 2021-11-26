@@ -1,6 +1,6 @@
 # Plotting BulkIO Ports
 
-The REDHAWK IDE contains the ability to [plot](../ide/editors-and-views/redhawk-plot-view.html) using the NeXtMidas plotting framework. If the output <abbr title="See Glossary.">port</abbr> uses the Bulk Input/Output (BulkIO) interface, it can take advantage of this feature and plot a line graph or a falling raster.
+The REDHAWK IDE contains the ability to [plot](../IDE/Editors-and-Views/redhawk-plot-view.html) using the NeXtMidas plotting framework. If the output <abbr title="See Glossary.">port</abbr> uses the Bulk Input/Output (BulkIO) interface, it can take advantage of this feature and plot a line graph or a falling raster.
 
 To bring up a plot within the IDE:
 

@@ -87,7 +87,7 @@ Click **Finish** to complete the new project creation wizard.
 
 ### REDHAWK FrontEnd Device Project
 
-The [**FEI Wizard**](../devices/interacting-with-hardware/creating-fei-device-ide.html#using-the-fei-wizard-to-create-an-fei-device) enables users to quickly create an FrontEnd Interfaces (FEI) compliant RX or TX tuner device. In the wizard, the user specifies the physical properties of the device, including whether the device ingests or outputs GPS and if the device has digital or analog input and output <abbr title="See Glossary.">ports</abbr>. Additionally, the user can choose to augment the required tuner status <abbr title="See Glossary.">properties</abbr> with additional optional properties.
+The [**FEI Wizard**](../Devices/Interacting-with-Hardware/creating-fei-device-ide.html#using-the-fei-wizard-to-create-an-fei-device) enables users to quickly create an FrontEnd Interfaces (FEI) compliant RX or TX tuner device. In the wizard, the user specifies the physical properties of the device, including whether the device ingests or outputs GPS and if the device has digital or analog input and output <abbr title="See Glossary.">ports</abbr>. Additionally, the user can choose to augment the required tuner status <abbr title="See Glossary.">properties</abbr> with additional optional properties.
 
 ### REDHAWK Interface Description Language (IDL) Project
 
@@ -163,7 +163,7 @@ Select **Finish** to complete the new project creation wizard.
 
 ## REDHAWK Shared Library Project
 
-The [**REDHAWK Shared Library Project Wizard**](../shared-libraries/creating-a-shared-library-project.html) enables users to quickly create a C++ shared library for use in REDHAWK. In the wizard, the user specifies the project name and can then generate a simple set of code files to begin adding in library functions.
+The [**REDHAWK Shared Library Project Wizard**](../Shared-Libraries/creating-a-shared-library-project.html) enables users to quickly create a C++ shared library for use in REDHAWK. In the wizard, the user specifies the project name and can then generate a simple set of code files to begin adding in library functions.
 
 ## REDHAWK Waveform Project
 

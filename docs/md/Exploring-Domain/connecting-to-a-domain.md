@@ -2,7 +2,7 @@
 
 In the IDE, you can launch and connect to a <abbr title="See Glossary.">domain</abbr> through the IDE interface or connect to a running domain.
 
-You can also [launch a domain and Device Manager from the command line](../runtime-environment/domain-manager.html#launching-a-domain-manager-from-the-command-line).
+You can also [launch a domain and Device Manager from the command line](../Runtime-Environment/domain-manager.html#launching-a-domain-manager-from-the-command-line).
 
 ### Launching and Connecting Using the IDE
 
@@ -23,7 +23,7 @@ The following procedure explains how to launch and connect to a domain through t
 
 4.  Optionally, in either the <abbr title="See Glossary.">Domain Manager</abbr> or Device Manager section, select a **Debug Level**. By default, the **Debug Level** is set to **Info**, which displays any messages at the **Info** level or higher: (**Info**, **Warn**, **Error**, and **Fatal** message levels). If this is the first time using REDHAWK, changing the **Debug Level** from **Info** to **Debug** for both the domain and Device Manager may be helpful in the learning process.
 
-5.  Optionally, in either the Domain Manager or Device Manager section, select **Arguments** for the `nodeBooter` process. This option is provided to advanced users who are comfortable with [command line options](../runtime-environment/_index.html).
+5.  Optionally, in either the Domain Manager or Device Manager section, select **Arguments** for the `nodeBooter` process. This option is provided to advanced users who are comfortable with [command line options](../Runtime-Environment/_index.html).
 
 6.  Finally, click **OK** to launch and connect to the new domain.
 

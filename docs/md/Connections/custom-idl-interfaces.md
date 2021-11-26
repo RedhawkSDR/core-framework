@@ -1,6 +1,6 @@
 # Custom IDL Interfaces
 
-REDHAWK provides Front End Interfaces (FEI) and standard Core Framework (CF) interfaces (like CF::Resource) to control entities and promote interoperability. There are some use cases where you may find the need to use custom Interface Description Language (IDL) to control entities. For these use cases, you can create custom IDL projects in the [IDE](../ide/_index.html).
+REDHAWK provides Front End Interfaces (FEI) and standard Core Framework (CF) interfaces (like CF::Resource) to control entities and promote interoperability. There are some use cases where you may find the need to use custom Interface Description Language (IDL) to control entities. For these use cases, you can create custom IDL projects in the [IDE](../IDE/_index.html).
 
 Adding <abbr title="See Glossary.">ports</abbr> from either the FEI interface or a custom IDL interface to a <abbr title="See Glossary.">component</abbr> or <abbr title="See Glossary.">device</abbr> allows that entity to control other entities through CORBA. Because of the generic nature of these ports, it is not possible to create a language mapping like BulkIO, so interaction is through the standard CORBA API, a full description of which is outside the scope of this manual. However, the REDHAWK code generators will generate ports that simplify the interaction with the port. The following sections explain uses (output) ports because they are the most likely to be generated, for example, to control FEI devices.
 

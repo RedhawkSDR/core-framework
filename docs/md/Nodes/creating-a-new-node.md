@@ -4,7 +4,7 @@ As shown in [Exploring the Running Node](running-a-node.html#exploring-the-runni
 
 The **REDHAWK Node Project** in the REDHAWK IDE provides a mechanism for generating these DCD files. By invoking the **REDHAWK Node Project**, a wizard is started where the developer selects different characteristics for the node like the project name. In the wizard, the developer must provide both a project name and a <abbr title="See Glossary.">Domain Manager</abbr> name. The Domain Manager name is the name of the <abbr title="See Glossary.">domain</abbr> that the Device Manager automatically associates with upon startup. At runtime, the Domain Manager name that the Device Manager associates with can be overridden.
 
-The node project has multiple tabs: Overview, Devices, Diagram, and the DCD file tab (see [Node Editor](../ide/editors-and-views/node-editor.html) for additional information). The most intuitive tab is the Diagram tab, which allows a developer to drag devices available in `$SDRROOT` into the node, as shown below.  Once the set of members for a particular node is determined, save the project and drag it to <abbr title="See Glossary.">**Target SDR**</abbr> to install it.
+The node project has multiple tabs: Overview, Devices, Diagram, and the DCD file tab (see [Node Editor](../IDE/Editors-and-Views/node-editor.html) for additional information). The most intuitive tab is the Diagram tab, which allows a developer to drag devices available in `$SDRROOT` into the node, as shown below.  Once the set of members for a particular node is determined, save the project and drag it to <abbr title="See Glossary.">**Target SDR**</abbr> to install it.
 
 ![Node Design Diagram](img/NodeDesign.png)
 
@@ -15,7 +15,7 @@ To launch this new node:
 
 ### Device and Service Affinity
 
-The REDHAWK Device Manager supports service and device deployments with affinity options. For more information about the affinity directives and how to include them in a DCD file, consult [Resource Affinity](../waveforms/deployment-resources.html#resource-affinity). The following example sets the processing affinity for the `ChannelizerSW` device to use the CPUs from the second processor socket.
+The REDHAWK Device Manager supports service and device deployments with affinity options. For more information about the affinity directives and how to include them in a DCD file, consult [Resource Affinity](../Waveforms/deployment-resources.html#resource-affinity). The following example sets the processing affinity for the `ChannelizerSW` device to use the CPUs from the second processor socket.
 
 ```xml
 <componentplacement>

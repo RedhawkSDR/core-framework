@@ -2,7 +2,7 @@
 
 This section explains how to install the dependencies that come from Redhat related sources such as (1) the Redhat/CentOS repositories, (2) the Fedora Extra Packages for Enterpise Linux ([EPEL](https://fedoraproject.org/wiki/EPEL)) repositories, and (3) the Redhat Software Collections ([SCL](https://www.softwarecollections.org/en/)) repository.
 
-There are other dependencies that are not available from those sources because they are created or modified specifically for REDHAWK.  To install those see the [Yum Repository](redhawk-yum-archive.html#dependencies-packaged-with-redhawk) section.
+There are other dependencies that are not available from those sources because they are created or modified specifically for REDHAWK.  To install those see the [Yum Repository](redhawk-yum-repo.html) section.
 
 ## Install the EPEL Repository
 
