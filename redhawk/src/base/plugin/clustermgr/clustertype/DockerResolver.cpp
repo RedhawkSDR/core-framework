@@ -20,8 +20,10 @@ void DockerResolver::openComponentConfigFile(redhawk::PropertyMap execParameters
         validNamesMap.insert(std::pair<std::string,std::string>(comp_id, name));
 
 	RH_NL_DEBUG("Cluster", "Attempting to Execute " << _entryPoint);
-	std::string cmd = std::string("docker run --rm -d --network host -P --name " + name + " " + _image + " '/var/redhawk/sdr/dom" + _entryPoint + " NAMING_CONTEXT_IOR " + _execParameters["NAMING_CONTEXT_IOR"].toString() +
-		        " PROFILE_NAME " + _execParameters["PROFILE_NAME"].toString() + " NAME_BINDING " + _execParameters["NAME_BINDING"].toString() + " COMPONENT_IDENTIFIER " + _execParameters["COMPONENT_IDENTIFIER"].toString() + " DEBUG_LEVEL 5" + "'");
+	std::string cmd = std::string("docker run --rm -d --network host -P --name " + name + " --entrypoint /var/redhawk/sdr/dom" + _entryPoint + " " + _image + " COMPONENT_IDENTIFIER " + _execParameters["COMPONENT_IDENTIFIER"].toString() + 
+				" NAMING_CONTEXT_IOR " + _execParameters["NAMING_CONTEXT_IOR"].toString() +
+		        " PROFILE_NAME " + _execParameters["PROFILE_NAME"].toString() + " NAME_BINDING " + _execParameters["NAME_BINDING"].toString());
+	std::cout<<"docker: "<<cmd<<std::endl;
 
 	RH_NL_INFO("Cluster", cmd.c_str());
 
