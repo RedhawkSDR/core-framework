@@ -79,6 +79,8 @@ private:
     // Local pointer to the allocation manager
     AllocationManager_impl* _allocationMgr;
  
+    uint32_t _total_container_component_host;
+
     // Tracks allocation IDs made during creation, and automates cleanup on
     // failure
     ScopedAllocations _allocations;

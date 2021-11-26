@@ -1658,7 +1658,7 @@ bool Application_impl::_checkPodRegistrations (std::set<std::string>& identifier
     for (ClusterList::iterator ii = _cluster.begin(); ii != _cluster.end(); ++ii) {
         if (ii->isRegistered()) {
             //If the registered component is a cluster type, poll and set pod's status
-            if (identifiers.find(ii->getIdentifier()) != identifiers.end() && ii->getIsCluster()) {
+            if (identifiers.find(ii->getIdentifier()) != identifiers.end() && ii->getIsCluster() && not ii->isHosted()) {
                     if(!ii->getClusterManager()->pollStatusActive(ii->getIdentifier())) {
                         RH_ERROR(_baseLog, "The component with identifier " << ii->getIdentifier() << " is not active!" )
                     }

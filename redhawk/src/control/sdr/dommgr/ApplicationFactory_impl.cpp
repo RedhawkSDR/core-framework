@@ -2629,12 +2629,13 @@ void createHelper::attemptClusterExecution (CF::ApplicationRegistrar_ptr registr
         std::string tmp_profile_name = "/mgr/rh/ComponentHost/ComponentHost.spd.xml";
         execParameters["PROFILE_NAME"] = tmp_profile_name;
         execParameters["NAMING_CONTEXT_IOR"] = ossie::corba::objectToString(registrar);
-        std::string tmp_name = "component_host_";
-        tmp_name += ossie::generateUUID();
-        tmp_name.erase(tmp_name.find("DCE:"), 4);
-        execParameters["NAME_BINDING"] = tmp_name;
+        std::ostringstream tmp_name;
+        _total_container_component_host++;
+        tmp_name << "container_component_host_" << _total_container_component_host;
+        execParameters["NAME_BINDING"] = tmp_name.str();
         redhawk::ApplicationComponent *tmp_comphost = _application->addComponent(tmp_id, tmp_profile_name);
         tmp_comphost->setVisible(false);
+        tmp_comphost->setNamingContext(_baseNamingContext + "/" + tmp_name.str());
     }
 
     // Get entry point
@@ -2703,19 +2704,23 @@ void createHelper::attemptClusterExecution (CF::ApplicationRegistrar_ptr registr
         }
     } else if (deployment->getImplementation()->getCodeType() == SPD::Code::CONTAINER) {
         if (isCppContainer) {
-            redhawk::ApplicationComponent* comp = _application->findComponent(tmp_id);
-            while (not comp) {
+            redhawk::ApplicationComponent* comp_host = _application->findComponent(tmp_id);
+            while (not comp_host) {
                 usleep(1000);
-                comp = _application->findComponent(tmp_id);
+                comp_host = _application->findComponent(tmp_id);
             }
             redhawk::PropertyMap options = deployment->getOptions();
             CORBA::Object_ptr comphost_objref = CORBA::Object::_nil();
             while (CORBA::is_nil(comphost_objref)) {
                 usleep(1000);
-                comphost_objref = comp->getComponentObject();
+                comphost_objref = comp_host->getComponentObject();
             }
             CF::ExecutableDevice_var comphost_ref = ossie::corba::_narrowSafe<CF::ExecutableDevice>(comphost_objref);
             comphost_ref->executeLinked(c_entryPoint.c_str(), options, c_execParameters, dep_seq);
+            redhawk::ApplicationComponent* hosted_comp = _application->findComponent(deployment->getIdentifier());
+            hosted_comp->setHosted(true);
+            hosted_comp->setIsCluster(true);
+            hosted_comp->setComponentHost(comp_host);
         } else {
 	        RH_TRACE(_createHelperLog, "NOT Executing a cluster yet");
         }
@@ -3270,6 +3275,7 @@ createHelper::createHelper (
     _appFact(appFact),
     _createHelperLog(appFact.returnLogger()),
     _allocationMgr(_appFact._domainManager->_allocationMgr),
+    _total_container_component_host(0),
     _allocations(*_allocationMgr),
     _waveformContextName(waveformContextName),
     _baseNamingContext(baseNamingContext),

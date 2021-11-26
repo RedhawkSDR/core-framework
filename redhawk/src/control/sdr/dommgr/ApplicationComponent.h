@@ -88,6 +88,8 @@ namespace redhawk {
         bool isResource() const;
         bool isTerminated() const;
         bool isRegistered() const;
+        bool isHosted() const;
+        void setHosted(bool hosted);
 
         const std::vector<std::string>& getLoadedFiles() const;
         void addLoadedFile(const std::string& fileName);
@@ -133,6 +135,7 @@ namespace redhawk {
         std::string _namingContext;
         std::string _implementationId;
         bool _isVisible;
+        bool _isHosted;
         std::vector<std::string> _loadedFiles;
         //unsigned long _processId;
         redhawk::componentProcess  _processId;

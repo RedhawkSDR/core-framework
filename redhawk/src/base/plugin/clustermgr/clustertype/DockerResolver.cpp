@@ -23,13 +23,12 @@ void DockerResolver::openComponentConfigFile(redhawk::PropertyMap execParameters
 	std::string cmd = std::string("docker run --rm -d --network host -P --name " + name + " --entrypoint /var/redhawk/sdr/dom" + _entryPoint + " " + _image + " COMPONENT_IDENTIFIER " + _execParameters["COMPONENT_IDENTIFIER"].toString() + 
 				" NAMING_CONTEXT_IOR " + _execParameters["NAMING_CONTEXT_IOR"].toString() +
 		        " PROFILE_NAME " + _execParameters["PROFILE_NAME"].toString() + " NAME_BINDING " + _execParameters["NAME_BINDING"].toString());
-	std::cout<<"docker: "<<cmd<<std::endl;
 
-	RH_NL_INFO("Cluster", cmd.c_str());
+	RH_NL_DEBUG("Cluster", cmd.c_str());
 
 	std::string output = GetStdoutFromCommand(cmd.c_str());
 	output.erase(std::remove(output.begin(), output.end(), '\n'), output.end());
-	RH_NL_INFO("Cluster", output);
+	RH_NL_DEBUG("Cluster", output);
 
 	return;
 }
@@ -41,19 +40,19 @@ int DockerResolver::launchComponent(std::string comp_id){
 }
 
 bool DockerResolver::pollStatusActive(std::string name) {
-        std::map<std::string,std::string>::iterator valuePair;
+	std::map<std::string,std::string>::iterator valuePair;
 	std::string validName;
-        if ((valuePair = validNamesMap.find(name)) != validNamesMap.end()) {
-            validName = validNamesMap.find(name)->second;
-        }
-        else {
-            RH_NL_TRACE("Cluster", "The name "+name+" has not been registered before with docker");
-            return false;
-        }
+	if ((valuePair = validNamesMap.find(name)) != validNamesMap.end()) {
+		validName = validNamesMap.find(name)->second;
+	}
+	else {
+		RH_NL_TRACE("Cluster", "The name "+name+" has not been registered before with docker");
+		return false;
+	}
 	RH_NL_TRACE("Cluster", "Check active " + validName);
 
-        //docker container ls --filter "name=HardLimit1testalltypes0671422368981" --format '{{json .Status}}'
-        std::string cmd = std::string("docker container ls --filter \"name=" + validName + "\" --format '{{json .Status}}'");
+	//docker container ls --filter "name=HardLimit1testalltypes0671422368981" --format '{{json .Status}}'
+	std::string cmd = std::string("docker container ls --filter \"name=" + validName + "\" --format '{{json .Status}}'");
 	double timeout = 30.00;
 	time_t start;
 	time_t now;
@@ -61,12 +60,12 @@ bool DockerResolver::pollStatusActive(std::string name) {
 	start = std::time(NULL);
 	now = std::time(NULL);
 	while (now-start <= timeout) {
-	        std::string status = GetStdoutFromCommand(cmd);
-	        RH_NL_TRACE("Cluster", cmd << " resulted in " << status)
-	        if (status.find("Up") != std::string::npos) {
-	            return true;
-	        }
-	        now = std::time(NULL);
+		std::string status = GetStdoutFromCommand(cmd);
+		RH_NL_TRACE("Cluster", cmd << " resulted in " << status)
+		if (status.find("Up") != std::string::npos) {
+			return true;
+		}
+		now = std::time(NULL);
 	}
 	return false;
 }

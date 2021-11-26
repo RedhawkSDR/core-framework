@@ -45,24 +45,15 @@ CF::DomainManager_ptr ApplicationRegistrar_impl::domMgr()
 
 void ApplicationRegistrar_impl::registerComponent(const char * Name, CF::Resource_ptr obj) {
 
-  std::string profile = ossie::corba::returnString(obj->softwareProfile());
-  bool isComponentHost = false;
-  if (profile == std::string("/mgr/rh/ComponentHost/ComponentHost.spd.xml")) {
-      isComponentHost = true;
-  }
   if ( !CORBA::is_nil(_context) ) {
       CosNaming::Name_var cosName;
       try {
           cosName = ossie::corba::stringToName(Name);
-          if (not isComponentHost) {
-              _context->bind( cosName, obj );
-          }
+          _context->bind( cosName, obj );
       }
       catch(CosNaming::NamingContext::AlreadyBound&) {
         try {
-            if (not isComponentHost) {
-                _context->rebind( cosName, obj );
-            }
+            _context->rebind( cosName, obj );
         }
         catch(...){
             if ( Name != NULL ) {

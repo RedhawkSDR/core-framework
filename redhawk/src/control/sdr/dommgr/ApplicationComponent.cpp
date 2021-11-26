@@ -36,6 +36,7 @@ ApplicationComponent::ApplicationComponent(const std::string& identifier) :
     _identifier(identifier),
     _name(identifier),
     _isVisible(true),
+    _isHosted(false),
     _processId(0, ""),
     _componentHost(0),
     _isCluster(false)
@@ -55,6 +56,16 @@ const std::string& ApplicationComponent::getName() const
 void ApplicationComponent::setName(const std::string& name)
 {
     _name = name;
+}
+
+bool ApplicationComponent::isHosted() const
+{
+    return _isHosted;
+}
+
+void ApplicationComponent::setHosted(const bool hosted)
+{
+    _isHosted = hosted;
 }
 
 const std::string& ApplicationComponent::getSoftwareProfile() const
@@ -290,12 +301,12 @@ void ApplicationComponent::releaseObject()
 
         if (_isCluster) {
             _clusterMgr->deleteComponent(_identifier);
-            if(!_clusterMgr->pollStatusTerminated(_identifier)) {
+            if(!_clusterMgr->pollStatusTerminated(_identifier) and not isHosted()) {
                 RH_ERROR(_appComponentLog, "Failed to terminate component with name " << _identifier << " after polling it");
             }
         }
     } catch (const CORBA::SystemException& exc) {
-        if (!isTerminated()) {
+        if (!isTerminated() and not isHosted()) {
             RH_ERROR(_appComponentLog, "Failed to release component '" << _identifier << "'; "
                       << ossie::corba::describeException(exc));
         } else {
