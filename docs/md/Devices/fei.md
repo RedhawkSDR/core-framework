@@ -754,8 +754,8 @@ The GPSInfo descriptions are listed in the following table.
 |`datumID` | `long` | Identifier for the reference ellipsoid (datum). Use 47 for WGS 1984, the GPS datum |
 |`time_offset` | `double` | Receiver oscillator's most recent time offset (seconds). Usually 0 |
 |`freq_offset` | `double` | Receiver's center frequency offset (Hz) |
-|`time_variance` | `double` | Receiver oscillator's time offset variance (seconds**2). Usually 0 |
-|`freq_variance` | `double` | Receiver's center frequency offset variance (Hz**2) |
+|`time_variance` | `double` | Receiver oscillator's time offset variance (seconds<pub>2</pub>). Usually 0 |
+|`freq_variance` | `double` | Receiver's center frequency offset variance (Hz<pub>2</pub>) |
 |`satellite_count` | `short` | Number of satellites visible to the receiver |
 |`snr` | `float` | GPS receiver's reported signal to noise ratio. The definition of this value is not standardized and varies by manufacturer. |
 |`status_message` | `string` | Device-specific status message |
