@@ -35,7 +35,7 @@ else
   if [[ $uname = "Darwin" ]]; then
     PYTHON=python3.9 CXXFLAGS="-std=c++14 -Wno-deprecated-declarations" ./configure -C -with-expat=/usr/local/Cellar/expat/2.4.1  --disable-log4cxx --without-tests --disable-java --disable-persistence
   else
-    CXXFLAGS=-Wno-deprecated RT_LIB=-lrt ./configure -C --without-tests --disable-java --disable-persistence
+    CXXFLAGS=-Wno-deprecated RT_LIB=-lrt UUID_LIB=-luuid ./configure -C --without-tests --disable-java --disable-persistence
   fi
  fi
  make -j
