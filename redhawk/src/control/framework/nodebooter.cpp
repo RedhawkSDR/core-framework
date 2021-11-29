@@ -364,7 +364,12 @@ static void setOwners(const std::string& user, const std::string& group)
                 gid_t groups[ngroups];
                 struct passwd *pw;
                 pw = getpwnam(user.c_str());
-                if (getgrouplist(user.c_str(), pw->pw_gid, (int*) &groups[0], &ngroups) == -1) {
+#ifdef __APPLE__
+                if (getgrouplist(user.c_str(), pw->pw_gid, (int*) &groups[0], &ngroups) == -1)
+#else
+                if (getgrouplist(user.c_str(), pw->pw_gid, &groups[0], &ngroups) == -1)
+#endif
+                {
                     std::ostringstream err;
                     err << "Cannot retrieve group list for user ID " << uid << ": " << strerror(errno);
                     throw std::runtime_error(err.str());

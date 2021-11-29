@@ -13,6 +13,7 @@ libtool
 ltmain.sh
 missing
 ossie.pc
+*.bak
 *.class
 py-compile
 test-driver

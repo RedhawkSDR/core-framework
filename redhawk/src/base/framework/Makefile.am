@@ -52,33 +52,35 @@ libossiecf_la_SOURCES = AggregateDevice_impl.cpp \
                         logging/RH_LogEventAppender.cpp \
                         logging/RH_SyncRollingAppender.cpp \
                         cluster/clusterhelpers.cpp \
-			EventChannelSupport.cpp \
-	                Events.cpp \
-			Component.cpp \
-			Value.cpp \
-			PropertyType.cpp \
-			PropertyMap.cpp \
-			Versions.cpp \
-			ExecutorService.cpp \
-			UsesPort.cpp \
-			ProvidesPort.cpp \
-			Transport.cpp \
-			BufferManager.cpp \
-			inplace_list.h \
-			bitops.cpp \
-			bitbuffer.cpp \
-			shm/Allocator.cpp \
-			shm/Heap.cpp \
-			shm/HeapClient.cpp \
-			shm/HeapPolicy.cpp \
-			shm/MappedFile.cpp \
-			shm/Metrics.cpp \
-			shm/Superblock.cpp \
-			shm/SuperblockFile.cpp \
-			shm/System.cpp
+                        EventChannelSupport.cpp \
+                        Events.cpp \
+                        Component.cpp \
+                        Value.cpp \
+                        PropertyType.cpp \
+                        PropertyMap.cpp \
+                        Versions.cpp \
+                        ExecutorService.cpp \
+                        UsesPort.cpp \
+                        ProvidesPort.cpp \
+                        Transport.cpp \
+                        BufferManager.cpp \
+                        inplace_list.h \
+                        bitops.cpp \
+                        bitbuffer.cpp \
+                        shm/Allocator.cpp \
+                        shm/Heap.cpp \
+                        shm/HeapClient.cpp \
+                        shm/HeapPolicy.cpp \
+                        shm/MappedFile.cpp \
+                        shm/Metrics.cpp \
+                        shm/Superblock.cpp \
+                        shm/SuperblockFile.cpp \
+                        shm/System.cpp
 
 libossiecf_la_CXXFLAGS = -Wall $(BOOST_CPPFLAGS) $(OMNICOS_CFLAGS) $(OMNIORB_CFLAGS) $(LOG4CXX_FLAGS)
 # Include the omniORB internal directory, otherwise CorbaUtils will not build
 libossiecf_la_CXXFLAGS +=-I$(OMNIORB_INCLUDEDIR)/omniORB4/internal
-libossiecf_la_LIBADD = $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) $(BOOST_SERIALIZATION_LIB) $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB) $(BOOST_REGEX_LIB) $(OMNICOS_LIBS) $(OMNIORB_LIBS) $(LOG4CXX_LIBS) -ldl -lyaml-cpp #XXX -lrt
+libossiecf_la_LIBADD = $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) $(BOOST_SERIALIZATION_LIB) $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB) $(BOOST_REGEX_LIB) $(OMNICOS_LIBS) $(OMNIORB_LIBS) $(LOG4CXX_LIBS) -ldl -lyaml-cpp
+libossiecf_la_LIBADD += $(RT_LIB)
 libossiecf_la_LDFLAGS = -version-info $(LIBOSSIECF_VERSION_INFO)
+

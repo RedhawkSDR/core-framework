@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-AM_CPPFLAGS = -I../include -I$(top_srcdir)/base/include
+AM_CPPFLAGS = -I$(top_srcdir)/control/include -I$(top_srcdir)/base/include
 
 noinst_LTLIBRARIES = libossiedomain.la
 libossiedomain_la_SOURCES = CorbaGC.cpp \
@@ -31,13 +31,16 @@ libossiedomain_la_SOURCES = CorbaGC.cpp \
                             prop_utils.cpp
 
 libossiedomain_la_CXXFLAGS = -Wall -I$(OMNIORB_INCLUDEDIR)/omniORB4/internal $(BOOST_CPPFLAGS) $(OMNICOS_CFLAGS) $(OMNIORB_CFLAGS) $(LOG4CXX_FLAGS) $(PERSISTENCE_CFLAGS)
-libossiedomain_la_LIBADD = $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) $(BOOST_SERIALIZATION_LIB) $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB) $(OMNICOS_LIBS) $(OMNIORB_LIBS) $(LOG4CXX_LIBS) $(PERSISTENCE_LIBS)
-libossiedomain_la_LDFLAGS = -Wall
+libossiedomain_la_LIBADD = $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) $(BOOST_SERIALIZATION_LIB) $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB) $(OMNICOS_LIBS) $(OMNIORB_LIBS) $(LOG4CXX_LIBS) $(PERSISTENCE_LIBS) -luuid
+libossiedomain_la_LIBADD += $(RT_LIB)
+libossiedomain_la_LDFLAGS =
 
 bin_PROGRAMS = nodeBooter
 nodeBooter_SOURCES = nodebooter.cpp
-nodeBooter_CXXFLAGS = $(BOOST_CPPFLAGS) 
-nodeBooter_LDADD = ../parser/libossieparser.la ./libossiedomain.la $(top_builddir)/base/framework/libossiecf.la $(top_builddir)/base/framework/idl/libossieidl.la $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) $(BOOST_SYSTEM_LIB) $(BOOST_REGEX_LIB) $(OMNICOS_LIBS) $(OMNIORB_LIBS)
+nodeBooter_CXXFLAGS = $(BOOST_CPPFLAGS)
+nodeBooter_LDADD = ../parser/libossieparser.la ./libossiedomain.la $(top_builddir)/base/framework/libossiecf.la $(top_builddir)/base/framework/idl/libossieidl.la $(BOOST_LDFLAGS) $(BOOST_FILESYSTEM_LIB) $(BOOST_SYSTEM_LIB) $(BOOST_REGEX_LIB) $(OMNICOS_LIBS) $(OMNIORB_LIBS) -luuid
+nodeBooter_LDADD += $(RT_LIB)
 nodeBooter_LDFLAGS = -static
+
 bin_SCRIPTS = nodeCleanup.py
 
