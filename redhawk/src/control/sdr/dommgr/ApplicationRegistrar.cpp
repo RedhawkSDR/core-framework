@@ -45,6 +45,9 @@ CF::DomainManager_ptr ApplicationRegistrar_impl::domMgr()
 
 void ApplicationRegistrar_impl::registerComponent(const char * Name, CF::Resource_ptr obj) {
 
+  if (_application->isReleasing()) {
+      return;
+  }
   if ( !CORBA::is_nil(_context) ) {
       CosNaming::Name_var cosName;
       try {

@@ -306,12 +306,14 @@ void ApplicationComponent::releaseObject()
             }
         }
     } catch (const CORBA::SystemException& exc) {
-        if (!isTerminated() and not isHosted()) {
-            RH_ERROR(_appComponentLog, "Failed to release component '" << _identifier << "'; "
-                      << ossie::corba::describeException(exc));
+        if (not isHosted()) {
+            if (!isTerminated()) {
+                RH_ERROR(_appComponentLog, "Failed to release component '" << _identifier << "'; "<< ossie::corba::describeException(exc));
+            } else {
+                RH_DEBUG(_appComponentLog, "Ignoring CORBA exception releasing terminated component '" << _identifier << "'");
+            }
         } else {
-            RH_DEBUG(_appComponentLog, "Ignoring CORBA exception releasing terminated component '"
-                      << _identifier << "'");
+                RH_DEBUG(_appComponentLog, "Ignoring CORBA exception releasing terminated component '" << _identifier << "'");
         }
     } CATCH_RH_WARN(_appComponentLog, "releaseObject failed for component '" << _identifier << "'");
 }
@@ -322,9 +324,11 @@ void ApplicationComponent::terminate()
             try {
                     RH_TRACE(_appComponentLog, "terminate is attempting to delete pod " + _identifier);
 
-                    if (isTerminated()) {
-                            RH_TRACE(_appComponentLog, "DEBUG pod " << _identifier << " already deleted");
-                            return;
+                    if (not isHosted()) {
+                        if (isTerminated()) {
+                                RH_TRACE(_appComponentLog, "DEBUG pod " << _identifier << " already deleted");
+                                return;
+                        }
                     }
                     _clusterMgr->deleteComponent(_identifier);
             } catch (...) {

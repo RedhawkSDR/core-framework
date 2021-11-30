@@ -12,46 +12,17 @@ EksKubeResolver::EksKubeResolver (std::string namespace_name) : ClusterManagerRe
 		throw "OSSIEHOME not found";
 	}
 
-
-	//std::string env_output = GetStdoutFromCommand(std::string("env").c_str());
-	//std::cout << "Cluster " << env_output << std::endl;
-	//std::cout << "Cluster " << std::string(ossiehome) << std::endl;
-	//std::string cluster_file = "/usr/local/redhawk/core/aws/cluster.cfg";
     std::string cluster_file = std::string(ossiehome) + "/cluster.cfg";
 
 	boost::property_tree::ptree pt;
-	//std::string cluster_file = "/usr/local/redhawk/core/aws/cluster.cfg";
 	boost::property_tree::ini_parser::read_ini(cluster_file, pt);
 
 	registry =  pt.get<std::string>("EksKube.registry");
 	tag = pt.get<std::string>("EksKube.tag");
 	dockerconfigjson = pt.get<std::string>("EksKube.dockerconfigjson");
 
-	/*
-	ifstream f(cluster_file.c_str());
-        if (f.good()) {
-
-		boost::property_tree::ptree pt;
-		boost::property_tree::ini_parser::read_ini(cluster_file, pt);
-
-		std::string name =  pt.get<std::string>("CLUSTER.name");
-		registry =  pt.get<std::string>(name+".registry");
-		tag = pt.get<std::string>(name+".tag");
-		dockerconfigjson = pt.get<std::string>(name+".dockerconfigjson");
-        }
-	else {
-		registry = "";
-		tag = "";
-		dockerconfigjson = ""
-	}*/
-
 	std::string user = std::getenv("USER");
 	std::string docker_login = "aws --profile="+user+" ecr get-login-password --region us-gov-west-1 | docker login --username AWS --password-stdin " + registry;
-
-	//std::string output = GetStdoutFromCommand(docker_login.c_str());
-	//output.erase(std::remove(output.begin(), output.end(), '\n'), output.end());
-	//RH_NL_INFO("Cluster", output);
-
 
 	/* Start k8s YAML */
 	// Configure registry secret
@@ -69,7 +40,6 @@ EksKubeResolver::EksKubeResolver (std::string namespace_name) : ClusterManagerRe
 	wave_namespace.erase(std::remove(wave_namespace.begin(), wave_namespace.end(), '.'), wave_namespace.end());
 
         configureNamespace();
-        //configureRegistrySecret();
 }
 
 void EksKubeResolver::configureRegistrySecret() {
@@ -163,7 +133,7 @@ void EksKubeResolver::openComponentConfigFile(redhawk::PropertyMap execParameter
 		yaml << YAML::Key << "args" << YAML::Value;
 		yaml << YAML::BeginSeq;
 		std::stringstream ss;
-		std::string full_entry = "$SDRROOT/dom" + entryPoint + " ";
+		std::string full_entry = "/var/redhawk/sdr/dom" + entryPoint + " ";
 		ss << full_entry;
 		ss << " NAMING_CONTEXT_IOR ";
 		ss << naming_context_ior;
@@ -179,7 +149,7 @@ void EksKubeResolver::openComponentConfigFile(redhawk::PropertyMap execParameter
 	else {
 		yaml << YAML::Key << "command" << YAML::Value;
 		yaml << YAML::BeginSeq;
-		std::string full_entry = "$SDRROOT/dom" + entryPoint;
+		std::string full_entry = "/var/redhawk/sdr/dom" + entryPoint;
 		yaml << full_entry;
 		yaml << "NAMING_CONTEXT_IOR";
 		yaml << naming_context_ior;

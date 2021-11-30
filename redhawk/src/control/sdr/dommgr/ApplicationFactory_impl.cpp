@@ -2047,15 +2047,84 @@ void createHelper::loadAndExecuteCluster(const ClusterList& cluster,
         if (deployment->isExecutable()) {
             attemptClusterExecution(_appReg, deployment);
         }
-    }
 
     clusterMgr->closeComponentConfigFile(identifier);
 
     CF::ExecutableDevice::ProcessID_Type pid = clusterMgr->launchComponent(identifier);
 
+    redhawk::PropertyMap execParameters = deployment->getCommandLineParameters();
+    const std::string& nic = deployment->getNicAssignment();
+    if (!nic.empty()) {
+        execParameters["NIC"] = nic;
+    }
+
+    // Add specialized CPU reservation if given
+    if (deployment->hasCpuReservation()) {
+        execParameters["RH::GPP::MODIFIED_CPU_RESERVATION_VALUE"] = deployment->getCpuReservation();
+    }
+
+    // Add the required parameters specified in SR:163
+    // Naming Context IOR, Name Binding, and component identifier
+    execParameters["COMPONENT_IDENTIFIER"] = deployment->getIdentifier();
+    if (deployment->getInstantiation()->isNamingService()) {
+        execParameters["NAME_BINDING"] = deployment->getInstantiation()->getFindByNamingServiceName();
+    }
+    execParameters["PROFILE_NAME"] = deployment->getSoftPkg()->getSPDFile();
+
+    execParameters["DOM_PATH"] = _baseNamingContext;
+    //resolveLoggingConfiguration(deployment, execParameters);
+
+    // Add the Naming Context IOR last to make it easier to parse the command line
+    execParameters["NAMING_CONTEXT_IOR"] = ossie::corba::objectToString(_appReg);
+
+    // Get entry point
+    std::string entryPoint_image = deployment->getEntryPoint();
+    std::string delimiter = "::";
+    size_t pos = entryPoint_image.find(delimiter);
+    std::string entryPoint;
+    if (pos == std::string::npos) {
+        entryPoint = entryPoint_image;
+    } else {
+        std::string token;
+        entryPoint = entryPoint_image.substr(0, pos);
+    }
+
+    if (entryPoint.empty()) {
+        entryPoint = deployment->getLocalFile();
+    }
+    if ((entryPoint.find(".so") == entryPoint.size()-3) and (deployment->getImplementation()->getCodeType() == SPD::Code::CONTAINER)) {
+        entryPoint = "/var/redhawk/sdr/dom" + entryPoint;
+        redhawk::ApplicationComponent* unregistered_comp_host = _application->getLastComponent(); // component host for c++ container
+        redhawk::ApplicationComponent* comp_host = _application->findComponent(unregistered_comp_host->getIdentifier());
+        while (not comp_host) {
+            usleep(1000);
+            comp_host = _application->findComponent(unregistered_comp_host->getIdentifier());
+        }
+        redhawk::PropertyMap options = deployment->getOptions();
+        CORBA::Object_ptr comphost_objref = CORBA::Object::_nil();
+        while (CORBA::is_nil(comphost_objref)) {
+            usleep(1000);
+            comphost_objref = comp_host->getComponentObject();
+        }
+        CF::ExecutableDevice_var comphost_ref = ossie::corba::_narrowSafe<CF::ExecutableDevice>(comphost_objref);
+        std::vector<std::string> resolved_softpkg_deps = deployment->getDependencyLocalFiles();
+        CF::StringSequence dep_seq;
+        dep_seq.length(resolved_softpkg_deps.size());
+        for (unsigned int p=0;p!=dep_seq.length();p++) {
+            dep_seq[p]=CORBA::string_dup((resolved_softpkg_deps[p]).c_str());
+        }
+        comphost_ref->executeLinked(entryPoint.c_str(), options, execParameters, dep_seq);
+        redhawk::ApplicationComponent* hosted_comp = _application->findComponent(deployment->getIdentifier());
+        hosted_comp->setHosted(true);
+        hosted_comp->setIsCluster(true);
+        hosted_comp->setComponentHost(comp_host);
+        hosted_comp->setNamingContext(_baseNamingContext + "/" + deployment->getInstantiation()->getFindByNamingServiceName());
+    }
     if (pid < 0) {
         throw "Pid was negative for the cluster";
     }
+    }
+
 }
 
 void createHelper::loadAndExecuteContainers(const ContainerList& containers,
@@ -2613,10 +2682,8 @@ void createHelper::attemptClusterExecution (CF::ApplicationRegistrar_ptr registr
         entryPoint = deployment->getLocalFile();
     }
 
-    bool isCppContainer = false;
     std::string tmp_id = ossie::generateUUID();
     if ((entryPoint.find(".so") == entryPoint.size()-3) and (deployment->getImplementation()->getCodeType() == SPD::Code::CONTAINER)) {
-        isCppContainer = true;
         c_entryPoint = "/var/redhawk/sdr/dom"+entryPoint;
         c_execParameters = execParameters;
 
@@ -2703,27 +2770,6 @@ void createHelper::attemptClusterExecution (CF::ApplicationRegistrar_ptr registr
             app_component->setProcessId(pid);
         }
     } else if (deployment->getImplementation()->getCodeType() == SPD::Code::CONTAINER) {
-        if (isCppContainer) {
-            redhawk::ApplicationComponent* comp_host = _application->findComponent(tmp_id);
-            while (not comp_host) {
-                usleep(1000);
-                comp_host = _application->findComponent(tmp_id);
-            }
-            redhawk::PropertyMap options = deployment->getOptions();
-            CORBA::Object_ptr comphost_objref = CORBA::Object::_nil();
-            while (CORBA::is_nil(comphost_objref)) {
-                usleep(1000);
-                comphost_objref = comp_host->getComponentObject();
-            }
-            CF::ExecutableDevice_var comphost_ref = ossie::corba::_narrowSafe<CF::ExecutableDevice>(comphost_objref);
-            comphost_ref->executeLinked(c_entryPoint.c_str(), options, c_execParameters, dep_seq);
-            redhawk::ApplicationComponent* hosted_comp = _application->findComponent(deployment->getIdentifier());
-            hosted_comp->setHosted(true);
-            hosted_comp->setIsCluster(true);
-            hosted_comp->setComponentHost(comp_host);
-        } else {
-	        RH_TRACE(_createHelperLog, "NOT Executing a cluster yet");
-        }
         return;
     } else {
         throw "Got a container and expected a cluster";

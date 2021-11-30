@@ -119,6 +119,7 @@ Application_impl::Application_impl (const std::string& id, const std::string& na
     _identifier(id),
     _sadProfile(profile),
     _appName(name),
+    _isReleasing(false),
     _domainManager(domainManager),
     _waveformContextName(waveformContextName),
     _waveformContext(CosNaming::NamingContext::_duplicate(waveformContext)),
@@ -982,6 +983,7 @@ void Application_impl::runTest (CORBA::ULong _testId, CF::Properties& _props)
 
 void Application_impl::releaseObject ()
 {
+    _isReleasing = true;
   try {
     // Make sure releaseObject hasn't already been called, but only hold the
     // lock long enough to check to prevent a potential priority inversion with
@@ -1154,16 +1156,20 @@ void Application_impl::releaseComponents()
 
     for (ClusterList::iterator ii = _cluster.begin(); ii != _cluster.end(); ++ii) {
         if (ii->getChildren().empty()) {
-            // Release "real" components first
-            ii->releaseObject();
-            break;
+            try {
+                ii->releaseObject();
+            } catch (...) {
+            }
+            //break;
         }
     }
 
     for (ClusterList::iterator ii = _cluster.begin(); ii != _cluster.end(); ++ii) {
         if (!ii->getChildren().empty()) {
-            // Release "real" components first
-            ii->releaseObject();
+            try {
+                ii->releaseObject();
+            } catch (...) {
+            }
         }
     }
 }
@@ -1790,7 +1796,7 @@ void Application_impl::registerComponent (CF::Resource_ptr resource)
         comp->setSoftwareProfile(softwareProfile);
     }
 
-    RH_TRACE(_baseLog, "Component '" << componentId << "' software profile " << softwareProfile << " pid:" << comp->getProcessId() << " " << i);
+    RH_TRACE(_baseLog, "Component '" << componentId << "' software profile " << softwareProfile << " " << i);
     comp->setComponentObject(resource);
     _registrationCondition.notify_all();
 }
@@ -1838,6 +1844,11 @@ redhawk::ApplicationComponent* Application_impl::addComponent(const std::string&
     component->setLogger(_baseLog);
     return component;
 }
+
+redhawk::ApplicationComponent* Application_impl::getLastComponent() {
+    redhawk::ApplicationComponent* component = &(_components.back());
+    return component;
+};
 
 redhawk::ApplicationComponent* Application_impl::addCluster(const std::string& componentId,
                                                               const std::string& softwareProfile)

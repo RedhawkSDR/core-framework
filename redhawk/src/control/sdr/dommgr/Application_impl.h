@@ -234,6 +234,8 @@ public:
     redhawk::ApplicationComponent* addContainer(const boost::shared_ptr<redhawk::GeneralDeployment> container);
     redhawk::ApplicationComponent* addCluster(const boost::shared_ptr<redhawk::GeneralDeployment> deployment);
 
+    redhawk::ApplicationComponent* getLastComponent();
+
     void releaseComponents();
     void terminateComponents();
     void unloadComponents();
@@ -270,6 +272,9 @@ public:
 
     std::string GetStdoutFromCommand(std::string cmd);
     void poll(redhawk::ApplicationComponent& ii);
+    bool isReleasing() {
+        return _isReleasing;
+    };
 
     redhawk::ApplicationComponent* findComponent(const std::string& identifier);
 
@@ -306,6 +311,7 @@ private:
     const std::string _identifier;
     const std::string _sadProfile;
     const std::string _appName;
+    bool _isReleasing;
     CF::DeviceAssignmentSequence _componentDevices;
     std::vector<ossie::ConnectionNode> _connections;
     std::vector<redhawk::ApplicationComponent*> _startOrder;
