@@ -110,7 +110,7 @@ AC_SUBST(IDLDIR, [$idldir])
 dnl Executable is named xsdcxx in Fedora epel repo, REDHAWK dep is named xsd
 AC_CHECK_PROGS([XSD], [xsdcxx xsd], [no])
 if test x"$XSD" = xno ; then
-	AC_MSG_ERROR([Required program 'xsdcxx' is missing.])
+    AC_MSG_ERROR([Required program 'xsdcxx' is missing.])
 fi
 # Get the XSD version
 AC_MSG_CHECKING([xsd version])
@@ -228,6 +228,15 @@ fi
 # Use libuuid from e2fsprogs to generate UUIDs.
 AC_CHECK_HEADER([uuid/uuid.h], [], [AC_MSG_ERROR([uuid/uuid.h is required])])
 #XXX AC_CHECK_LIB([uuid], [uuid_generate], [], [AC_MSG_ERROR([libuuid is required])])
+AC_CHECK_LIB([uuid], [uuid_generate] )
+AC_CHECK_LIB([rt], [shm_open] )
+# NOTE: Only on Linux we need uuid lib and rt lib too! CK
+if test "x$ac_cv_lib_uuid_uuid_generate_" = xyes; then :
+  AC_SUBST(UUID_LIB, '-luuid')
+fi
+if test "x$ac_cv_lib_rt_shm_open_" = xyes; then :
+  AC_SUBST(RT_LIB, '-lrt')
+fi
 
 # Set flags for building against the main C++ library.
 AC_SUBST(OSSIE_CFLAGS, '-I$(top_srcdir)/base/include')
@@ -313,7 +322,7 @@ AC_CONFIG_FILES(Makefile \
                 base/plugin/Makefile \
                 base/plugin/logcfg/Makefile \
                 base/plugin/clustermgr/Makefile \
-		idl/Makefile \
+                idl/Makefile \
                 xml/Makefile \
                 tools/Makefile )
 
