@@ -32,7 +32,7 @@ from ossie.utils import uuid
 
 from ossie.resource import Resource
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 from ossie.resource import usesport, providesport
 from ossie.cf import ExtendedCF
 from omniORB import CORBA

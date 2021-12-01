@@ -43,12 +43,12 @@ class py_comp_i(py_comp_base):
         try:
             self.app_id = self.getApplication().ref._get_identifier()
             self.number_components = len(self.getApplication().ref._get_registeredComponents())
-        except Exception, e:
+        except Exception as e:
             self.app_id = ""
             self.number_components = -2
         try:
             self.dom_id = self.getDomainManager().ref._get_identifier()
-        except Exception, e:
+        except Exception as e:
             self.dom_id = ""
         self.nic_name = self.getNetwork().getNic()
 

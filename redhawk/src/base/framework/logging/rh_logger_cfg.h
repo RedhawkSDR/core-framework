@@ -20,7 +20,7 @@
 #ifndef  RH_LOGGER_CFG_H
 #define  RH_LOGGER_CFG_H
 
-#include <values.h>
+#include <limits.h>
 #include <iostream>
 #include <fstream>
 #include <cstdio>

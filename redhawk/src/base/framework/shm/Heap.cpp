@@ -201,7 +201,7 @@ Superblock* Heap::_createSuperblock(size_t minSize)
     size_t superblock_size = _superblockSize;
     minSize = (minSize + 64) * 2;
     if (minSize > superblock_size) {
-        superblock_size = PAGE_ROUND_UP(minSize, MappedFile::PAGE_SIZE);
+        superblock_size = PAGE_ROUND_UP(minSize, MappedFile::SC_PAGE_SIZE);
     }
 
     try {
@@ -214,12 +214,12 @@ Superblock* Heap::_createSuperblock(size_t minSize)
 
 size_t Heap::_initSuperblockSize()
 {
-    // We would prefer to use MappedFile::PAGE_SIZE here but the order of
+    // We would prefer to use MappedFile::SC_PAGE_SIZE here but the order of
     // initialization for C++ modules is undefined, meaning it may still be 0
     // when this function is called. Use the same system call instead.
-    static size_t PAGE_SIZE = sysconf(_SC_PAGESIZE);
+    static size_t SC_PAGE_SIZE = sysconf(_SC_PAGESIZE);
     size_t superblock_size = redhawk::env::getVariable("RH_SHMALLOC_SUPERBLOCK_SIZE", DEFAULT_SUPERBLOCK_SIZE);
-    return PAGE_ROUND_UP(superblock_size, PAGE_SIZE);
+    return PAGE_ROUND_UP(superblock_size, SC_PAGE_SIZE);
 }
 
 size_t Heap::_superblockSize = Heap::_initSuperblockSize();

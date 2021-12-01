@@ -110,8 +110,8 @@ char* ConnectionManager_impl::connect(const CF::ConnectionManager::EndpointReque
         _connectionId = ossie::generateUUID();
     }
 
-    std::auto_ptr<ossie::Endpoint> uses(requestToEndpoint(usesEndpoint));
-    std::auto_ptr<ossie::Endpoint> provides(requestToEndpoint(providesEndpoint));
+    std::unique_ptr<ossie::Endpoint> uses(requestToEndpoint(usesEndpoint));
+    std::unique_ptr<ossie::Endpoint> provides(requestToEndpoint(providesEndpoint));
     ossie::ConnectionNode connection(uses.release(), provides.release(), _connectionId, requesterId, "");
     try {
         connection.connect(_domainManager->_connectionManager);

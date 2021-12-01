@@ -48,7 +48,7 @@ ComponentDescriptor& ComponentDescriptor::operator=(const ComponentDescriptor &o
 
 void ComponentDescriptor::load(std::istream& input) throw(ossie::parser_error)
 {
-  std::auto_ptr<SCD> t = ossie::internalparser::parseSCD(input);
+  std::unique_ptr<SCD> t = ossie::internalparser::parseSCD(input);
   _scd.reset(t.release());
 }
 

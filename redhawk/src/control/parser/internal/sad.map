@@ -22,7 +22,7 @@ namespace urn:mil:jpeojtrs:sca:sad {
     include "map";
     include "memory";
     include "../include/ossie/SoftwareAssembly.h";
-    softwareassembly "::std::auto_ptr<ossie::SoftwareAssembly::SAD>";
+    softwareassembly "::std::unique_ptr<ossie::SoftwareAssembly::SAD>";
     componentfiles "::std::vector<ossie::ComponentFile> &";
     componentfile "::ossie::ComponentFile";
     componentplacement "const ::ossie::ComponentPlacement&" "const ::ossie::ComponentPlacement&";

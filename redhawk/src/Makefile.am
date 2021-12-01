@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-ACLOCAL_AMFLAGS = -I acinclude 
+ACLOCAL_AMFLAGS = -I acinclude
 BOOST_THREAD_LIB += $(BOOST_REGEX_LIB)
 
 LIBTOOL_DEPS = @LIBTOOL_DEPS@
@@ -35,7 +35,7 @@ if HAVE_JAVASUPPORT
 endif
 
 if BUILD_TESTS
-TEST_DIR=testing
+  TEST_DIR=testing
 endif
 
 SUBDIRS = acinclude etc $(OMNIJNI) base control tools xml idl $(TEST_DIR)

@@ -25,7 +25,7 @@ from PyQt4 import QtGui
 from ossie.parsers import dcd
 from ossie.utils import redhawk
 
-import ui
+from . import ui
 
 class DeviceDialog(QtGui.QDialog):
     def __init__(self, *args, **kwargs):

@@ -39,7 +39,7 @@ class ResourceOutPort(ExtendedCF__POA.QueryablePort, PortCFResourceOut_i):
     def _get_connections(self):
         self.port_lock.acquire()
         try:    
-            return [ExtendedCF.UsesConnection(connId, port) for connId, port in self.outConnections.items()]
+            return [ExtendedCF.UsesConnection(connId, port) for connId, port in list(self.outConnections.items())]
         finally:
             self.port_lock.release()
 

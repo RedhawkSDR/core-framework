@@ -29,4 +29,5 @@ redhawk_shminfo_LDFLAGS = $(OSSIE_LIBS)
 
 redhawk_shmclean_SOURCES = src/shmclean.cpp src/ShmVisitor.cpp src/ShmVisitor.h
 redhawk_shmclean_CXXFLAGS = -Wall $(OSSIE_CFLAGS)
-redhawk_shmclean_LDFLAGS = $(OSSIE_LIBS) -lrt
+redhawk_shmclean_LDFLAGS = $(OSSIE_LIBS)
+redhawk_shmclean_LDADD = $(RT_LIB)

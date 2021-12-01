@@ -74,7 +74,7 @@ for das in dass:
     for entry in das[0]:
         if entry.assignedDeviceId in devIds:
 #            try:
-                print "Releasing an application"
+                print("Releasing an application")
                 das[1].releaseObject()
             #except:
             #    print "some bad stuff happened while releasing the application"

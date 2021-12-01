@@ -104,7 +104,7 @@ class UTCTimeTestWaveform(scatest.CorbaTestCase):
         domBooter, self._domMgr = self.launchDomainManager()
         devBooter, self._devMgr = self.launchDeviceManager("/nodes/test_BasicTestDevice_node/DeviceManager.dcd.xml")
         self._rhDom = redhawk.attach(scatest.getTestDomainName())
-        self.assertEquals(len(self._rhDom._get_applications()), 0)
+        self.assertEqual(len(self._rhDom._get_applications()), 0)
 
     def tearDown(self):
         if self._app:
@@ -123,19 +123,19 @@ class UTCTimeTestWaveform(scatest.CorbaTestCase):
         self.assertEqual(retval[0].value._v.tfsec, 0)
         prop = CF.DataType(id='simpleSeqDefNow',value=any.to_any(None))
         retval = self._app.comps[0].ref.query([prop])
-        self.assertEquals(len(retval[0].value._v), 1)
-        self.assertEquals(retval[0].value._v[0].tcstatus, 1)
-        self.assertNotEquals(retval[0].value._v[0].twsec, 0)
-        self.assertNotEquals(retval[0].value._v[0].tfsec, 0)
+        self.assertEqual(len(retval[0].value._v), 1)
+        self.assertEqual(retval[0].value._v[0].tcstatus, 1)
+        self.assertNotEqual(retval[0].value._v[0].twsec, 0)
+        self.assertNotEqual(retval[0].value._v[0].tfsec, 0)
         prop = CF.DataType(id='simpleSeqNoDef',value=any.to_any(None))
         retval = self._app.comps[0].ref.query([prop])
-        self.assertEquals(len(retval[0].value._v), 0)
+        self.assertEqual(len(retval[0].value._v), 0)
         prop = CF.DataType(id='simpleSeq1970',value=any.to_any(None))
         retval = self._app.comps[0].ref.query([prop])
-        self.assertEquals(len(retval[0].value._v), 1)
-        self.assertEquals(retval[0].value._v[0].tcstatus, 1)
-        self.assertEquals(retval[0].value._v[0].twsec, 0)
-        self.assertEquals(retval[0].value._v[0].tfsec, 0)
+        self.assertEqual(len(retval[0].value._v), 1)
+        self.assertEqual(retval[0].value._v[0].tcstatus, 1)
+        self.assertEqual(retval[0].value._v[0].twsec, 0)
+        self.assertEqual(retval[0].value._v[0].tfsec, 0)
 
     def basetest_Overload(self, app_name):
         self._app = self._rhDom.createApplication("/waveforms/"+app_name+"/"+app_name+".sad.xml")
@@ -424,7 +424,7 @@ class TestAllTypes(scatest.CorbaTestCase):
                         elif item.id == 'struct_ulonglong':
                             item.value = any.to_any(1)
                             item.value._t = CORBA.TC_ulonglong
-                if type(r.value._v) == int or type(r.value._v) == long or type(r.value._v) == float:
+                if type(r.value._v) == int or type(r.value._v) == int or type(r.value._v) == float:
                     r.value._v = r.value._v + 1
                 elif r.value._t == CORBA.TC_char:
                     r.value._v = 'o'

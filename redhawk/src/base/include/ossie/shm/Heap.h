@@ -52,7 +52,7 @@ namespace redhawk {
             const std::string& name() const;
 
         private:
-            struct Pool;
+            class Pool;
 
             // Non-copyable, non-assignable
             Heap(const Heap&);

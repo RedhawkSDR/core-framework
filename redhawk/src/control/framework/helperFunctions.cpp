@@ -174,7 +174,13 @@ bool ossie::sameHost(CORBA::Object_ptr aobj, CORBA::Object_ptr bobj)
 std::string ossie::getCurrentDirName()
 {
   std::string retval;
+
+#ifdef __APPLE__
+  char* tdir = getcwd(NULL,0);
+#else
   char *tdir = get_current_dir_name();
+#endif
+
   if ( tdir ) {
     retval = tdir;
     free(tdir);

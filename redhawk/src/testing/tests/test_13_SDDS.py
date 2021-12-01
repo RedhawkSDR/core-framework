@@ -25,7 +25,7 @@ import sys
 import time
 import calendar
 import contextlib
-import cStringIO
+import io
 import binascii
 import struct
 import re
@@ -64,7 +64,7 @@ class Test_SDDS_Time(unittest.TestCase):
         if len(conv) > 2:
             logline = logline.split(conv[2])[0]
             pval = pval.split(conv[2])[0]
-        self.assertEquals( pval, logline)
+        self.assertEqual( pval, logline)
 
 
     def test_startofyear(self):
@@ -100,7 +100,7 @@ class Test_SDDS_Time(unittest.TestCase):
 
         # set partial
         sdds_time.setFromPartial( 4, .001 )
-        self.assertEqual( sdds_time.picoTicks(), (4000000000*4) + long(4000000000*0.001) )
+        self.assertEqual( sdds_time.picoTicks(), (4000000000*4) + int(4000000000*0.001) )
         self.assertEqual( sdds_time.picoTicksFractional(), 0 )
 
 
@@ -216,33 +216,33 @@ class Test_SDDS_Packet(unittest.TestCase):
         pkt = sdds_pkt.sdds_packet()
 
         pkt.set_standardformat(True)
-        self.assertEquals(pkt.get_standardformat(),True)
+        self.assertEqual(pkt.get_standardformat(),True)
 
         pkt.set_startofsequence(True)
-        self.assertEquals(pkt.get_startofsequence(),True)
+        self.assertEqual(pkt.get_startofsequence(),True)
 
         pkt.set_paritypacket(True)
-        self.assertEquals(pkt.get_paritypacket(),True)
+        self.assertEqual(pkt.get_paritypacket(),True)
 
         pkt.set_spectralsense(True)
-        self.assertEquals(pkt.get_spectralsense(),True)
+        self.assertEqual(pkt.get_spectralsense(),True)
 
         pkt.set_originalformat(True)
-        self.assertEquals(pkt.get_originalformat(),True)
+        self.assertEqual(pkt.get_originalformat(),True)
 
         pkt.set_complex(True)
-        self.assertEquals(pkt.get_complex(),True)
+        self.assertEqual(pkt.get_complex(),True)
 
         pkt.set_vw(True)
-        self.assertEquals(pkt.get_vw(),True)
+        self.assertEqual(pkt.get_vw(),True)
 
         for x in [ 2, 4, 8, 12 ]:
             pkt.set_bps(x)
-            self.assertEquals(pkt.get_bps(),x)
+            self.assertEqual(pkt.get_bps(),x)
 
         for x in [ 0,1,2,5,6,7]:
             pkt.set_dmode(x)
-            self.assertEquals(pkt.get_dmode(),x)
+            self.assertEqual(pkt.get_dmode(),x)
         
 
         

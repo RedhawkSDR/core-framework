@@ -29,38 +29,38 @@
 PROPERTIES = (
               (
               # ID
-              u'DCE:7aeaace8-350e-48da-8d77-f97c2e722e06',
+              'DCE:7aeaace8-350e-48da-8d77-f97c2e722e06',
               # NAME   
-              u'memCapacity', 
+              'memCapacity', 
               # TYPE 
-              u'long', 
+              'long', 
               # MODE 
-              u'readonly',  
+              'readonly',  
               # DEFAULT
               None, 
               # UNITS  
               'bytes', 
               # ACTION 
-              u'external', 
+              'external', 
               # KINDS
-              (u'allocation', ),
+              ('allocation', ),
               ),
               (
               # ID
-              u'DCE:bbdf708f-ce05-469f-8aed-f5c93e353e14',
+              'DCE:bbdf708f-ce05-469f-8aed-f5c93e353e14',
               # NAME   
-              u'BogoMipsCapacity', 
+              'BogoMipsCapacity', 
               # TYPE 
-              u'long', 
+              'long', 
               # MODE 
-              u'readonly',  
+              'readonly',  
               # DEFAULT
               None, 
               # UNITS  
               'bytes', 
               # ACTION 
-              u'external', 
+              'external', 
               # KINDS
-              (u'allocation', ),
+              ('allocation', ),
               ),
              )

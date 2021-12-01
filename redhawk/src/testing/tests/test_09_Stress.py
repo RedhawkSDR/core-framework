@@ -51,7 +51,7 @@ class WaveformWorker:
 
     def Process(self):
         if self.thread_num and self.debug:
-            print 'starting thread: ' + str(self.thread_num)
+            print('starting thread: ' + str(self.thread_num))
         try:
             self.app = self.appFact.create(self.appFact._get_name(), [], [])
         except:
@@ -62,7 +62,7 @@ class WaveformWorker:
             self.app.stop()
             self.app.releaseObject()
             if self.thread_num and self.debug:
-                print 'releasing thread: ' + str(self.thread_num)
+                print('releasing thread: ' + str(self.thread_num))
         self.data_signal_2.wait()
 
 
@@ -230,7 +230,7 @@ class StressTest(scatest.CorbaTestCase):
         appFact = domMgr._get_applicationFactories()[0]
 
         # create the worker classes - these will each create a new app (waveform) in a new thread
-        for i in xrange(num_waveforms):
+        for i in range(num_waveforms):
             processThreads.append(WaveformWorker(appFact, False, i))
 
         # start the thread (app/waveform)
@@ -248,7 +248,7 @@ class StressTest(scatest.CorbaTestCase):
             entry.data_signal_1.set()
 
         # Give it time to shut down, and make sure they all finish
-        self.assert_(waitAppCount(domMgr, 0, 30))
+        self.assertTrue(waitAppCount(domMgr, 0, 30))
 
         # kill the threads
         for entry in processThreads:

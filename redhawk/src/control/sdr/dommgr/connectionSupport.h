@@ -209,7 +209,7 @@ namespace ossie
         void setrequesterId(std::string _requesterId) { requesterId = _requesterId;}
         void setconnectionRecordId(std::string _connectionRecordId) { connectionRecordId = _connectionRecordId;}
 
-        // Use boost::scoped_ptr instead of std::auto_ptr for serialization
+        // Use boost::scoped_ptr instead of std::unique_ptr for serialization
         // purposes.
         boost::scoped_ptr<Endpoint> uses;
         boost::scoped_ptr<Endpoint> provides;

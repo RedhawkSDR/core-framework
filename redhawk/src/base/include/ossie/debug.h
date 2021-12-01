@@ -73,7 +73,7 @@
 #define _RH_LOG( level, logger, msg)	\
   if ( logger && logger->is##level##Enabled() ) {			\
     std::ostringstream _msg;						\
-    _msg <<  msg;				          		\
+    _msg << msg;				          		\
     logger->handleLogEvent( rh_logger::Level::get##level(), _msg.str(), rh_logger::spi::LocationInfo(__FILE__,__PRETTY_FUNCTION__,__LINE__) ); \
   }
 

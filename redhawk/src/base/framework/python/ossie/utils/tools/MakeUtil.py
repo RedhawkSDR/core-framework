@@ -40,7 +40,7 @@ def usage():
       -r, --recursive   if location is a directory, searches for all Makefiles
                         (default is False)
     """
-    print txt
+    print(txt)
     
 class MakeUtil:
     
@@ -89,7 +89,7 @@ class MakeUtil:
             obj.close()
             tgts_dict[item] = targets
         # prints the result using pretty print
-        print pprint.pformat(tgts_dict)
+        print(pprint.pformat(tgts_dict))
             
     def __log(self, txt):
         """ 
@@ -100,7 +100,7 @@ class MakeUtil:
             <txt>    The message to print to stdout
         """
         if __DEBUG__:
-            print "%s" % txt
+            print("%s" % txt)
           
     def __processDir(self):
         """
@@ -166,8 +166,8 @@ if __name__ == "__main__":
         loc = os.getcwd()
         is_recursive = options.recursive
         
-        print "\n\tNo location was provided, using current directory: %s" % loc
-        print ""
+        print("\n\tNo location was provided, using current directory: %s" % loc)
+        print("")
     else:
         loc = options.location
         is_recursive = options.recursive

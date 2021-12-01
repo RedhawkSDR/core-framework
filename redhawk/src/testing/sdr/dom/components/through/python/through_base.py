@@ -29,7 +29,7 @@ from ossie.utils import uuid
 from ossie.component import Component
 from ossie.threadedcomponent import *
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 from ossie.resource import usesport, providesport
 from ossie.cf import ExtendedCF
 from ossie.cf import ExtendedCF__POA
@@ -117,7 +117,7 @@ class PortCFLifeCycleIn_i(through_base.PortCFLifeCycleIn):
         self.parent = parent
         self.name = name
         self.sri = None
-        self.queue = Queue.Queue()
+        self.queue = queue.Queue()
         self.port_lock = threading.Lock()
 
     def initialize(self):
@@ -155,7 +155,7 @@ class PortCFLifeCycleOut_i(through_base.PortCFLifeCycleOut):
     def _get_connections(self):
         self.port_lock.acquire()
         try:
-            return [ExtendedCF.UsesConnection(name, port) for name, port in self.outConnections.iteritems()]
+            return [ExtendedCF.UsesConnection(name, port) for name, port in self.outConnections.items()]
         finally:
             self.port_lock.release()
 
@@ -163,7 +163,7 @@ class PortCFLifeCycleOut_i(through_base.PortCFLifeCycleOut):
         self.port_lock.acquire()
 
         try:
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if port != None:
                     try:
                         port.initialize()
@@ -176,7 +176,7 @@ class PortCFLifeCycleOut_i(through_base.PortCFLifeCycleOut):
         self.port_lock.acquire()
 
         try:
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if port != None:
                     try:
                         port.releaseObject()

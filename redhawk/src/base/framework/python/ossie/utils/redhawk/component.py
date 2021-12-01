@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import cStringIO, pydoc
+import io, pydoc
 
 from ossie.utils.model import ComponentBase, Resource, PropertySet, PortSupplier
 
@@ -40,8 +40,8 @@ class DomainComponent(ComponentBase):
             self._buildAPI()
             if self.ref != None:
                 self.ports = self._populatePorts()
-        except Exception, e:
-            print "Component:__init__() ERROR - Failed to instantiate component " + str(self.name) + " with exception " + str(e)
+        except Exception as e:
+            print("Component:__init__() ERROR - Failed to instantiate component " + str(self.name) + " with exception " + str(e))
 
     #####################################
 
@@ -52,11 +52,11 @@ class DomainComponent(ComponentBase):
         localdef_dest = False
         if destfile == None:
             localdef_dest = True
-            destfile = cStringIO.StringIO()
+            destfile = io.StringIO()
 
         className = self.__class__.__name__
         if showComponentName == True:
-            print >>destfile, className+" [" + str(self.name) + "]:"
+            print(className+" [" + str(self.name) + "]:", file=destfile)
         if showInterfaces == True:
             PortSupplier.api(self, destfile=destfile)
         if showProperties == True and self._properties != None:

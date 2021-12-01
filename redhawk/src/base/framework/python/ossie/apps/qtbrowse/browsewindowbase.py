@@ -34,7 +34,7 @@ from ossie.utils import sb
 import copy
 from ossie.utils import redhawk,prop_helpers,type_helpers
 from ossie.cf import CF
-import structdialog
+from . import structdialog
 
 def createPlotMenu(parent):
     plotMenu = parent.addMenu('Plot')
@@ -96,7 +96,7 @@ def typeStructDict(structDef, structDict):
     retval = {}
     badConversion = False
     for member in structDef.members:
-        if structDict.has_key(member):
+        if member in structDict:
             _type = structDef.members[member].type
             if _type == 'string' or _type == 'char':
                 retval[member] = structDict[member]
@@ -237,9 +237,9 @@ class TreeWidget(QTreeWidget):
         contname = propitem.parent().parent().parent().parent().text(0)
         compname = propname = ''
         prop = None
-        if containers[0].has_key('application'):
+        if 'application' in containers[0]:
             ref_key = 'app_ref'
-        elif containers[0].has_key('devMgr'):
+        elif 'devMgr' in containers[0]:
             ref_key = 'devMgr_ref'
         for cont in containers:
             if cont[ref_key].name == contname:
@@ -339,9 +339,9 @@ class TreeWidget(QTreeWidget):
         foundCont = foundComp = False
         if len(containers) == 0:
             return contref, contTrack, comp
-        if containers[0].has_key('application'):
+        if 'application' in containers[0]:
             ref_key = 'app_ref'
-        elif containers[0].has_key('devMgr'):
+        elif 'devMgr' in containers[0]:
             ref_key = 'devMgr_ref'
         for cont in containers:
             if cont[ref_key].name == container_name:
@@ -418,7 +418,7 @@ class TreeWidget(QTreeWidget):
                     try:
                         comp.connect(plot)
                         contTrack['widgets'].append((comp, plot))
-                    except Exception, e:
+                    except Exception as e:
                         plot.close()
                         if 'must specify providesPortName or usesPortName' in e.__str__():
                             QMessageBox.critical(self, 'Connection failed.', 'Cannot find a matching port. Please select a specific port in the Component port list to plot', QMessageBox.Ok)
@@ -430,7 +430,7 @@ class TreeWidget(QTreeWidget):
                     try:
                         comp.connect(sound)
                         contTrack['widgets'].append((comp, sound))
-                    except Exception, e:
+                    except Exception as e:
                         sound.releaseObject()
                         if 'must specify providesPortName or usesPortName' in e.__str__():
                             QMessageBox.critical(self, 'Connection failed.', 'Cannot find a matching port. Please select a specific port in the Component port list to plot', QMessageBox.Ok)
@@ -481,7 +481,7 @@ class TreeWidget(QTreeWidget):
                     try:
                         contref.connect(plot)
                         contTrack['widgets'].append((contref, plot))
-                    except Exception, e:
+                    except Exception as e:
                         plot.close()
                         if 'must specify providesPortName or usesPortName' in e.__str__():
                             QMessageBox.critical(self, 'Connection failed.', 'Cannot find a matching port. Please select a specific Port in the Application Port list to plot', QMessageBox.Ok)
@@ -493,7 +493,7 @@ class TreeWidget(QTreeWidget):
                     try:
                         contref.connect(sound)
                         contTrack['widgets'].append((contref, sound))
-                    except Exception, e:
+                    except Exception as e:
                         sound.releaseObject()
                         if 'must specify providesPortName or usesPortName' in e.__str__():
                             QMessageBox.critical(self, 'Connection failed.', 'Cannot find a matching port. Please select a specific port in the Component port list to plot', QMessageBox.Ok)
@@ -550,7 +550,7 @@ class TreeWidget(QTreeWidget):
                         if port._using != None:
                             comp.connect(plot,usesPortName=str(portname))
                         contTrack['widgets'].append((contref, plot))
-                    except Exception, e:
+                    except Exception as e:
                         plot.close()
                         QMessageBox.critical(self, 'Connection failed.', e.__str__(), QMessageBox.Ok)
                 elif resp == 'Sound':
@@ -559,7 +559,7 @@ class TreeWidget(QTreeWidget):
                     try:
                         comp.connect(sound)
                         contTrack['widgets'].append((contref, sound))
-                    except Exception, e:
+                    except Exception as e:
                         sound.releaseObject()
                         if 'must specify providesPortName or usesPortName' in e.__str__():
                             QMessageBox.critical(self, 'Connection failed.', 'Cannot find a matching port. Please select a specific port in the Component port list to plot', QMessageBox.Ok)
@@ -597,7 +597,7 @@ class TreeWidget(QTreeWidget):
                         if port._using != None:
                             appref.connect(plot,usesPortName=str(portname))
                         appTrack['widgets'].append((appref, plot))
-                    except Exception, e:
+                    except Exception as e:
                         plot.close()
                         QMessageBox.critical(self, 'Connection failed.', e.__str__(), QMessageBox.Ok)
                 elif resp == 'Sound':
@@ -606,7 +606,7 @@ class TreeWidget(QTreeWidget):
                     try:
                         appref.connect(sound)
                         appTrack['widgets'].append((appref, sound))
-                    except Exception, e:
+                    except Exception as e:
                         sound.releaseObject()
                         if 'must specify providesPortName or usesPortName' in e.__str__():
                             QMessageBox.critical(self, 'Connection failed.', 'Cannot find a matching port. Please select a specific port in the Component port list to plot', QMessageBox.Ok)
@@ -782,10 +782,10 @@ class BrowseWindowBase(QMainWindow):
         self.textLabel2.setText(self.__tr("NameService not found"))
 
     def refreshView(self):
-        print "BrowseWindowBase.refreshView(): Not implemented yet"
+        print("BrowseWindowBase.refreshView(): Not implemented yet")
 
     def propertyChanged(self):
-        print "BrowseWindowBase.propertyChanged(): Not implemented yet"
+        print("BrowseWindowBase.propertyChanged(): Not implemented yet")
 
     def __tr(self,s,c = None):
         return qApp.translate("BrowseWindowBase",s,c)

@@ -116,10 +116,10 @@ General usage examples:
     >>> src.write(data)
     >>> stop()
 """
-from domainless import *
-from io_helpers import *
-from prop_change_helpers import *
-from block_process import *
+from .domainless import *
+from .io_helpers import *
+from .prop_change_helpers import *
+from .block_process import *
 
 try:
     from bulkio.bulkioInterfaces import BULKIO
@@ -127,8 +127,8 @@ except:
     # BULKIO is not installed
     pass
 
-import helpers
-from helpers import *
+from . import helpers
+from .helpers import *
 
 # Add plug-in extensions
 from ossie.utils.sandbox.plugin import plugins

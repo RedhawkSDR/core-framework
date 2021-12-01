@@ -91,15 +91,15 @@ def lookupPropertySet (rootContext, elementId):
 
     prpRsrcRef = rootContext.resolve(prpRef)
     if prpRsrcRef is None:
-        raise StandardError("Unable to find rootContext for %s" % (elementId))
+        raise Exception("Unable to find rootContext for %s" % (elementId))
 
     prpRsrcHandle = prpRsrcRef._narrow(CF.Resource)
     if prpRsrcHandle is None:
-        raise StandardError("Unable to get Resource reference for %s" % (elementId))
+        raise Exception("Unable to get Resource reference for %s" % (elementId))
 
     prpSetHandle = prpRsrcRef._narrow(CF.PropertySet)
     if prpSetHandle is None:
-        raise StandardError("Unable to get PropertySet reference for %s" % (elementId))
+        raise Exception("Unable to get PropertySet reference for %s" % (elementId))
 
     return prpSetHandle
 

@@ -32,7 +32,7 @@ import CosNaming as _CosNaming
 import sys as _sys
 import time as _time
 import datetime as _datetime
-import cStringIO, pydoc
+import io, pydoc
 import weakref
 import threading
 import logging
@@ -48,12 +48,12 @@ from ossie.utils.log_helpers import stringToCode
 from ossie.utils.notify import notification
 from ossie.utils import weakobj
 
-from channels import IDMListener, ODMListener
-from component import Component
-from device import Device, createDevice
-from service import Service, RogueService
-from model import DomainObjectList
-from model import IteratorContainer
+from .channels import IDMListener, ODMListener
+from .component import Component
+from .device import Device, createDevice
+from .service import Service, RogueService
+from .model import DomainObjectList
+from .model import IteratorContainer
 from ossie.utils.model import QueryableBase
 
 # Limit exported symbols
@@ -355,7 +355,7 @@ class App(_CF__POA.Application, Resource):
             return object.__getattribute__(self,name)
         except AttributeError:
             # Check if current request is an external prop
-            if self._externalProps.has_key(name):
+            if name in self._externalProps:
                 propId, compRefId = self._externalProps[name]
                 for curr_comp in self.comps:
                     if curr_comp._get_identifier().split(':')[0] == compRefId:
@@ -381,7 +381,7 @@ class App(_CF__POA.Application, Resource):
             return object.__setattr__(self, name, value)
 
         # Check if current value to be set is an external prop
-        if self._externalProps.has_key(name):
+        if name in self._externalProps:
             propId, compRefId = self._externalProps[name]
             for curr_comp in self.comps:
                 if curr_comp._get_identifier().split(':')[0] == compRefId:
@@ -467,28 +467,28 @@ class App(_CF__POA.Application, Resource):
         localdef_dest = False
         if destfile == None:
             localdef_dest = True
-            destfile = cStringIO.StringIO()
+            destfile = io.StringIO()
 
-        print >>destfile, "Waveform [" + self.ns_name + "]"
-        print >>destfile, "---------------------------------------------------"
+        print("Waveform [" + self.ns_name + "]", file=destfile)
+        print("---------------------------------------------------", file=destfile)
 
-        print >>destfile, "External Ports =============="
+        print("External Ports ==============", file=destfile)
         PortSupplier.api(self, destfile=destfile)
 
-        print >>destfile, "Components =============="
+        print("Components ==============", file=destfile)
         for count, comp_entry in enumerate(self.comps):
             name = comp_entry.name
             if comp_entry._get_identifier().find(self.assemblyController) != -1:
                 name += " (Assembly Controller)"
-            print >>destfile, "%d. %s" % (count+1, name)
-        print >>destfile, "\n"
+            print("%d. %s" % (count+1, name), file=destfile)
+        print("\n", file=destfile)
 
         # Display AC props
         if self._acRef:
             self._acRef.api(showComponentName=False, showInterfaces=False, showProperties=True, destfile=destfile)
 
         # Loops through each external prop looking for a component to use to display the internal prop value
-        for extId in self._externalProps.keys():
+        for extId in list(self._externalProps.keys()):
             propId, compRefId = self._externalProps[extId]
             for comp_entry in self.comps:
                 if comp_entry._get_identifier().find(compRefId) != -1:
@@ -496,7 +496,7 @@ class App(_CF__POA.Application, Resource):
                     comp_entry.api(showComponentName=False,showInterfaces=False,showProperties=True, externalPropInfo=(extId, propId), destfile=destfile)
                     break
 
-        print >>destfile, '\n'
+        print('\n', file=destfile)
 
         if localdef_dest:
             pydoc.pager(destfile.getvalue())
@@ -508,7 +508,7 @@ class App(_CF__POA.Application, Resource):
 
         sad = object.__getattribute__(self,'_sad')
         if not sad:
-            print "Unable to create port list for " + object.__getattribute__(self,'name') + " - sad file unavailable"
+            print("Unable to create port list for " + object.__getattribute__(self,'name') + " - sad file unavailable")
             return
 
         ports = object.__getattribute__(self,'ports')
@@ -602,7 +602,7 @@ class App(_CF__POA.Application, Resource):
                 try:
                     int_entry = _idllib.getInterface(idl_repid)
                 except idllib.IDLError:
-                    print "Invalid port descriptor in scd for " + self.name + " for " + idl_repid
+                    print("Invalid port descriptor in scd for " + self.name + " for " + idl_repid)
                     continue
                 new_port = _Port(usesName, interface=None, direction="Uses", using=int_entry)
                 new_port.generic_ref = self.ref.getPort(str(new_port._name))
@@ -615,7 +615,7 @@ class App(_CF__POA.Application, Resource):
                 try:
                     int_entry = _idllib.getInterface(idl_repid)
                 except idllib.IDLError:
-                    print "Unable to find port description for " + self.name + " for " + idl_repid
+                    print("Unable to find port description for " + self.name + " for " + idl_repid)
                     continue
                 new_port._interface = int_entry
     
@@ -637,7 +637,7 @@ class App(_CF__POA.Application, Resource):
                 try:
                     int_entry = _idllib.getInterface(idl_repid)
                 except idllib.IDLError:
-                    print "Invalid port descriptor in scd for " + self.name + " for " + idl_repid
+                    print("Invalid port descriptor in scd for " + self.name + " for " + idl_repid)
                     continue
                 new_port = _Port(providesName, interface=int_entry, direction="Provides")
                 new_port.generic_ref = self.ref.getPort(str(new_port._name))
@@ -651,7 +651,7 @@ class App(_CF__POA.Application, Resource):
                     mod = __import__(pkg_name,globals(),locals(),[_to])
                     globals()[_to] = mod.__dict__[_to]
                     success = True
-                except ImportError, msg:
+                except ImportError as msg:
                     pass
                 if not success:
                     std_idl_path = _os.path.join(_os.environ.get('OSSIEHOME', ''), 'lib/python')
@@ -1027,7 +1027,7 @@ class DeviceManager(_CF__POA.DeviceManager, QueryableBase, PropertyEmitter, Port
         """
         if not self.__odmListener:
             self.__devices.sync()
-        return self.__devices.values()
+        return list(self.__devices.values())
 
     @property
     def services(self):
@@ -1036,7 +1036,7 @@ class DeviceManager(_CF__POA.DeviceManager, QueryableBase, PropertyEmitter, Port
         """
         if not self.__odmListener:
             self.__services.sync()
-        return self.__services.values()
+        return list(self.__services.values())
 
     # End external Device Manager API
     ########################################
@@ -1406,7 +1406,7 @@ class EventChannelManager(CorbaObject):
     def eventChannels(self):
         if not self.__odmListener:
             self.__evtChannels.sync()
-        return self.__evtChannels.values()
+        return list(self.__evtChannels.values())
 
     @notification
     def eventChannelAdded(self, evtChannel):
@@ -1642,20 +1642,20 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
                 domain_find_attempts += 1
         
         if domain_find_attempts == 30:
-            raise StandardError, "Did not find domain "+name
+            raise Exception("Did not find domain "+name)
                 
         self.ref = obj._narrow(_CF.DomainManager)
         try:
             self.fileManager = self.ref._get_fileMgr()
         except:
-            raise StandardError('Domain Manager '+self.name+' is not available')
+            raise Exception('Domain Manager '+self.name+' is not available')
         
         self.id = self.ref._get_identifier()
         self._id = self.id
         try:
             spd, scd, prf = _readProfile("/mgr/DomainManager.spd.xml", self.fileManager)
             super(Domain, self).__init__(prf, self.id)
-        except Exception, e:
+        except Exception as e:
             pass
         
         self._buildAPI()
@@ -1693,7 +1693,7 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
             devMgrFileSys = deviceManager._get_fileSys()
             dcdFile = devMgrFileSys.open(dcdPath, True)
         except:
-            raise RuntimeError, "Unable to open $SDRROOT/dev"+dcdPath+". Unable to create proxy for Device Manager"
+            raise RuntimeError("Unable to open $SDRROOT/dev"+dcdPath+". Unable to create proxy for Device Manager")
         dcdContents = dcdFile.read(dcdFile.sizeOf())
         dcdFile.close()
 
@@ -1705,7 +1705,7 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
         # If the ODM channel is not connected, force an update to the list.
         if not self.__odmListener:
             self.__deviceManagers.sync()
-        return self.__deviceManagers.values()
+        return list(self.__deviceManagers.values())
 
     def __newApplication(self, app):
         prof_path = app._get_profile()
@@ -1735,7 +1735,7 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
         # If the ODM channel is not connected, force an update to the list.
         if not self.__odmListener:
             self.__applications.sync()
-        return self.__applications.values()
+        return list(self.__applications.values())
 
     @property
     def eventChannels(self):
@@ -1828,7 +1828,7 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
         idmListener = IDMListener()
         try:
             idmListener.connect(self.ref)
-        except Exception, e:
+        except Exception as e:
             # No device events will be received
             log.warning('Unable to connect to IDM channel: %s', e)
             return
@@ -1842,7 +1842,7 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
         odmListener = ODMListener()
         try:
             odmListener.connect(self.ref)
-        except Exception, e:
+        except Exception as e:
             # No domain object events will be received
             log.warning('Unable to connect to ODM channel: %s', e)
             return
@@ -1875,7 +1875,7 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
         if self.__odmListener:
             try:
                 self.__odmListener.disconnect()
-            except Exception, e:
+            except Exception as e:
                 pass
 
         # Explictly disconnect IDM Listener to avoid warnings on shutdown
@@ -2319,7 +2319,7 @@ class Domain(_CF__POA.DomainManager, QueryableBase, PropertyEmitter):
     
     def _updateRunningApps(self):
         """Makes sure that the dictionary of waveforms is up-to-date"""
-        print "WARNING: _updateRunningApps() is deprecated.  Running apps are automatically updated on access."
+        print("WARNING: _updateRunningApps() is deprecated.  Running apps are automatically updated on access.")
 
     ########################################
     # Internal event channel management

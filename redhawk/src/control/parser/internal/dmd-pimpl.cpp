@@ -71,11 +71,11 @@ namespace dmd
       _data->name = name; 
   }
 
-  std::auto_ptr<ossie::DomainManagerConfiguration::DMD> domainmanagerconfiguration_pimpl::
+  std::unique_ptr<ossie::DomainManagerConfiguration::DMD> domainmanagerconfiguration_pimpl::
   post_domainmanagerconfiguration ()
   {
       RH_TRACE(dmd::parserLog, "domainmanagerconfiguration post");
-      return _data;
+      return std::move(_data);
   }
 
   // domainmanagersoftpkg_pimpl

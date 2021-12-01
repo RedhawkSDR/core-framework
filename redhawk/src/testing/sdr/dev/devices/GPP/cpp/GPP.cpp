@@ -29,7 +29,6 @@
 #include <fstream>
 #include <stdexcept>
 #include <limits>
-#include <linux/limits.h>
 #include <dirent.h>
 #include <signal.h>
 #include <errno.h>
@@ -38,7 +37,12 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+
+#ifdef __linux__
+#include <linux/limits.h>
 #include <sys/signalfd.h>
+#endif
+
 #include <sys/time.h>
 #include <sys/utsname.h>
 #include <sys/sysinfo.h>
@@ -604,7 +608,7 @@ void GPP_i::update_grp_child_pids() {
 
             } catch ( ... ) {
                 std::stringstream errstr;
-                errstr << "Unable to read "<<stat_filename<<". The process is no longer there";
+                errstr << "Unable to read "<<stat_filename.str()<<". The process is no longer there";
                 LOG_DEBUG(GPP_i, __FUNCTION__ << ": " << errstr.str() );
                 continue;
             }
@@ -1745,8 +1749,7 @@ void GPP_i::set_resource_affinity( const CF::Properties& options, const pid_t rs
  {
 
    RH_DEBUG( redhawk::affinity::get_affinity_logger(), "Affinity Options....GPP/Resource: " << label() << "/" << rsc_name << " options" << options.length()  );   
-   boost::recursive_mutex::scoped_lock(load_execute_lock);
-
+   boost::recursive_mutex::scoped_lock lock(load_execute_lock);
 
    // check if we override incoming affinity requests...
    if ( affinity.force_override ) {

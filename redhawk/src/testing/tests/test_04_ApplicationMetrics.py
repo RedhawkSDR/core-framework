@@ -92,7 +92,7 @@ class ApplicationMetrics(scatest.CorbaTestCase):
                     if abs(value-2) < 0.05:
                         diff_ok = True
                         break
-        self.assertAlmostEquals(value, 2, places=1)
+        self.assertAlmostEqual(value, 2, places=1)
 
         begin_time = time.time()
         diff_ok = False
@@ -105,7 +105,7 @@ class ApplicationMetrics(scatest.CorbaTestCase):
                     if abs(value-2) < 0.05:
                         diff_ok = True
                         break
-        self.assertAlmostEquals(value, 2, places=1)
+        self.assertAlmostEqual(value, 2, places=1)
 
         bc=self._app.metrics(['msg_through_1'], [])[0].value._v
         value = -1
@@ -131,12 +131,12 @@ class ApplicationMetrics(scatest.CorbaTestCase):
                     continue
                 if v.id == 'valid':
                     continue
-                if moving_total.has_key(v.id):
+                if v.id in moving_total:
                     moving_total[v.id] += v.value._v
                 else:
                     moving_total[v.id] = v.value._v
         for key in util_total:
-            self.assertAlmostEquals(util_total[key],moving_total[key], places=1)
+            self.assertAlmostEqual(util_total[key],moving_total[key], places=1)
 
     def test_AppIndividualMetrics(self):
         domBooter, self._domMgr = self.launchDomainManager()
@@ -155,51 +155,51 @@ class ApplicationMetrics(scatest.CorbaTestCase):
         self.assertRaises(CF.Application.InvalidMetric, self._app.metrics, ['utilization'], [])
 
         bc=self._app.metrics([], ['memory'])
-        self.assertEquals(len(bc), 4)
-        self.assertEquals(len(bc[0].value._v), 1)
-        self.assertEquals(bc[0].value._v[0].id, 'memory')
-        self.assertEquals(bc[3].value._v[0].id, 'memory')
+        self.assertEqual(len(bc), 4)
+        self.assertEqual(len(bc[0].value._v), 1)
+        self.assertEqual(bc[0].value._v[0].id, 'memory')
+        self.assertEqual(bc[3].value._v[0].id, 'memory')
         bc=self._app.metrics(['busycomp_1'], ['memory'])
-        self.assertEquals(len(bc), 1)
-        self.assertEquals(bc[0].id, 'busycomp_1')
-        self.assertEquals(len(bc[0].value._v), 1)
-        self.assertEquals(bc[0].value._v[0].id, 'memory')
+        self.assertEqual(len(bc), 1)
+        self.assertEqual(bc[0].id, 'busycomp_1')
+        self.assertEqual(len(bc[0].value._v), 1)
+        self.assertEqual(bc[0].value._v[0].id, 'memory')
         bc=self._app.metrics(['application utilization'], ['memory'])
-        self.assertEquals(len(bc), 1)
-        self.assertEquals(bc[0].id, 'application utilization')
-        self.assertEquals(len(bc[0].value._v), 1)
-        self.assertEquals(bc[0].value._v[0].id, 'memory')
+        self.assertEqual(len(bc), 1)
+        self.assertEqual(bc[0].id, 'application utilization')
+        self.assertEqual(len(bc[0].value._v), 1)
+        self.assertEqual(bc[0].value._v[0].id, 'memory')
         bc=self._app.metrics(['msg_through_1','busycomp_1'], ['memory'])
-        self.assertEquals(len(bc), 2)
-        self.assertEquals(bc[0].id, 'msg_through_1')
-        self.assertEquals(len(bc[0].value._v), 1)
-        self.assertEquals(bc[0].value._v[0].id, 'memory')
-        self.assertEquals(bc[1].id, 'busycomp_1')
-        self.assertEquals(len(bc[1].value._v), 1)
-        self.assertEquals(bc[1].value._v[0].id, 'memory')
+        self.assertEqual(len(bc), 2)
+        self.assertEqual(bc[0].id, 'msg_through_1')
+        self.assertEqual(len(bc[0].value._v), 1)
+        self.assertEqual(bc[0].value._v[0].id, 'memory')
+        self.assertEqual(bc[1].id, 'busycomp_1')
+        self.assertEqual(len(bc[1].value._v), 1)
+        self.assertEqual(bc[1].value._v[0].id, 'memory')
 
         bc=self._app.metrics([], ['cores', 'memory'])
-        self.assertEquals(len(bc), 4)
-        self.assertEquals(len(bc[0].value._v), 2)
-        self.assertEquals(bc[0].value._v[0].id, 'cores')
-        self.assertEquals(bc[0].value._v[1].id, 'memory')
-        self.assertEquals(bc[3].value._v[0].id, 'cores')
-        self.assertEquals(bc[3].value._v[1].id, 'memory')
+        self.assertEqual(len(bc), 4)
+        self.assertEqual(len(bc[0].value._v), 2)
+        self.assertEqual(bc[0].value._v[0].id, 'cores')
+        self.assertEqual(bc[0].value._v[1].id, 'memory')
+        self.assertEqual(bc[3].value._v[0].id, 'cores')
+        self.assertEqual(bc[3].value._v[1].id, 'memory')
         bc=self._app.metrics(['busycomp_1'], ['cores', 'memory'])
-        self.assertEquals(len(bc), 1)
-        self.assertEquals(bc[0].id, 'busycomp_1')
-        self.assertEquals(len(bc[0].value._v), 2)
-        self.assertEquals(bc[0].value._v[0].id, 'cores')
-        self.assertEquals(bc[0].value._v[1].id, 'memory')
+        self.assertEqual(len(bc), 1)
+        self.assertEqual(bc[0].id, 'busycomp_1')
+        self.assertEqual(len(bc[0].value._v), 2)
+        self.assertEqual(bc[0].value._v[0].id, 'cores')
+        self.assertEqual(bc[0].value._v[1].id, 'memory')
         bc=self._app.metrics(['msg_through_1','busycomp_1'], ['cores', 'memory'])
-        self.assertEquals(len(bc), 2)
-        self.assertEquals(bc[0].id, 'msg_through_1')
-        self.assertEquals(len(bc[0].value._v), 2)
-        self.assertEquals(bc[0].value._v[0].id, 'cores')
-        self.assertEquals(bc[0].value._v[1].id, 'memory')
-        self.assertEquals(bc[1].id, 'busycomp_1')
-        self.assertEquals(len(bc[1].value._v), 2)
-        self.assertEquals(bc[1].value._v[0].id, 'cores')
-        self.assertEquals(bc[1].value._v[1].id, 'memory')
+        self.assertEqual(len(bc), 2)
+        self.assertEqual(bc[0].id, 'msg_through_1')
+        self.assertEqual(len(bc[0].value._v), 2)
+        self.assertEqual(bc[0].value._v[0].id, 'cores')
+        self.assertEqual(bc[0].value._v[1].id, 'memory')
+        self.assertEqual(bc[1].id, 'busycomp_1')
+        self.assertEqual(len(bc[1].value._v), 2)
+        self.assertEqual(bc[1].value._v[0].id, 'cores')
+        self.assertEqual(bc[1].value._v[1].id, 'memory')
 
         self.assertRaises(CF.Application.InvalidMetric, self._app.metrics, [], ['cord', 'memory'])

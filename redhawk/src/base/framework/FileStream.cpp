@@ -91,7 +91,7 @@ void File_buffer::close() throw(std::ios_base::failure)
 }
 
 File_stream::File_stream(CF::FileSystem_ptr fsysptr, const char* path) throw(std::ios_base::failure) :
-    std::ios(0),
+    std::istream(0),
     needsClose(true) 
 {
     try {
@@ -107,7 +107,7 @@ File_stream::File_stream(CF::FileSystem_ptr fsysptr, const char* path) throw(std
 }
 
 File_stream::File_stream(CF::File_ptr fptr) :
-    std::ios(0),
+    std::istream(0),
     needsClose(false) 
 {
     try {

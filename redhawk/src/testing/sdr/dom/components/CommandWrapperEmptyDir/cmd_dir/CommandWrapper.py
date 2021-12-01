@@ -50,7 +50,7 @@ class CommandWrapper_i(CF__POA.Resource, Resource):
         loggerName = "CommandWrapper"
         Resource.__init__(self, identifier, execparams, loggerName=loggerName)
         self._pid = None
-        self.execparams = execparams.items()
+        self.execparams = list(execparams.items())
 
     #####################################
     # Implement the Resource interface

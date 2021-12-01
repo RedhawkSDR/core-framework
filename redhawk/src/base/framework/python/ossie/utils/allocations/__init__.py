@@ -22,6 +22,6 @@
 # Python files generated for new IDLs will be added under this namespace
 # e.g. 'redhawk.mynamespace'
 
-from helpers import *
+from .helpers import *
 
 #__all__ = ['WrongInputType', 'MissingProperty', 'changeType', 'getType']

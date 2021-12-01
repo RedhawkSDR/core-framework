@@ -48,7 +48,7 @@ from ossie.properties import mapComplexType
 from ossie.utils.prop_helpers import parseComplexString
 from omniORB import any, CORBA, tcInternal
 
-import rhunittest
+from . import rhunittest
 
 # These global methods are here to allow other modules to modify the global variables IMPL_ID and SOFT_PKG
 # TestCase setUp() method doesn't allow passing in arguments to the test case so global values are needed
@@ -74,7 +74,7 @@ if IDE_REF_ENV != None:
 
 def stringToComplex(value, type):
     real, imag = parseComplexString(value, type)
-    if isinstance(real, basestring):
+    if isinstance(real, str):
         real = int(real)
         imag = int(imag)
     return complex(real, imag)
@@ -451,7 +451,7 @@ Examples:
                 if obj and isinstance(obj, type):
                     reason = getattr(obj, 'skip_reason', None)
                     if reason:
-                        print "\nSKIPPING:  {0} - '{1}'".format(name, reason)
+                        print("\nSKIPPING:  {0} - '{1}'".format(name, reason))
                         continue
             # Handle a name of type class.function.
             elif name.count('.') == 1:
@@ -461,7 +461,7 @@ Examples:
                 if obj and isinstance(obj, type) and func:
                     reason = getattr(obj, 'skip_reason', False) or getattr(func, 'skip_reason', False)
                     if reason:
-                        print "\nSKIPPING:  {0} - '{1}'".format(name, reason)
+                        print("\nSKIPPING:  {0} - '{1}'".format(name, reason))
                         continue
             unskipped_names.append(name)
         return tuple(unskipped_names)
@@ -489,7 +489,7 @@ Examples:
 
             self.testNames = self.removeSkippedNames(self.testNames)
             self.createTests()
-        except getopt.error, msg:
+        except getopt.error as msg:
             self.usageExit(msg)
     
     def runTests(self):

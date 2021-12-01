@@ -67,11 +67,11 @@ namespace dcd
     virtual void
     name (const ::std::string&);
 
-    virtual ::std::auto_ptr<ossie::DeviceManagerConfiguration::DCD>
+    virtual ::std::unique_ptr<ossie::DeviceManagerConfiguration::DCD>
     post_deviceconfiguration ();
 
     private:
-    std::auto_ptr<ossie::DeviceManagerConfiguration::DCD> _dcd;
+    std::unique_ptr<ossie::DeviceManagerConfiguration::DCD> _dcd;
   };
 
   class devicemanagersoftpkg_pimpl: public virtual devicemanagersoftpkg_pskel
@@ -185,7 +185,7 @@ namespace dcd
     post_componentplacement ();
 
     private:
-    //std::auto_ptr<ossie::DevicePlacement> componentPlacement;
+    //std::unique_ptr<ossie::DevicePlacement> componentPlacement;
     ossie::DevicePlacement componentPlacement;
   };
 
@@ -593,7 +593,7 @@ namespace dcd
     post_findby ();
 
     private:
-    std::auto_ptr<ossie::FindBy> findby;
+    std::unique_ptr<ossie::FindBy> findby;
   };
 
   class namingservice_pimpl: public virtual namingservice_pskel
@@ -701,7 +701,7 @@ namespace dcd
     post_connectinterface ();
 
     private:
-    std::auto_ptr<ossie::Connection> connection;
+    std::unique_ptr<ossie::Connection> connection;
   };
 
   class usesport_pimpl: public virtual usesport_pskel
@@ -729,7 +729,7 @@ namespace dcd
     post_usesport ();
 
     private:
-    std::auto_ptr<ossie::UsesPort> usesPort;
+    std::unique_ptr<ossie::UsesPort> usesPort;
   };
 
   class providesport_pimpl: public virtual providesport_pskel
@@ -757,7 +757,7 @@ namespace dcd
     post_providesport ();
 
     private:
-    std::auto_ptr<ossie::ProvidesPort> provPort;
+    std::unique_ptr<ossie::ProvidesPort> provPort;
   };
 
   class componentsupportedinterface_pimpl: public virtual componentsupportedinterface_pskel
@@ -779,7 +779,7 @@ namespace dcd
     post_componentsupportedinterface ();
 
     private:
-    std::auto_ptr<ossie::ComponentSupportedInterface> ciface;
+    std::unique_ptr<ossie::ComponentSupportedInterface> ciface;
   };
 }
 

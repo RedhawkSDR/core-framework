@@ -27,7 +27,7 @@
 #include "ModuleLoader.h"
 
 namespace redhawk {
-    class ComponentEntry;
+    struct ComponentEntry;
 
     class ComponentHost : public Component, public virtual POA_CF::ExecutableDevice
     {

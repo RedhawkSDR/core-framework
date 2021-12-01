@@ -22,7 +22,11 @@
 #include <string>
 #include <sstream>
 #include <fstream>
+
+#ifdef __linux__
 #include <linux/limits.h>
+#endif
+
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <boost/asio.hpp>

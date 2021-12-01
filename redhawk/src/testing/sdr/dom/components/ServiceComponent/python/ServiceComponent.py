@@ -50,7 +50,7 @@ class ServiceComponent_i(ServiceComponent_base):
     def start(self):
         self.res = self.port_output.query([])
         for curr in self.res:
-            print curr
+            print(curr)
         
     def process(self):
         """

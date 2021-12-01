@@ -37,7 +37,7 @@ Component::~Component()
 {
 }
 
-void Component::setAdditionalParameters(std::string &softwareProfile, std::string &application_registrar_ior, std::string &nic)
+void Component::setAdditionalParameters(std::string &softwareProfile, std::string &application_registrar_ior, const std::string &nic)
 {
     CORBA::ORB_ptr orb = ossie::corba::Orb();
     Resource_impl::setAdditionalParameters(softwareProfile, application_registrar_ior, nic);

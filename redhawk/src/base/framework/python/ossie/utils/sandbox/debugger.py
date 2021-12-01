@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import commands
+import subprocess
 import os
 import sys
 import socket
@@ -27,7 +27,7 @@ class Debugger(object):
     def __init__(self, command, option_value_join, **opts):
         self.command = command
         self.arguments = []
-        for name, value in opts.iteritems():
+        for name, value in opts.items():
             if value is True:
                 value = 'yes'
             elif value is False:
@@ -55,11 +55,11 @@ class Debugger(object):
 
 class GDB(Debugger):
     def __init__(self, attach=True, **opts):
-        status, gdb = commands.getstatusoutput('which gdb')
+        status, gdb = subprocess.getstatusoutput('which gdb')
         if status:
-            raise RuntimeError, 'gdb cannot be found'
+            raise RuntimeError('gdb cannot be found')
         pass_opts = {}
-        for name, value in opts.iteritems():
+        for name, value in opts.items():
             if len(name) == 1:
                 name = '-'+name
                 pass_opts[name] = value
@@ -103,18 +103,18 @@ class PDB(Debugger):
             filename = os.path.join(path, 'pdb.py')
             if os.path.isfile(filename):
                 return filename
-        raise RuntimeError, 'pdb cannot be found'
+        raise RuntimeError('pdb cannot be found')
 
     def name(self):
         return 'pdb'
 
 class JDB(Debugger):
     def __init__(self, attach=True, **opts):
-        status, jdb = commands.getstatusoutput('which jdb')
+        status, jdb = subprocess.getstatusoutput('which jdb')
         if status:
-            raise RuntimeError, 'jdb cannot be found'
+            raise RuntimeError('jdb cannot be found')
         pass_opts = {}
-        for name, value in opts.iteritems():
+        for name, value in opts.items():
             if name[0] != '-':
                 name = '-'+name
                 name = name.replace('_','-')
@@ -152,11 +152,11 @@ class JDB(Debugger):
 
 class Valgrind(Debugger):
     def __init__(self, **opts):
-        status, valgrind = commands.getstatusoutput('which valgrind')
+        status, valgrind = subprocess.getstatusoutput('which valgrind')
         if status:
-            raise RuntimeError, 'valgrind cannot be found'
+            raise RuntimeError('valgrind cannot be found')
         pass_opts = {}
-        for name, value in opts.iteritems():
+        for name, value in opts.items():
             if len(name) == 1:
                 name = '-'+name
                 pass_opts[name] = value

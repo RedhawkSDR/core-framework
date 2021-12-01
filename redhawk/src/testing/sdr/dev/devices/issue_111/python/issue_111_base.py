@@ -33,7 +33,7 @@ from ossie.utils import uuid
 from ossie.device import Device 
 from ossie.properties import simple_property
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 
 NOOP = -1
 NORMAL = 0

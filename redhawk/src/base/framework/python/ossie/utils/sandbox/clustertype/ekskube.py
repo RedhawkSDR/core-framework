@@ -21,11 +21,11 @@ import logging
 import socket
 import os
 from   ossie.cf import CF
-import urlparse
+import urllib.parse
 import time
 import subprocess
 import threading
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import shlex
 import ossie.utils.log4py.config
 from   ossie.utils.log4py import RedhawkLogger
@@ -73,39 +73,39 @@ class EksKubeProcess(LocalProcess):
         self.__timeout = 600  #worst case scenario
         self.__sleepIncrement = 1
 
-        print "EksKubeProcess Constructor called"
-        print "Pod created: " + self.__file_name + "\n"
+        print("EksKubeProcess Constructor called")
+        print("Pod created: " + self.__file_name + "\n")
 
     def setTerminationCallback(self, callback):
         if not self.__tracker:
             # Nothing is currently waiting for notification, start monitor.
             name = 'pod-%s-tracker' % self.__pod_name
-            print "setTerminateCallback " + name
+            print("setTerminateCallback " + name)
             self.__tracker = threading.Thread(name=name, target=self._monitorProcess)
             self.__tracker.daemon = False
             self.__tracker.start()
         self.__callback = callback
 
     def terminate_callback(pod_name, status):
-        print "Hello from terminate_callback!"
+        print("Hello from terminate_callback!")
         command = ['kubectl', 'delete', '-f', self.__file_name]
-        print pod_name + "is, indeed, in a Running state\n"
+        print(pod_name + "is, indeed, in a Running state\n")
 
         try:
             output = subprocess.check_output(command)
-            print "Attempted to delete pod: " + pod_name + ":"
-            print output
+            print("Attempted to delete pod: " + pod_name + ":")
+            print(output)
         except:
-            print "oh no crash and burn from terminate_callback\n"
+            print("oh no crash and burn from terminate_callback\n")
 
     def _monitorProcess(self):
         try:
-            print "call to _monitorProcess to poll pod status..."
+            print("call to _monitorProcess to poll pod status...")
             #Retry status poll 10 times before giving up on
             self.poll(10)
         except:
             # If kubectl poll fails, don't bother with notification.
-            print "_monitorProcess attempt to poll for pod status failed!"
+            print("_monitorProcess attempt to poll for pod status failed!")
             return
     
     def terminate(self):
@@ -114,21 +114,21 @@ class EksKubeProcess(LocalProcess):
         self.__children = []
 
         if self.__callback:
-            print "Calling terminate on pod"
+            print("Calling terminate on pod")
             # For SOME REASON, calling this function does NOT call the terminate_callback function that is supposed to delete the pod
             #self.__callback(self.__pod_name, status)
             # So I'm doing it here
-            print self.__status 
-            print self.__file_name
+            print(self.__status) 
+            print(self.__file_name)
             
             command = ['kubectl', 'delete', '-f', self.__file_name]
 
             try:
                 output = subprocess.check_output(command)
-                print "Attempted to delete pod: " + self.__file_name + ":"
-                print output
+                print("Attempted to delete pod: " + self.__file_name + ":")
+                print(output)
             except:
-                print "Failed to delete pod " + self.__file_name
+                print("Failed to delete pod " + self.__file_name)
         self.tmp.close()
             
     def timeout(self):
@@ -140,7 +140,7 @@ class EksKubeProcess(LocalProcess):
     def isAlive(self):
         arguments = ["kubectl", "get", "pod", self.__pod_name, "-n", self.namespace, "-o=jsonpath={.status.containerStatuses[0].state.waiting.reason}"]
         self.__status = subprocess.check_output(arguments)
-        print "isAlive Status: " + self.__status
+        print("isAlive Status: " + self.__status)
 
         
         if self.__status in self.badStatus:
@@ -151,19 +151,19 @@ class EksKubeProcess(LocalProcess):
     def poll(self, numRetries):
         arguments = ["kubectl", "get", "pod", self.__pod_name, "-n", self.namespace, "-o=jsonpath={.status.containerStatuses[0].state.waiting.reason}"]
         i = 0
-        print("ATTEMPTING POLL ", arguments)
+        print(("ATTEMPTING POLL ", arguments))
         if numRetries < 0:
             numRetries = 1
         while i < numRetries:
             # Poll for pod status
             time.sleep(self.__sleepIncrement)
             self.__status = subprocess.check_output(arguments)
-            print "Poll Status: " + self.__status
+            print("Poll Status: " + self.__status)
 
             if self.__status in self.badStatus:
                 break
             elif self.__status == "":
-                print "Status is now " + self.__status
+                print("Status is now " + self.__status)
                 break
             i = i + 1
 
@@ -171,13 +171,13 @@ class EksKubeProcess(LocalProcess):
     def createYaml(self, command, image, arguments):
         """spd is of type ossie.parsers.spd.softPkg"""
         if not os.path.exists(command):
-            raise RuntimeError, "Entry point '%s' does not exist" % command
+            raise RuntimeError("Entry point '%s' does not exist" % command)
         elif not os.access(command, os.X_OK|os.R_OK):
-            raise RuntimeError, "Entry point '%s' is not executable" % command
+            raise RuntimeError("Entry point '%s' is not executable" % command)
 
         full_image = str(self.REGISTRY) + "/" + str(image) + ":" + str(self.TAG)
     
-        print("TEST: \""+command + "\" " + full_image)
+        print(("TEST: \""+command + "\" " + full_image))
         namespace_cfg = {'apiVersion': 'v1',
                          'kind': 'Namespace',
                          'metadata': {'name': self.namespace, 'labels': {'name': self.namespace}}}

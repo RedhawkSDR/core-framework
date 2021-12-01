@@ -132,12 +132,12 @@ SuperblockFile::Statistics SuperblockFile::getStatistics()
     stats.unused = 0;
 
     // First superblock starts at next page after the header
-    size_t offset = MappedFile::PAGE_SIZE;
+    size_t offset = MappedFile::SC_PAGE_SIZE;
     const size_t end = _file.size();
     while (offset < end) {
         // Map just the header of the superblock; no calls here need to acquire
         // its lock, so this prevents accidental modifications
-        void* base = _file.map(MappedFile::PAGE_SIZE, MappedFile::READONLY, offset);
+        void* base = _file.map(MappedFile::SC_PAGE_SIZE, MappedFile::READONLY, offset);
         const Superblock* superblock = reinterpret_cast<const Superblock*>(base);
 
         // Extra safety check; since we're walking through the superblocks, the
@@ -152,10 +152,10 @@ SuperblockFile::Statistics SuperblockFile::getStatistics()
             }
             stats.superblocks++;
             // Account for the superblock overhead
-            offset += MappedFile::PAGE_SIZE + superblock->size();
+            offset += MappedFile::SC_PAGE_SIZE + superblock->size();
         }
         // Don't forget to unmap--it doesn't happen automatically!
-        _file.unmap(base, MappedFile::PAGE_SIZE);
+        _file.unmap(base, MappedFile::SC_PAGE_SIZE);
 
         if (!valid) {
             break;
@@ -175,14 +175,14 @@ void SuperblockFile::create()
 
     // Use a page to create the header
     try {
-        _file.resize(MappedFile::PAGE_SIZE);
+        _file.resize(MappedFile::SC_PAGE_SIZE);
     } catch (const std::exception&) {
         // Something is terribly wrong, probably out of memory; remove the file
         // and relay the exception
         _file.unlink();
         throw;
     }
-    void* base = _file.map(MappedFile::PAGE_SIZE, MappedFile::READWRITE);
+    void* base = _file.map(MappedFile::SC_PAGE_SIZE, MappedFile::READWRITE);
     _header = new (base) Header;
     _attached = true;
 
@@ -199,13 +199,13 @@ void SuperblockFile::open(bool attach)
 
     // Check for a heap that was created on a full tmpfs--the file exists but
     // has no allocated memory
-    if (_file.size() < MappedFile::PAGE_SIZE) {
+    if (_file.size() < MappedFile::SC_PAGE_SIZE) {
         throw std::runtime_error("invalid superblock file (no header)");
     }
 
     // Map the file and overlay the header structure over it, checking the
     // magic number to make sure it's really a superblock file
-    void* base = _file.map(MappedFile::PAGE_SIZE, MappedFile::READWRITE);
+    void* base = _file.map(MappedFile::SC_PAGE_SIZE, MappedFile::READWRITE);
     Header* header = reinterpret_cast<Header*>(base);
     if (header->magic != Header::SUPERBLOCK_MAGIC) {
         throw std::runtime_error("invalid superblock file (magic number does not match)");
@@ -232,7 +232,7 @@ void SuperblockFile::close()
     _detach();
 
     // Unmap the header to avoid keeping the file alive
-    _file.unmap(_header, MappedFile::PAGE_SIZE);
+    _file.unmap(_header, MappedFile::SC_PAGE_SIZE);
 
     _file.close();
 
@@ -257,7 +257,7 @@ Superblock* SuperblockFile::createSuperblock(size_t bytes)
 {
     // Allocate 1 page for the header, plus the superblock memory
     size_t current_offset = _file.size();
-    size_t total_size = MappedFile::PAGE_SIZE + bytes;
+    size_t total_size = MappedFile::SC_PAGE_SIZE + bytes;
     _file.resize(current_offset + total_size);
 
     void* base = _file.map(total_size, MappedFile::READWRITE, current_offset);
@@ -287,7 +287,7 @@ void SuperblockFile::_detach()
 Superblock* SuperblockFile::_mapSuperblock(size_t offset)
 {
     // Map just the superblock's header to get the complete size
-    void* base = _file.map(MappedFile::PAGE_SIZE, MappedFile::READWRITE, offset);
+    void* base = _file.map(MappedFile::SC_PAGE_SIZE, MappedFile::READWRITE, offset);
     Superblock* superblock = reinterpret_cast<Superblock*>(base);
     if (superblock->offset() != offset) {
         throw std::invalid_argument("offset is not a valid superblock");
@@ -295,7 +295,7 @@ Superblock* SuperblockFile::_mapSuperblock(size_t offset)
     size_t superblock_size = superblock->size();
 
     // Remap to get the full superblock size
-    base = _file.remap(base, MappedFile::PAGE_SIZE, MappedFile::PAGE_SIZE + superblock_size);
+    base = _file.remap(base, MappedFile::SC_PAGE_SIZE, MappedFile::SC_PAGE_SIZE + superblock_size);
     superblock = reinterpret_cast<Superblock*>(base);
 
     // Store mapping

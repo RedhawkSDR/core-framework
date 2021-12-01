@@ -29,13 +29,13 @@ class BitBufferTest(unittest.TestCase):
         # Empty
         buf = bitbuffer()
         self.assertEqual(0, len(buf), 'new empty bitbuffer should be zero-length')
-        self.failIf(bool(buf), 'bitbuffer with zero length should evaluate to False')
+        self.assertFalse(bool(buf), 'bitbuffer with zero length should evaluate to False')
 
         # Allocating
         NUM_BITS = 17
         buf = bitbuffer(bits=NUM_BITS)
         self.assertEqual(NUM_BITS, len(buf), 'new bitbuffer should have length 17')
-        self.failUnless(bool(buf), 'bitbuffer with non-zero length should evaluate to True')
+        self.assertTrue(bool(buf), 'bitbuffer with non-zero length should evaluate to True')
 
     def testFromInt(self):
         # Input value is right-aligned (i.e., take lowest 28 bits)
@@ -86,7 +86,7 @@ class BitBufferTest(unittest.TestCase):
 
     def testFromGenerator(self):
         # Use a generator expresion to populate the bit data (0111, repeating)
-        buf = bitbuffer(bool(x%4) for x in xrange(48))
+        buf = bitbuffer(bool(x%4) for x in range(48))
         self.assertEqual(48, len(buf))
         expected = '\x77'*6
         self.assertEqual(expected, buf.bytes())
@@ -140,7 +140,7 @@ class BitBufferTest(unittest.TestCase):
         first = bitbuffer(pattern)
 
         # A bitbuffer should be rigorously equal to itself
-        self.failUnless(first == first)
+        self.assertTrue(first == first)
 
         # Another bitbuffer with different backing memory should still compare
         # equal
@@ -165,25 +165,25 @@ class BitBufferTest(unittest.TestCase):
 
         # Should be equal
         buf = bitbuffer(pattern)
-        self.assertEquals(pattern, buf)
-        self.assertEquals(int_vals, buf)
+        self.assertEqual(pattern, buf)
+        self.assertEqual(int_vals, buf)
 
         # Different lengths
-        self.assertNotEquals(pattern[:-2], buf, 'unequal size string compared equal')
-        self.assertNotEquals(int_vals[:-2], buf, 'unequal size list compared equal')
+        self.assertNotEqual(pattern[:-2], buf, 'unequal size string compared equal')
+        self.assertNotEqual(int_vals[:-2], buf, 'unequal size list compared equal')
 
         # Flipped bit
         buf[1] = 1
-        self.assertNotEquals(pattern, buf, 'unequal string compared equal')
-        self.assertNotEquals(int_vals, buf, 'unequal list compared equal')
+        self.assertNotEqual(pattern, buf, 'unequal string compared equal')
+        self.assertNotEqual(int_vals, buf, 'unequal list compared equal')
 
         # Skip over flipped bit
-        self.assertEquals(pattern[2:], buf[2:], 'substring compared not equal')
-        self.assertEquals(int_vals[2:], buf[2:], 'list slice compared not equal')
+        self.assertEqual(pattern[2:], buf[2:], 'substring compared not equal')
+        self.assertEqual(int_vals[2:], buf[2:], 'list slice compared not equal')
 
     def testCopy(self):
         # Create a bitbuffer with known data: bit is set if index is odd
-        original = bitbuffer(x&1 for x in xrange(127))
+        original = bitbuffer(x&1 for x in range(127))
 
         # Make a copy and modify the original; the copy should be unaffected
         copied = copy.copy(original)
@@ -235,7 +235,7 @@ class BitBufferTest(unittest.TestCase):
 
     def testGetItemSlice(self):
         # Fill a new bit buffer with alternating 0's and 1's
-        buf = bitbuffer(x & 1 for x in xrange(12))
+        buf = bitbuffer(x & 1 for x in range(12))
 
         # Take a 4-bit slice from the middle and check that it has the expected
         # bits
@@ -450,12 +450,12 @@ class BitBufferTest(unittest.TestCase):
         ascii = buf.takeskip(7, 1, start=1)
 
         # Reconstruct the input text by taking 7 bits at a time
-        result = ''.join(chr(int(ascii[bit:bit+7])) for bit in xrange(0, len(ascii), 7))
+        result = ''.join(chr(int(ascii[bit:bit+7])) for bit in range(0, len(ascii), 7))
         self.assertEqual(msg, result)
 
         # Repeat with a starting and ending offset
         ascii = buf.takeskip(7, 1, start=41, end=97)
-        result = ''.join(chr(int(ascii[bit:bit+7])) for bit in xrange(0, len(ascii), 7))
+        result = ''.join(chr(int(ascii[bit:bit+7])) for bit in range(0, len(ascii), 7))
         self.assertEqual(msg[5:12], result)
 
     def testAdd(self):

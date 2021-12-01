@@ -90,7 +90,7 @@ class optional_property
         }
 
     private:
-        std::auto_ptr<T> _p;
+        std::unique_ptr<T> _p;
 
 };
 

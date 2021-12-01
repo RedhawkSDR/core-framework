@@ -110,11 +110,11 @@ namespace dcd
      }
   }
 
-  ::std::auto_ptr<ossie::DeviceManagerConfiguration::DCD> deviceconfiguration_pimpl::
+  ::std::unique_ptr<ossie::DeviceManagerConfiguration::DCD> deviceconfiguration_pimpl::
   post_deviceconfiguration ()
   {
       RH_TRACE(dcd::parserLog, "post deviceconfiguration")
-      return _dcd;
+      return std::move(_dcd);
   }
 
   // devicemanagersoftpkg_pimpl
@@ -726,13 +726,13 @@ const ::ossie::ComponentInstantiation& componentinstantiation_pimpl::
   void structref_pimpl::
   simpleref (const ossie::SimplePropertyRef& simpleref)
   {
-    structref._values.insert(simpleref._id,std::auto_ptr<ossie::ComponentProperty>(simpleref.clone()) );
+    structref._values.insert(simpleref._id,std::unique_ptr<ossie::ComponentProperty>(simpleref.clone()) );
   }
 
   void structref_pimpl::
   simplesequenceref (const ossie::SimpleSequencePropertyRef& simplesequenceref)
   {
-    structref._values.insert(simplesequenceref._id,std::auto_ptr<ossie::ComponentProperty>(simplesequenceref.clone()) );
+    structref._values.insert(simplesequenceref._id,std::unique_ptr<ossie::ComponentProperty>(simplesequenceref.clone()) );
   }
 
   void structref_pimpl::
@@ -787,13 +787,13 @@ const ossie::StructSequencePropertyRef& structsequenceref_pimpl::
   void structvalue_pimpl::
   simpleref (const ossie::SimplePropertyRef& simpleref)
   {
-    values.insert(simpleref._id,std::auto_ptr<ossie::ComponentProperty>(simpleref.clone()) );
+    values.insert(simpleref._id,std::unique_ptr<ossie::ComponentProperty>(simpleref.clone()) );
   }
 
   void structvalue_pimpl::
   simplesequenceref (const ossie::SimpleSequencePropertyRef& simplesequenceref)
   {
-    values.insert(simplesequenceref._id,std::auto_ptr<ossie::ComponentProperty>(simplesequenceref.clone()) );
+    values.insert(simplesequenceref._id,std::unique_ptr<ossie::ComponentProperty>(simplesequenceref.clone()) );
   }
 
   const ossie::ComponentPropertyMap& structvalue_pimpl::

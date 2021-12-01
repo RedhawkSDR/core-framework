@@ -34,7 +34,7 @@ from ossie.device import Device
 from ossie.properties import simple_property
 from ossie.properties import simpleseq_property
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 
 NOOP = -1
 NORMAL = 0
@@ -105,7 +105,7 @@ class simpleseqdev_python_impl1_base(CF__POA.Device, Device):
         def releaseObject(self):
             try:
                 self.stop()
-            except Exception, e:
+            except Exception as e:
                 self._log.exception("Error stopping: " + str(e))
             Device.releaseObject(self)
 

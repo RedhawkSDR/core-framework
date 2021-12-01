@@ -29,8 +29,8 @@
 #include <boost/filesystem/path.hpp>
 #include "ossie/Autocomplete.h"
 
-typedef std::multimap<std::string, std::string, std::less<std::string>, std::allocator<std::pair<std::string, std::string> > >
-copiedFiles_type;
+//XXX typedef std::multimap<std::string, std::string, std::less<std::string>, std::allocator<std::pair<std::string, std::string> > > copiedFiles_type;
+typedef std::multimap<std::string, std::string, std::less<std::string> > copiedFiles_type;
 
 /*
  * EnvironmentPathParser provides operations to read, write, and modify

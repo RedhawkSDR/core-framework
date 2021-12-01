@@ -23,10 +23,10 @@ from PyQt4 import QtGui
 
 from ossie.parsers import dmd
 
-from commandwidget import CommandWidget
-from domaindialog import DomainDialog
-from devicedialog import DeviceDialog
-import ui
+from .commandwidget import CommandWidget
+from .domaindialog import DomainDialog
+from .devicedialog import DeviceDialog
+from . import ui
 
 class LauncherWindow(QtGui.QMainWindow):
     def __init__(self, sdrroot, *args, **kwargs):
@@ -53,7 +53,7 @@ class LauncherWindow(QtGui.QMainWindow):
         QtGui.QMainWindow.closeEvent(self, event)
 
     def processWidgets(self):
-        return [self.nodeTabs.widget(index) for index in xrange(self.nodeTabs.count())]
+        return [self.nodeTabs.widget(index) for index in range(self.nodeTabs.count())]
 
     def terminateChildren(self):
         for widget in self.processWidgets():

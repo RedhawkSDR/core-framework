@@ -32,7 +32,7 @@ from ossie.utils import uuid
 from ossie.resource import Resource
 from ossie.properties import simple_property
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 from ossie.resource import usesport, providesport
 
 NOOP = -1
@@ -215,7 +215,7 @@ class PortCFResourceIn_i(SADUsesComponent_base.PortCFResourceIn):
         self.parent = parent
         self.name = name
         self.sri = None
-        self.queue = Queue.Queue()
+        self.queue = queue.Queue()
         self.port_lock = threading.Lock()
 
     def initialize(self):
@@ -288,7 +288,7 @@ class PortCFResourceOut_i(SADUsesComponent_base.PortCFResourceOut):
 
         try:    
             try:
-                for connId, port in self.outConnections.items():
+                for connId, port in list(self.outConnections.items()):
                     if port != None: port.initialize()
             except Exception:
                 self.parent._log.exception("The call to initialize failed on port %s connection %s instance %s", self.name, connId, port)
@@ -300,7 +300,7 @@ class PortCFResourceOut_i(SADUsesComponent_base.PortCFResourceOut):
 
         try:    
             try:
-                for connId, port in self.outConnections.items():
+                for connId, port in list(self.outConnections.items()):
                     if port != None: port.releaseObject()
             except Exception:
                 self.parent._log.exception("The call to releaseObject failed on port %s connection %s instance %s", self.name, connId, port)
@@ -313,7 +313,7 @@ class PortCFResourceOut_i(SADUsesComponent_base.PortCFResourceOut):
 
         try:    
             try:
-                for connId, port in self.outConnections.items():
+                for connId, port in list(self.outConnections.items()):
                     if port != None:retVal = port.runTest(testid, testValues)
             except Exception:
                 self.parent._log.exception("The call to runTest failed on port %s connection %s instance %s", self.name, connId, port)
@@ -327,7 +327,7 @@ class PortCFResourceOut_i(SADUsesComponent_base.PortCFResourceOut):
 
         try:    
             try:
-                for connId, port in self.outConnections.items():
+                for connId, port in list(self.outConnections.items()):
                     if port != None: port.configure(configProperties)
             except Exception:
                 self.parent._log.exception("The call to configure failed on port %s connection %s instance %s", self.name, connId, port)
@@ -340,7 +340,7 @@ class PortCFResourceOut_i(SADUsesComponent_base.PortCFResourceOut):
 
         try:    
             try:
-                for connId, port in self.outConnections.items():
+                for connId, port in list(self.outConnections.items()):
                     if port != None:retVal = port.query(configProperties)
             except Exception:
                 self.parent._log.exception("The call to query failed on port %s connection %s instance %s", self.name, connId, port)
@@ -355,7 +355,7 @@ class PortCFResourceOut_i(SADUsesComponent_base.PortCFResourceOut):
 
         try:    
             try:
-                for connId, port in self.outConnections.items():
+                for connId, port in list(self.outConnections.items()):
                     if port != None:retVal = port.getPort(name)
             except Exception:
                 self.parent._log.exception("The call to getPort failed on port %s connection %s instance %s", self.name, connId, port)
@@ -369,7 +369,7 @@ class PortCFResourceOut_i(SADUsesComponent_base.PortCFResourceOut):
 
         try:    
             try:
-                for connId, port in self.outConnections.items():
+                for connId, port in list(self.outConnections.items()):
                     if port != None: port.start()
             except Exception:
                 self.parent._log.exception("The call to start failed on port %s connection %s instance %s", self.name, connId, port)
@@ -381,7 +381,7 @@ class PortCFResourceOut_i(SADUsesComponent_base.PortCFResourceOut):
 
         try:    
             try:
-                for connId, port in self.outConnections.items():
+                for connId, port in list(self.outConnections.items()):
                     if port != None: port.stop()
             except Exception:
                 self.parent._log.exception("The call to stop failed on port %s connection %s instance %s", self.name, connId, port)
@@ -394,7 +394,7 @@ class PortCFResourceOut_i(SADUsesComponent_base.PortCFResourceOut):
 
         try:    
             try:
-                for connId, port in self.outConnections.items():
+                for connId, port in list(self.outConnections.items()):
                     if port != None:
                         retVal = port._get_identifier()
             except Exception:
@@ -410,7 +410,7 @@ class PortCFResourceOut_i(SADUsesComponent_base.PortCFResourceOut):
 
         try:    
             try:
-                for connId, port in self.outConnections.items():
+                for connId, port in list(self.outConnections.items()):
                     if port != None:
                         retVal = port._get_started()
             except Exception:

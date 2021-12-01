@@ -39,14 +39,14 @@ import logging
 import signal
 import os
 import stat
-import commands
+import subprocess
 import threading
 import exceptions
-from Queue import Queue
+from queue import Queue
 import time
 import traceback
 import zipfile
-import containers
+from . import containers
 
 
 if hasEvents:
@@ -60,7 +60,7 @@ if hasEvents:
 
     class Supplier_i(CosEventComm__POA.PushSupplier):
         def disconnect_push_supplier (self):
-            print "Push Supplier: disconnected."
+            print("Push Supplier: disconnected.")
 
 def _getCallback(obj, methodName):
     try:
@@ -268,7 +268,7 @@ class Device(resource.Resource):
                     idm_channel = idm_channel_obj._narrow(CosEventChannelAdmin.EventChannel)
                     self._idm_publisher = Publisher( idm_channel )
                     self._deviceLog.info("Connected to IDM CHANNEL, (command line IOR).... DEV-ID:" + self._id )
-                except Exception, err:
+                except Exception as err:
                     #traceback.print_exc()
                     self._deviceLog.warn("Unable to connect to IDM channel (command line IOR).... DEV-ID:" + self._id )
             else:
@@ -320,7 +320,7 @@ class Device(resource.Resource):
 
             self._unregister()
 
-        except Exception, e:
+        except Exception as e:
             raise CF.LifeCycle.ReleaseError(str(e))
 
         self._adminState = CF.Device.LOCKED
@@ -374,7 +374,7 @@ class Device(resource.Resource):
                 # if the device does not have allocateCapacities, then try
                 # individually
                 else:           
-                    for key, val in propDict.iteritems():
+                    for key, val in propDict.items():
                         propname = self._props.getPropName(key)
                         success = self._allocateCapacity(propname, val)
                         if success:
@@ -408,7 +408,7 @@ class Device(resource.Resource):
     def _allocateCapacity(self, propname, value):
         """Override this if you want if you don't want magic dispatch"""
         self._deviceLog.debug("_allocateCapacity(%s, %s)", propname, value)
-        if self._allocationCallbacks.has_key(propname):
+        if propname in self._allocationCallbacks:
             return self._allocationCallbacks[propname]._allocate(value)
         
         modified_propname = ''
@@ -467,7 +467,7 @@ class Device(resource.Resource):
             raise # re-raise valid exceptions
         except CF.Device.InvalidState:
             raise  # re-raise valid exceptions
-        except Exception, e:
+        except Exception as e:
             self._deviceLog.exception("Unexpected error in _allocateCapacities: %s", str(e))
             return False
 
@@ -496,7 +496,7 @@ class Device(resource.Resource):
             else:
                 # If the device does not have deallocateCapacities, then try
                 # individually
-                for id, val in propDict.iteritems():
+                for id, val in propDict.items():
                     propname = self._props.getPropName(id)
                     self._deallocateCapacity(propname, val)
         else:
@@ -507,7 +507,7 @@ class Device(resource.Resource):
     def _deallocateCapacity(self, propname, value):
         """Override this if you want if you don't want magic dispatch"""
         methodName = "deallocate_%s" % propname.replace(" ", "_")
-        if self._allocationCallbacks.has_key(propname):
+        if propname in self._allocationCallbacks:
             return self._allocationCallbacks[propname]._deallocate(value)
         deallocate = _getCallback(self, methodName)
         if deallocate:
@@ -591,7 +591,7 @@ class Device(resource.Resource):
                 self._deviceLog.debug("Unregistering from DeviceManager")
                 try:
                     self._devmgr.unregisterDevice(self._this())
-                except CORBA.Exception, e:
+                except CORBA.Exception as e:
                     _logUnregisterFailure(str(e))
                 # put something on the queue to indicate that we either 
                 # successfully unregistered, or that we have already 
@@ -623,7 +623,7 @@ class Device(resource.Resource):
                 self._deviceLog.debug("Registering with DeviceManager")
                 try:
                     self._devmgr.registerDevice(self._this())
-                except CORBA.Exception, e:
+                except CORBA.Exception as e:
                     _logRegisterFailure(str(e))
                 # put something on the queue to indicate that we either 
                 # successfully registered, or that we have already 
@@ -786,7 +786,7 @@ class LoadableDevice(Device):
             if loadType == CF.LoadableDevice.SHARED_LIBRARY:
                 self._setEnvVars(localFilePath, fileName)
 
-        except Exception, e:
+        except Exception as e:
             self._loadableDeviceLog.exception(e)
             raise CF.LoadableDevice.LoadFail(CF.CF_EINVAL, "Unknown Error loading '%s'"%fileName)
         finally:
@@ -795,7 +795,7 @@ class LoadableDevice(Device):
 
     def _getEnvVarAsList(self, var):
         # Split the path up
-        if os.environ.has_key(var):
+        if var in os.environ:
             path = os.environ[var].split(os.path.pathsep)
         else:
             path = []
@@ -820,7 +820,7 @@ class LoadableDevice(Device):
 
         if not foundValue:
             # The value does not already exist
-            if os.environ.has_key(envVar):
+            if envVar in os.environ:
                 newpath = newVal+os.path.pathsep + os.getenv(envVar)+os.path.pathsep
             else:
                 newpath = newVal+os.path.pathsep
@@ -838,7 +838,7 @@ class LoadableDevice(Device):
         env_changes = sharedLibraryStorage(fileName)
         matchesPattern = False
         # check to see if it's a C shared library
-        status, output = commands.getstatusoutput('nm '+localFilePath)
+        status, output = subprocess.getstatusoutput('nm '+localFilePath)
         if status == 0:
             # Assume this is a C library
 
@@ -937,7 +937,7 @@ class LoadableDevice(Device):
         fileToLoad = fileSystem.open(remotePath, True)
         try:
             f = open(localPath, "w+")
-        except Exception, e:
+        except Exception as e:
             if "Text file busy" in e:
                 modifiedName = localPath+"_"+str(time.time()).split('.')[0]
                 os.rename(localPath, modifiedName)
@@ -1004,7 +1004,7 @@ class LoadableDevice(Device):
         return loadedFiles
 
     def _unloadAll(self):
-        for fileName in self._loadedFiles.keys():
+        for fileName in list(self._loadedFiles.keys()):
             try:
                 self._loadableDeviceLog.debug("Forcing unload(%s)", fileName)
                 self._unload(fileName, force=True)
@@ -1087,7 +1087,7 @@ class ExecutableDevice(LoadableDevice):
         self._devnull = open('/dev/null')
 
     def releaseObject(self):
-        for pid in self._applications.keys():
+        for pid in list(self._applications.keys()):
             self.terminate(pid)
         LoadableDevice.releaseObject(self)
 
@@ -1109,12 +1109,12 @@ class ExecutableDevice(LoadableDevice):
             for option in options:
                 val = option.value.value()
                 if option.id == CF.ExecutableDevice.PRIORITY_ID:
-                    if ((not isinstance(val, int)) and (not isinstance(val, long))):
+                    if ((not isinstance(val, int)) and (not isinstance(val, int))):
                         invalidOptions.append(option)
                     else:
                         priority = val
                 elif option.id == CF.ExecutableDevice.STACK_SIZE_ID:
-                    if ((not isinstance(val, int)) and (not isinstance(val, long))):
+                    if ((not isinstance(val, int)) and (not isinstance(val, int))):
                         invalidOptions.append(option)
                     else:
                         stack_size = val
@@ -1141,7 +1141,7 @@ class ExecutableDevice(LoadableDevice):
                 self.initialState.set()
                 selected_paths = []
                 for dep in deps:
-                    if self._sharedPkgs.has_key(dep):
+                    if dep in self._sharedPkgs:
                         selected_paths.append(self._sharedPkgs[dep])
                 self._update_selected_paths(selected_paths)
                 parameters.append(CF.DataType('RH::DEPLOYMENT_ROOT', any.to_any(self._cacheDirectory)))
@@ -1189,7 +1189,7 @@ class ExecutableDevice(LoadableDevice):
         # SR:445
         try:
             sp = ossie.utils.Popen(args, executable=command, cwd=os.getcwd(), close_fds=True, stdin=self._devnull, preexec_fn=os.setpgrp)
-        except OSError, e:
+        except OSError as e:
             # SR:455
             # CF error codes do not map directly to errno codes, so at present
             # we omit the enumerated value.
@@ -1211,7 +1211,7 @@ class ExecutableDevice(LoadableDevice):
         """
         # SR:458
         self._executableDeviceLog.debug("%s", self._applications)
-        if not self._applications.has_key(pid):
+        if pid not in self._applications:
             raise CF.ExecutableDevice.InvalidProcess(CF.CF_ENOENT,
                 "Cannot terminate.  Process %s does not exist." % str(pid))
         # SR:456
@@ -1253,7 +1253,7 @@ class ExecutableDevice(LoadableDevice):
         # out which child terminated so that we do not affect any children created via means
         # besides execute(). It may be an unlikely situation, but this should be safe and
         # relatively cheap.
-        for pid in self._applications.keys()[:]:
+        for pid in list(self._applications.keys())[:]:
             try:
                 status = self._applications[pid].poll()
             except KeyError:
@@ -1298,7 +1298,7 @@ class AggregateDevice:
 
 def _checkForRequiredParameters(execparams):
     for reqparam in ("DEVICE_MGR_IOR", "PROFILE_NAME", "DEVICE_ID", "DEVICE_LABEL"):
-        if not execparams.has_key(reqparam):
+        if reqparam not in execparams:
             if options["interactive"] == True:
                 execparams[reqparam] = None
             else:
@@ -1314,7 +1314,7 @@ def _getDevMgr(execparams, orb):
 
 def _getParentAggregateDevice(execparams, orb):
     # get parent aggregate device if applicable
-    if execparams.has_key("COMPOSITE_DEVICE_IOR"):
+    if "COMPOSITE_DEVICE_IOR" in execparams:
         parentdev = orb.string_to_object(execparams["COMPOSITE_DEVICE_IOR"])
         parentdev_ref = parentdev._narrow(CF.AggregateDevice)
     else:
@@ -1335,7 +1335,7 @@ def start_device(deviceclass, interactive_callback=None, thread_policy=None,logg
     execparams, interactive = resource.parseCommandLineArgs(deviceclass)
 
     if interactive:
-        print "Interactive mode (-i) no longer supported. Please use the sandbox to run Components/Devices/Services outside the scope of a Domain"
+        print("Interactive mode (-i) no longer supported. Please use the sandbox to run Components/Devices/Services outside the scope of a Domain")
         sys.exit(-1)
 
     if not skip_run:
@@ -1418,7 +1418,7 @@ def start_device(deviceclass, interactive_callback=None, thread_policy=None,logg
                     # Pass only the Var to prevent anybody from calling non-CORBA functions
                     interactive_callback(component_Obj)
                 else:
-                    print orb.object_to_string(component_Obj._this())
+                    print(orb.object_to_string(component_Obj._this()))
                     objectActivated = True
                     obj = devicePOA.servant_to_id(component_Obj)
                     while objectActivated:

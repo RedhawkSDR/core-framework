@@ -29,7 +29,7 @@ from ossie.utils import uuid
 from ossie.component import Component
 from ossie.threadedcomponent import *
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 
 class py_base(CF__POA.Resource, Component, ThreadedComponent):
         # These values can be altered in the __init__ of your derived class

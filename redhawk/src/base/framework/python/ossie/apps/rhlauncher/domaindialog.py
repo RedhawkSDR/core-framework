@@ -19,7 +19,7 @@
 #
 from PyQt4 import QtGui
 
-import ui
+from . import ui
 
 class DomainDialog(QtGui.QDialog):
     def __init__(self, *args, **kwargs):

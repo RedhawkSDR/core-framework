@@ -58,9 +58,7 @@ class SandboxMeta(type):
 
         return obj
 
-class SandboxHelper(PortSupplier):
-    __metaclass__ = SandboxMeta
-
+class SandboxHelper(PortSupplier, metaclass=SandboxMeta):
     def __init__(self):
         PortSupplier.__init__(self)
 
@@ -141,7 +139,7 @@ class SandboxHelper(PortSupplier):
     def releaseObject(self):
         # Break any connections involving this helper
         manager = ConnectionManager.instance()
-        for identifier, uses, provides in manager.getConnections().itervalues():
+        for identifier, uses, provides in manager.getConnections().values():
             if uses.hasComponent(self) or provides.hasComponent(self):
                 usesRef = uses.getReference()
                 usesRef.disconnectPort(identifier)

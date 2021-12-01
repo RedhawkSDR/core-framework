@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import commands
+import subprocess
 import os
 import xml.dom.minidom
 from ossie.cf import CF, CF__POA
@@ -33,7 +33,7 @@ from ossie.utils.sca import importIDL
 
 # UUID Generator
 def uuidgen():
-   return commands.getoutput('uuidgen')
+   return subprocess.getoutput('uuidgen')
 
 # Finds SDR root directory
 def findSdrRoot():
@@ -44,7 +44,7 @@ def findSdrRoot():
     elif os.path.exists('/sdr'):
         sdrroot = '/sdr'
     else:
-        print "Cannot find SDR root directory"
+        print("Cannot find SDR root directory")
         return False
         
     return sdrroot
@@ -113,17 +113,17 @@ class Component(object):
       """Prints a user-friendly version of the API for this component onto the screen
       """
       for port in self.API:
-          print "Port name: " + port
-          print "  direction: " + self.API[port][0]
-          print "  interface: " + self.API[port][1]
+          print("Port name: " + port)
+          print("  direction: " + self.API[port][0])
+          print("  interface: " + self.API[port][1])
           for funcs in self.API[port][2]:
-              print "    " + funcs
-          print ""
+              print("    " + funcs)
+          print("")
 
   def populatePorts(self):
       """Add all port descriptions to the component instance"""
       if self.profile == '':
-          print "Unable to create port list for " + self.name + " - profile unavailable"
+          print("Unable to create port list for " + self.name + " - profile unavailable")
           return
       if len(self.ports) != 0:
           return
@@ -149,8 +149,8 @@ class Component(object):
       
       for uses in doc_scd.getElementsByTagName('uses'):
           idl_repid = uses.getAttribute('repid')
-          if not int_list.has_key(idl_repid):
-              print "Invalid port descriptor in scd for " + self.name + " for " + idl_repid
+          if idl_repid not in int_list:
+              print("Invalid port descriptor in scd for " + self.name + " for " + idl_repid)
               continue
           int_entry = int_list[idl_repid]
           new_port = Port(uses.getAttribute('usesname'), int_entry, type="Uses")
@@ -161,8 +161,8 @@ class Component(object):
       
       for provides in doc_scd.getElementsByTagName('provides'):
           idl_repid = provides.getAttribute('repid')
-          if not int_list.has_key(idl_repid):
-              print "Invalid port descriptor in scd for " + self.name + " for " + idl_repid
+          if idl_repid not in int_list:
+              print("Invalid port descriptor in scd for " + self.name + " for " + idl_repid)
               continue
           int_entry = int_list[idl_repid]
           new_port = Port(provides.getAttribute('providesname'), int_entry, type="Provides")
@@ -172,9 +172,9 @@ class Component(object):
           if str(int_entry.nameSpace) not in interface_modules:
             try:
                 exec_string = 'import ' + str(int_entry.nameSpace)
-                exec exec_string
-            except ImportError, msg:
-                print msg
+                exec(exec_string)
+            except ImportError as msg:
+                print(msg)
                 continue
             else:
                 interface_modules.append(str(int_entry.nameSpace))
@@ -223,7 +223,7 @@ class Component(object):
               port_list.append(op_list)
               self.API[name]=port_list
           else:
-              print "Invalid port direction descriptor in " + self.name
+              print("Invalid port direction descriptor in " + self.name)
               continue
   
   def __getitem__(self,i):
@@ -249,11 +249,11 @@ class Component(object):
       """Return a dictionary of the properties and values."""
       
       if self.profile == '':
-          print "Unable to query properties for " + self.name + " - profile unavailable"
+          print("Unable to query properties for " + self.name + " - profile unavailable")
           return None
 
       if self.ref == None:
-          print 'No reference to component <' + self.name + '>'
+          print('No reference to component <' + self.name + '>')
           return None
 
       os.chdir(self.root)
@@ -271,9 +271,9 @@ class Component(object):
       # Parse the properties file
       try:
           doc_prf = xml.dom.minidom.parse(self.prf_path)
-      except ExpatError, msg:
-          print "Error reading <" + self.prf_path + ">",
-          print msg
+      except ExpatError as msg:
+          print("Error reading <" + self.prf_path + ">", end=' ')
+          print(msg)
           return None
 
       props_tag = doc_prf.documentElement
@@ -442,15 +442,15 @@ class Waveform(object):
                     find_object_attempts += 1
             
             if find_object_attempts == 50:
-                print "I was unable to get the pointer to Component "+ns_name[0]+"/"+ns_name[1]+"/"+ns_name[2]+", it is probably not running"
+                print("I was unable to get the pointer to Component "+ns_name[0]+"/"+ns_name[1]+"/"+ns_name[2]+", it is probably not running")
             else:
                 new_comp.reference = obj._narrow(CF.Resource)
                 new_comp.ref = new_comp.reference
 
                 new_comp.root = self.sdrroot
 
-                if not dce_list.has_key(new_comp.uuid):
-                    print "Component descriptor error - unmatched Component DCE"
+                if new_comp.uuid not in dce_list:
+                    print("Component descriptor error - unmatched Component DCE")
                     continue
 
                 new_comp.profile = spd_list[dce_list[new_comp.uuid]]
@@ -552,7 +552,7 @@ class Domain(object):
             domain_find_attempts += 1
 
     if domain_find_attempts == 30:
-        print "Did not find the domain"
+        print("Did not find the domain")
         return
     #else:
     #    print "found the domain"
@@ -662,7 +662,7 @@ class Domain(object):
       """
       waveroot = os.path.join(self.root, 'waveforms')    
       if not os.path.exists(waveroot):
-          print "Cannot find SDR waveforms directory"
+          print("Cannot find SDR waveforms directory")
           #return {}
           return
 
@@ -681,7 +681,7 @@ class Domain(object):
 
   def getAvailableWaveforms(self, domain_name="DomainName1"):
       """List the waveforms that are available to install"""
-      return self.waveforms.keys()
+      return list(self.waveforms.keys())
 
   def getInstalledWaveforms(self, domain_name="DomainName1"):
       """Dictionary of the waveforms that are currently installed"""
@@ -690,8 +690,8 @@ class Domain(object):
   
   def uninstallWaveform(self, waveform_name=''):
       """Uninstall a running waveform"""
-      if not self.Waveforms.has_key(waveform_name):
-          print "The waveform described for uninstall does not exist"
+      if waveform_name not in self.Waveforms:
+          print("The waveform described for uninstall does not exist")
           return
       waveform = self.Waveforms.pop(waveform_name)
       waveform.app.releaseObject()
@@ -700,8 +700,8 @@ class Domain(object):
       """Install and create a particular waveform. This function returns
          a pointer to the instantiated waveform"""
       waveform_list = self.waveforms
-      if not waveform_list.has_key(waveform_name):
-          print "Requested waveform does not exist"
+      if waveform_name not in waveform_list:
+          print("Requested waveform does not exist")
           return
       self.DomainManager.installApplication(waveform_list[waveform_name])
 
@@ -744,7 +744,7 @@ class Domain(object):
                           break
 
       if matches_found != len(component_list):
-          print "At least one device required for this waveform is missing - aborting install"
+          print("At least one device required for this waveform is missing - aborting install")
           return
 
       
@@ -760,7 +760,7 @@ class Domain(object):
               break
 
       if app_factory_num == -1:
-          print "Application factory not found"
+          print("Application factory not found")
           sys.exit(-1)
 
       _appFacProps = []
@@ -768,7 +768,7 @@ class Domain(object):
       try:
           app = _applicationFactories[app_factory_num].create(_applicationFactories[app_factory_num]._get_name(),_appFacProps,_available_devSeq)
       except:
-          print "Unable to create application - make sure that all appropriate nodes are installed"
+          print("Unable to create application - make sure that all appropriate nodes are installed")
           return
       
       comp_list = app._get_componentNamingContexts()
@@ -810,7 +810,7 @@ class Domain(object):
 
           app_name_list.append(waveform_ns_name)
           
-          if self.Waveforms.has_key(waveform_ns_name):
+          if waveform_ns_name in self.Waveforms:
               self.Waveforms[waveform_ns_name].app = app
               continue
 
@@ -828,7 +828,7 @@ class Domain(object):
           self.Waveforms[waveform_ns_name]=waveform_entry
           self.Waveforms[waveform_ns_name].update()
       
-      for waveform_key in self.Waveforms.keys():
+      for waveform_key in list(self.Waveforms.keys()):
           if waveform_key not in app_name_list:
               tmp = self.Waveforms.pop(waveform_key)
 

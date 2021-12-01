@@ -32,7 +32,7 @@ class property_init_i(property_init_base):
     """<DESCRIPTION GOES HERE>"""
     def __init__(self, identifier, execparams):
         property_init_base.__init__(self, identifier, execparams)
-        self.cmdline_args = execparams.keys()
+        self.cmdline_args = list(execparams.keys())
     
     def constructor(self):
         """

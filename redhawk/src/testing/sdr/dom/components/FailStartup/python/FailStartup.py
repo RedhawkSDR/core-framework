@@ -32,7 +32,7 @@ from FailStartup_base import *
 class FailStartup_i(FailStartup_base):
     def __init__(self, identifier, execparams):
         if execparams['FAIL_AT'] == 'constructor':
-            raise StandardError
+            raise Exception
         FailStartup_base.__init__(self, identifier, execparams)
 
     def _get_identifier(self):

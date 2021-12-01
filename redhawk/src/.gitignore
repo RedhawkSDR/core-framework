@@ -3,14 +3,17 @@ autom4te.cache
 config.guess
 config.log
 config.status
+config.cache
 config.sub
 configure
+compile
 depcomp
 install-sh
 libtool
 ltmain.sh
 missing
 ossie.pc
+*.bak
 *.class
 py-compile
 test-driver

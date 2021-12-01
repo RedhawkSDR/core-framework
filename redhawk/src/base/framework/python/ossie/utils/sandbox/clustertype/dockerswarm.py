@@ -53,7 +53,7 @@ class DockerSwarmProcess(LocalProcess):
         print(cmd)
         os.popen(cmd)
 
-        print("cat "+str(fileName))
+        print(("cat "+str(fileName)))
 
         os.popen("scp -i " + self.KEY + " " + fileName + " " + self.USER + "@" + self.IP + ":/tmp/" )
         print(arguments)
@@ -85,7 +85,7 @@ class DockerSwarmProcess(LocalProcess):
         if not self.__tracker:
             # Nothing is currently waiting for notification, start monitor.
             name = self.__container_name  # set the name of your container
-            print "setTerminateCallback " + name
+            print("setTerminateCallback " + name)
             self.__tracker = threading.Thread(name=name, target=self._monitorProcess)
             self.__tracker.daemon = False
             self.__tracker.start()
@@ -93,21 +93,21 @@ class DockerSwarmProcess(LocalProcess):
 
     # Set up a callback to notify when the component exits abnormally.
     def terminate_callback(self, pod_name, status):
-        print "Hello from terminate_callback!"
-        print pod_name
-        print status
+        print("Hello from terminate_callback!")
+        print(pod_name)
+        print(status)
         #if "complete" in status.lower() or "running" in status.lower():
         command = self.SSH_CMD + " \"docker stack rm "+self.__stack+"\""
-        print "command: "+command
-        print pod_name + "is in a " + status + " State\n"
+        print("command: "+command)
+        print(pod_name + "is in a " + status + " State\n")
         #else:
         #    print "pod " + pod_name + "is not in a running state, current state is: " + status + "\n"
         try:
             output = subprocess.check_output(shlex.split(command))
-            print "Attempted to delete pod: " + pod_name + ":"
-            print output
+            print("Attempted to delete pod: " + pod_name + ":")
+            print(output)
         except:
-            print "oh no crash and burn from terminate_callback\n"
+            print("oh no crash and burn from terminate_callback\n")
 
     def terminate(self):
         super(DockerSwarmProcess, self).terminate()
@@ -130,7 +130,7 @@ class DockerSwarmProcess(LocalProcess):
         except:
             # no need to print but just ignore if this happens
             pass
-        print "Status: " + self.__status.replace("\n", "")
+        print("Status: " + self.__status.replace("\n", ""))
 
         if "failed" in self.__status.lower() or "rejected" in self.__status.lower():
             return False

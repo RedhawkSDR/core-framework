@@ -28,7 +28,10 @@
 #include <sys/utsname.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+
+#ifdef __linux__
 #include <sys/signalfd.h>
+#endif
 
 #include <sys/resource.h>
 #include <sys/time.h>
@@ -119,6 +122,7 @@ static void raise_limit(int resource, const char* name, const rlim_t DEFAULT_MAX
 
 */
 
+#ifdef __linux__
 int sigprocessor(void ) {
 
   // Check if any children died....
@@ -181,6 +185,7 @@ int sigprocessor(void ) {
 
   return retval;
 }
+#endif
 
 
 int main(int argc, char* argv[])
@@ -384,6 +389,7 @@ int main(int argc, char* argv[])
       exit(EXIT_FAILURE);
     }
 
+#ifdef __linux__
     // We must block the signals in order for signalfd to receive them 
     err = sigprocmask(SIG_BLOCK, &sigset, NULL);
     // Create the signalfd
@@ -392,6 +398,7 @@ int main(int argc, char* argv[])
       RH_NL_ERROR(logname, "signalfd failed: " << strerror(errno));
       exit(EXIT_FAILURE);
     }
+#endif
 
     // Start CORBA. Persistence is not currently supported in the DeviceManager.
     CORBA::ORB_ptr orb = ossie::corba::OrbInit(argc, argv, false);
@@ -459,7 +466,10 @@ int main(int argc, char* argv[])
     RH_NL_DEBUG(logname, "DevMgr cache set to " << devMgrCache);
     RH_NL_DEBUG(logname, "Domain Name set to " << domainName);
 
+#ifdef __linux__
     SimpleThread sigthread( sigprocessor );
+#endif
+
     int pstage=-1;
     try {
       try {
@@ -480,7 +490,9 @@ int main(int argc, char* argv[])
         pstage=0;
 
         // start signal catching thread
+#ifdef __linux__
         sigthread.start();
+#endif
 
         // Activate the DeviceManager servant into its own POA, giving the POA responsibility
         // for its deletion.
@@ -532,7 +544,9 @@ int main(int argc, char* argv[])
       }
     }
 
+#ifdef __linux__
     sigthread.stop();
+#endif
 
     if ( pstage > 0 ) {
         int refcnt= DeviceManager_servant->_refcount_value();

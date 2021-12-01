@@ -30,7 +30,7 @@ from ossie.component import Component
 from ossie.threadedcomponent import *
 from ossie.properties import simple_property
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 
 class PropertyChange_P1_base(CF__POA.Resource, Component, ThreadedComponent):
         # These values can be altered in the __init__ of your derived class

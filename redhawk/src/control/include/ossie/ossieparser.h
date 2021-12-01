@@ -56,14 +56,14 @@ namespace ossie {
             template< typename charT, typename Traits, typename U>
             friend std::basic_ostream<charT, Traits>& operator<<(std::basic_ostream<charT, Traits> &out, const optional_value<U> ov);
 
-            optional_value() : _p(0) {
+            optional_value() : _p() {
             }
 
-            optional_value(const T& v) : _p(0) {
+            optional_value(const T& v) : _p() {
                 _p.reset(new T(v));
             }
 
-            optional_value(const T* p) : _p(0) {
+            optional_value(const T* p) : _p() {
                 if (p != 0) {
                     _p.reset(new T(*p));
                 }
@@ -110,7 +110,7 @@ namespace ossie {
             }
 
         private:
-            std::auto_ptr<T> _p;
+            std::unique_ptr<T> _p;
 
     };
 

@@ -53,7 +53,7 @@ namespace ossie {
              * is a programming error the class uses assert statements (rather than exceptions)
              * to check that this requirement is held.
              */
-            DomainManagerConfiguration() : _dmd(0) {};
+            DomainManagerConfiguration() : _dmd() {};
 
             DomainManagerConfiguration(std::istream& input) throw (ossie::parser_error);
 
@@ -80,7 +80,7 @@ namespace ossie {
         //////////
         // Members
         protected:
-            std::auto_ptr<DMD> _dmd;
+            std::unique_ptr<DMD> _dmd;
     };
 }
 #endif

@@ -25,13 +25,13 @@ from xml.dom import minidom
 from omniORB import CORBA, URI, any
 import omniORB
 from ossie.cf import CF, CF__POA, ExtendedCF
-import commands
+import subprocess
 from ossie.utils import redhawk
 from ossie import properties
 import threading
 
 def getChildren(parentPid):
-    process_listing = commands.getoutput('ls /proc').split('\n')
+    process_listing = subprocess.getoutput('ls /proc').split('\n')
     children = []
     for entry in process_listing:
         try:
@@ -52,7 +52,7 @@ def getChildren(parentPid):
 
 def getProcessName(pid):
     str_pid = str(pid)
-    process_listing = commands.getoutput('ls /proc').split('\n')
+    process_listing = subprocess.getoutput('ls /proc').split('\n')
     Name = ''
     for entry in process_listing:
         if entry == str_pid:
@@ -73,7 +73,7 @@ def getProcessName(pid):
     return Name
 
 def pidExists(pid):
-    process_listing = commands.getoutput('ls /proc').split('\n')
+    process_listing = subprocess.getoutput('ls /proc').split('\n')
     return str(pid) in process_listing
 
 # This test suite requires log4cxx support because it checks the domain's log
@@ -122,7 +122,7 @@ class ApplicationExceptionTest(scatest.CorbaTestCase):
         fp = open('sdr/tmp_logfile.log','r')
         contents = fp.read()
         fp.close()
-        self.assertNotEquals(contents.find('Run test failed with CF::UnknownProperties for Test ID 0 for properties: hello, hey.'),-1)
+        self.assertNotEqual(contents.find('Run test failed with CF::UnknownProperties for Test ID 0 for properties: hello, hey.'),-1)
 
 
 class ApplicationFactoryTest(scatest.CorbaTestCase):
@@ -246,14 +246,14 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
             name = a[0]
             value = a[1]
             execparams[name] = value
-        self.assert_(execparams.has_key("NAMING_CONTEXT_IOR"))
-        self.assert_(execparams.has_key("NAME_BINDING"))
-        self.assert_(execparams.has_key("COMPONENT_IDENTIFIER"))
-        self.assert_(execparams.has_key("EXEC_PARAM_1"))
-        self.assert_(execparams.has_key("EXEC_PARAM_2"))
-        self.assert_(execparams.has_key("EXEC_PARAM_4"))
-        self.assert_(execparams.has_key("SOMEOBJREF"))
-        self.assert_(not execparams.has_key("EXEC_PARAM_3"))
+        self.assertTrue("NAMING_CONTEXT_IOR" in execparams)
+        self.assertTrue("NAME_BINDING" in execparams)
+        self.assertTrue("COMPONENT_IDENTIFIER" in execparams)
+        self.assertTrue("EXEC_PARAM_1" in execparams)
+        self.assertTrue("EXEC_PARAM_2" in execparams)
+        self.assertTrue("EXEC_PARAM_4" in execparams)
+        self.assertTrue("SOMEOBJREF" in execparams)
+        self.assertTrue("EXEC_PARAM_3" not in execparams)
         self.assertEqual(execparams["EXEC_PARAM_1"], "Test1")
         self.assertEqual(execparams["EXEC_PARAM_2"], "2")
         self.assertEqual(execparams["EXEC_PARAM_4"], "True")
@@ -317,7 +317,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         app = domMgr.createApplication("/waveforms/configure_call_property_w/configure_call_property_w.sad.xml", 'configure_call_property', [], [])
         self.assertNotEqual(app, None)
         configure_called = app.query([CF.DataType(id='configure_called',value=any.to_any(None))])
-        self.assertEquals(configure_called[0].value._v, False)
+        self.assertEqual(configure_called[0].value._v, False)
 
     def _test_NamespacedWaveform(self, name):
         nodebooter, domMgr = self.launchDomainManager()
@@ -356,7 +356,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertRaises(CF.ApplicationFactory.CreateApplicationError, domMgr.createApplication, "/waveforms/props_bad_numbers_w/props_bad_numbers_w.sad.xml", "props_app", [], [], )
         try:
             app = domMgr.createApplication("/waveforms/props_bad_numbers_w/props_bad_numbers_w.sad.xml", "props_app", [], [])
-        except Exception, e:
+        except Exception as e:
             pass
         self.assertNotEqual(e.msg.find('Unable to perform conversion'), -1)
         self.assertEqual(len(domMgr._get_applications()), 0)
@@ -452,9 +452,9 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
 
         app = domMgr.createApplication("/waveforms/slow_stop_cpp_w/slow_stop_cpp_w.sad.xml", 'slow_stop_cpp_w', [], [])
         app.start()
-        self.assertEquals(app._get_started(), True)
+        self.assertEqual(app._get_started(), True)
         app.stop()
-        self.assertEquals(app._get_started(), False)
+        self.assertEqual(app._get_started(), False)
 
     def test_NoTimeout(self):
         nodebooter, domMgr = self.launchDomainManager()
@@ -861,12 +861,12 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
             name = a[0]
             value = a[1]
             execparams[name] = value
-        self.assert_(execparams.has_key("NAMING_CONTEXT_IOR"))
-        self.assert_(execparams.has_key("NAME_BINDING"))
-        self.assert_(execparams.has_key("COMPONENT_IDENTIFIER"))
-        self.assert_(execparams.has_key("EXEC_PARAM_1"))
-        self.assert_(execparams.has_key("EXEC_PARAM_2"))
-        self.assert_(not execparams.has_key("EXEC_PARAM_3"))
+        self.assertTrue("NAMING_CONTEXT_IOR" in execparams)
+        self.assertTrue("NAME_BINDING" in execparams)
+        self.assertTrue("COMPONENT_IDENTIFIER" in execparams)
+        self.assertTrue("EXEC_PARAM_1" in execparams)
+        self.assertTrue("EXEC_PARAM_2" in execparams)
+        self.assertTrue("EXEC_PARAM_3" not in execparams)
         self.assertEqual(execparams["EXEC_PARAM_1"], "New1")
         self.assertEqual(execparams["EXEC_PARAM_2"], "-2")
 
@@ -1366,13 +1366,13 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertEqual(dev_0_id,'DCE:fe4fee1e-f305-454b-aa96-9f6e7d960cde')
         self.assertEqual(dev_1_id,'DCE:8f3478e3-626e-45c3-bd01-0a8117dbe59b')
         pid = app._get_componentProcessIds()[0].processId
-        status,output = commands.getstatusoutput('kill -0 '+str(pid))
+        status,output = subprocess.getstatusoutput('kill -0 '+str(pid))
         self.assertEqual(status,0)
 
         app.stop()
         app.releaseObject()
 
-        status,output = commands.getstatusoutput('kill -0 '+str(pid))
+        status,output = subprocess.getstatusoutput('kill -0 '+str(pid))
         self.assertNotEqual(status,0)
 
         self.assertEqual(len(domMgr._get_applicationFactories()), 1)
@@ -1660,12 +1660,12 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
             name = args.pop(0)
             value = args.pop(0)
             execparams[name] = value
-        self.assert_(execparams.has_key("NAMING_CONTEXT_IOR"))
-        self.assert_(execparams.has_key("NAME_BINDING"))
-        self.assert_(execparams.has_key("COMPONENT_IDENTIFIER"))
-        self.assert_(execparams.has_key("EXEC_PARAM_1"))
-        self.assert_(execparams.has_key("EXEC_PARAM_2"))
-        self.assert_(execparams.has_key("EXEC_PARAM_3"))
+        self.assertTrue("NAMING_CONTEXT_IOR" in execparams)
+        self.assertTrue("NAME_BINDING" in execparams)
+        self.assertTrue("COMPONENT_IDENTIFIER" in execparams)
+        self.assertTrue("EXEC_PARAM_1" in execparams)
+        self.assertTrue("EXEC_PARAM_2" in execparams)
+        self.assertTrue("EXEC_PARAM_3" in execparams)
         self.assertEqual(execparams["EXEC_PARAM_1"], "Test1")
         self.assertEqual(execparams["EXEC_PARAM_2"], "2")
         self.assertEqual(execparams["EXEC_PARAM_3"], "3.3333")
@@ -1738,12 +1738,12 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
             name = args.pop(0)
             value = args.pop(0)
             execparams[name] = value
-        self.assert_(execparams.has_key("NAMING_CONTEXT_IOR"))
-        self.assert_(execparams.has_key("NAME_BINDING"))
-        self.assert_(execparams.has_key("COMPONENT_IDENTIFIER"))
-        self.assert_(execparams.has_key("EXEC_PARAM_1"))
-        self.assert_(execparams.has_key("EXEC_PARAM_2"))
-        self.assert_(execparams.has_key("EXEC_PARAM_3"))
+        self.assertTrue("NAMING_CONTEXT_IOR" in execparams)
+        self.assertTrue("NAME_BINDING" in execparams)
+        self.assertTrue("COMPONENT_IDENTIFIER" in execparams)
+        self.assertTrue("EXEC_PARAM_1" in execparams)
+        self.assertTrue("EXEC_PARAM_2" in execparams)
+        self.assertTrue("EXEC_PARAM_3" in execparams)
         self.assertEqual(execparams["EXEC_PARAM_1"], "Test1")
         self.assertEqual(execparams["EXEC_PARAM_2"], "2")
         self.assertEqual(execparams["EXEC_PARAM_3"], "3.3333")
@@ -1782,7 +1782,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         self.assertEqual(len(domMgr._get_applications()), 0)
 
         apps = []
-        for i in xrange(2):
+        for i in range(2):
             for appFact in domMgr._get_applicationFactories():
                 app = appFact.create(appFact._get_name(), [], [])
                 apps.append(app)
@@ -2335,7 +2335,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         for devpid in pids:
             os.kill(devpid, signal.SIGKILL)
 
-        for i in xrange(10):
+        for i in range(10):
             if len(devMgr._get_registeredDevices()) ==  0:
                 break
             time.sleep(1)
@@ -2669,7 +2669,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
 
         app = appFact.create(appFact._get_name(), [], [])
         pid = app._get_componentProcessIds()[0].processId
-        children = [int(line) for line in commands.getoutput('ps --ppid %d --no-headers -o pid' % (pid,)).split()]
+        children = [int(line) for line in subprocess.getoutput('ps --ppid %d --no-headers -o pid' % (pid,)).split()]
 
         app.releaseObject()
 
@@ -2702,7 +2702,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
 
         app = appFact.create(appFact._get_name(), [], [])
         pid = app._get_componentProcessIds()[0].processId
-        children = [int(line) for line in commands.getoutput('ps --ppid %d --no-headers -o pid' % (pid,)).split()]
+        children = [int(line) for line in subprocess.getoutput('ps --ppid %d --no-headers -o pid' % (pid,)).split()]
 
         app.releaseObject()
 
@@ -2985,7 +2985,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         app = domMgr.createApplication('/waveforms/long_stop/long_stop.sad.xml', 'long_stop', initconfig, [])
         app.start()
         curr_stoptimeout = app._get_stopTimeout()
-        self.assertEquals(curr_stoptimeout, 4.0)
+        self.assertEqual(curr_stoptimeout, 4.0)
         app._set_stopTimeout(5)
         begin_stop = time.time()
         try:
@@ -3013,7 +3013,7 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         app = domMgr.createApplication('/waveforms/slow_stop_w/slow_stop_w.sad.xml', 'slow_stop', [], [])
         app.start()
         curr_stoptimeout = app._get_stopTimeout()
-        self.assertEquals(curr_stoptimeout, -1)
+        self.assertEqual(curr_stoptimeout, -1)
         begin_stop = time.time()
         try:
             app.stop()

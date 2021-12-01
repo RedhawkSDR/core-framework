@@ -27,7 +27,7 @@ dist_xml_DATA = ComponentHost.scd.xml ComponentHost.prf.xml ComponentHost.spd.xm
 ComponentHost_SOURCES = ComponentHost.cpp ModuleLoader.cpp main.cpp
 
 ComponentHost_LDADD = $(top_builddir)/base/framework/libossiecf.la $(top_builddir)/base/framework/idl/libossieidl.la
-ComponentHost_LDADD += $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB)
+ComponentHost_LDADD += $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_REGEX_LIB) $(BOOST_SYSTEM_LIB) $(BOOST_FILESYSTEM_LIB) $(OMNIORB_LIBS) -ldl
 ComponentHost_CPPFLAGS = -I$(top_srcdir)/base/include $(BOOST_CPPFLAGS)
 ComponentHost_CXXFLAGS = -Wall
 

@@ -21,7 +21,7 @@
 
 from ossie import parsers
 from _unitTestHelpers import scatest
-import commands
+import subprocess
 import os
 import tempfile
 
@@ -30,9 +30,9 @@ class PythonParserTestCase(scatest.OssieTestCase):
         os.environ['SGML_CATALOG_FILES'] = os.path.abspath("../xml/dtd/catalog.xml")
         docType = "-//JTRS//DTD SCA V2.2.2 %s//EN" % (fType.upper())
         cmd = "xmllint --nowarning --nonet --catalogs --noout --dropdtd --dtdvalidfpi '%s' %s" % (docType, fPath)
-        status = commands.getstatusoutput(cmd)
+        status = subprocess.getstatusoutput(cmd)
         if status[0] != 0:
-            print status[1]
+            print(status[1])
         return status[0]
 
     def test_SPDParser(self):

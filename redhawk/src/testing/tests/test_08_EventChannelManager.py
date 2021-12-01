@@ -122,10 +122,10 @@ class EventChannelManager(scatest.CorbaTestCase):
         self.eventFlag = False
         reg = CF.EventChannelManager.EventRegistration( channel_name = 'prop_Channel', reg_id = 'my_reg_id')
         ret_reg = self._domMgr._get_eventChannelMgr().registerResource( reg )
-        self.assertEquals(reg.reg_id, ret_reg.reg.reg_id)
+        self.assertEqual(reg.reg_id, ret_reg.reg.reg_id)
         reg_2 = CF.EventChannelManager.EventRegistration( channel_name = 'prop_Channel', reg_id = '')
         ret_reg_2 = self._domMgr._get_eventChannelMgr().registerResource( reg_2 )
-        self.assertNotEquals(reg_2.reg_id, ret_reg_2.reg.reg_id)
+        self.assertNotEqual(reg_2.reg_id, ret_reg_2.reg.reg_id)
 
 
     def test_ECM_CppComponent(self):
@@ -140,11 +140,11 @@ class EventChannelManager(scatest.CorbaTestCase):
         self.app = appFact.create(appFact._get_name(), [], [])
         self.assertNotEqual(self.app, None)
         mlimit, mxmit, mrecv = self._process_results( self.app )
-        self.assertNotEquals(mlimit, None )
-        self.assertNotEquals(mxmit, None )
-        self.assertNotEquals(mrecv, None )
-        self.assertEquals(mlimit, mxmit )
-        self.assertEquals(mlimit, mrecv )
+        self.assertNotEqual(mlimit, None )
+        self.assertNotEqual(mxmit, None )
+        self.assertNotEqual(mrecv, None )
+        self.assertEqual(mlimit, mxmit )
+        self.assertEqual(mlimit, mrecv )
 
     def test_ECM_CppComponent_Callbacks(self):
         self.localEvent = threading.Event()
@@ -158,11 +158,11 @@ class EventChannelManager(scatest.CorbaTestCase):
         self.app = appFact.create(appFact._get_name(), [], [])
         self.assertNotEqual(self.app, None)
         mlimit, mxmit, mrecv = self._process_results( self.app , enablecb=True)
-        self.assertNotEquals(mlimit, None )
-        self.assertNotEquals(mxmit, None )
-        self.assertNotEquals(mrecv, None )
-        self.assertEquals(mlimit, mxmit )
-        self.assertEquals(mlimit, mrecv )
+        self.assertNotEqual(mlimit, None )
+        self.assertNotEqual(mxmit, None )
+        self.assertNotEqual(mrecv, None )
+        self.assertEqual(mlimit, mxmit )
+        self.assertEqual(mlimit, mrecv )
 
 
     def test_ECM_PythonComponent(self):
@@ -176,11 +176,11 @@ class EventChannelManager(scatest.CorbaTestCase):
         self.assertNotEqual(appFact, None)
         self.app = appFact.create(appFact._get_name(), [], [])
         mlimit, mxmit, mrecv = self._process_results( self.app )
-        self.assertNotEquals(mlimit, None )
-        self.assertNotEquals(mxmit, None )
-        self.assertNotEquals(mrecv, None )
-        self.assertEquals(mlimit, mxmit )
-        self.assertEquals(mlimit, mrecv )
+        self.assertNotEqual(mlimit, None )
+        self.assertNotEqual(mxmit, None )
+        self.assertNotEqual(mrecv, None )
+        self.assertEqual(mlimit, mxmit )
+        self.assertEqual(mlimit, mrecv )
 
     def test_ECM_PythonComponent_Callbacks(self):
         self.localEvent = threading.Event()
@@ -194,11 +194,11 @@ class EventChannelManager(scatest.CorbaTestCase):
         self.app = appFact.create(appFact._get_name(), [], [])
         self.assertNotEqual(self.app, None)
         mlimit, mxmit, mrecv = self._process_results( self.app , enablecb=True)
-        self.assertNotEquals(mlimit, None )
-        self.assertNotEquals(mxmit, None )
-        self.assertNotEquals(mrecv, None )
-        self.assertEquals(mlimit, mxmit )
-        self.assertEquals(mlimit, mrecv )
+        self.assertNotEqual(mlimit, None )
+        self.assertNotEqual(mxmit, None )
+        self.assertNotEqual(mrecv, None )
+        self.assertEqual(mlimit, mxmit )
+        self.assertEqual(mlimit, mrecv )
 
     @scatest.requireJava
     def test_ECM_JavaComponent(self):
@@ -213,11 +213,11 @@ class EventChannelManager(scatest.CorbaTestCase):
         self.app = appFact.create(appFact._get_name(), [], [])
         self.assertNotEqual(self.app, None)
         mlimit, mxmit, mrecv = self._process_results( self.app )
-        self.assertNotEquals(mlimit, None )
-        self.assertNotEquals(mxmit, None )
-        self.assertNotEquals(mrecv, None )
-        self.assertEquals(mlimit, mxmit )
-        self.assertEquals(mlimit, mrecv )
+        self.assertNotEqual(mlimit, None )
+        self.assertNotEqual(mxmit, None )
+        self.assertNotEqual(mrecv, None )
+        self.assertEqual(mlimit, mxmit )
+        self.assertEqual(mlimit, mrecv )
 
 
     @scatest.requireJava
@@ -233,11 +233,11 @@ class EventChannelManager(scatest.CorbaTestCase):
         self.app = appFact.create(appFact._get_name(), [], [])
         self.assertNotEqual(self.app, None)
         mlimit, mxmit, mrecv = self._process_results( self.app, enablecb=True )
-        self.assertNotEquals(mlimit, None )
-        self.assertNotEquals(mxmit, None )
-        self.assertNotEquals(mrecv, None )
-        self.assertEquals(mlimit, mxmit )
-        self.assertEquals(mlimit, mrecv )
+        self.assertNotEqual(mlimit, None )
+        self.assertNotEqual(mxmit, None )
+        self.assertNotEqual(mrecv, None )
+        self.assertEqual(mlimit, mxmit )
+        self.assertEqual(mlimit, mrecv )
 
 class EventChannelManagerRedhawkUtils(scatest.CorbaTestCase):
     def setUp(self):
@@ -448,31 +448,31 @@ class EventChannelManagerRedhawkUtils(scatest.CorbaTestCase):
         # push some data and make sure it arrives
         em_pub.push(any.to_any(['hello']))
         time.sleep(1)
-        self.assertEquals(em_sub.getData()._v, ['hello'])
+        self.assertEqual(em_sub.getData()._v, ['hello'])
 
         # release the subscriber and push some data and make sure it does not arrive
         em_sub.terminate()
         em_pub.push(any.to_any(['hello']))
         time.sleep(1)
-        self.assertEquals(em_sub.getData(), None)
+        self.assertEqual(em_sub.getData(), None)
 
         # create a new subscriber and push some data and make sure the publisher is still ok
         em_sub_2 = mgr.Subscriber('IDM_Channel', 'hello_2')
         em_pub.push(any.to_any(['hello']))
         time.sleep(1)
-        self.assertEquals(em_sub_2.getData()._v, ['hello'])
+        self.assertEqual(em_sub_2.getData()._v, ['hello'])
 
         # release the publisher and push some data and make sure it does not arrive
         em_pub_2 = mgr.Publisher('IDM_Channel', 'foo_2')
         em_pub.terminate()
         em_pub.push(any.to_any(['hello']))
         time.sleep(1)
-        self.assertEquals(em_sub_2.getData(), None)
+        self.assertEqual(em_sub_2.getData(), None)
 
         # create a new publisher and push some data and make sure the subcriber is still ok
         em_pub_2.push(any.to_any(['hello']))
         time.sleep(1)
-        self.assertEquals(em_sub_2.getData()._v, ['hello'])
+        self.assertEqual(em_sub_2.getData()._v, ['hello'])
         
     def test_ECM_RegisterConsumerNonExistentChannel(self):
 

@@ -55,11 +55,11 @@ namespace dmd
     virtual void
     name (const ::std::string&);
 
-    virtual std::auto_ptr<ossie::DomainManagerConfiguration::DMD>
+    virtual std::unique_ptr<ossie::DomainManagerConfiguration::DMD>
     post_domainmanagerconfiguration ();
 
     private:
-    std::auto_ptr<ossie::DomainManagerConfiguration::DMD> _data;
+    std::unique_ptr<ossie::DomainManagerConfiguration::DMD> _data;
 
   };
 

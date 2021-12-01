@@ -89,13 +89,13 @@ Properties::~Properties()
 }
 
 void Properties::load(std::istream& input) throw (ossie::parser_error) {
-  std::auto_ptr<ossie::PRF> t = ossie::internalparser::parsePRF(input);
+  std::unique_ptr<ossie::PRF> t = ossie::internalparser::parsePRF(input);
   _prf.reset(t.release());
 }
 
 void Properties::join(std::istream& input) throw (ossie::parser_error) {
     LOG_TRACE(Properties, "Loading property set")
-      std::auto_ptr<ossie::PRF> _joinedprf = ossie::internalparser::parsePRF(input);
+      std::unique_ptr<ossie::PRF> _joinedprf = ossie::internalparser::parsePRF(input);
     if (_prf.get() == 0) {
         LOG_TRACE(Properties, "No initial load, using join set for properties")
         _prf.reset(_joinedprf.release());

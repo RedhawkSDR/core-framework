@@ -21,7 +21,7 @@
 import sys
 import time
 import threading
-import Queue
+import queue
 import copy
 import traceback
 import logging

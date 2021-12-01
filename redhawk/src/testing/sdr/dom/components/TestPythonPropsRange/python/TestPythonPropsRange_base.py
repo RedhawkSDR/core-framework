@@ -33,7 +33,7 @@ from ossie.properties import simpleseq_property
 from ossie.properties import struct_property
 from ossie.properties import structseq_property
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 
 class TestPythonPropsRange_base(CF__POA.Resource, Component, ThreadedComponent):
         # These values can be altered in the __init__ of your derived class
@@ -346,10 +346,10 @@ class TestPythonPropsRange_base(CF__POA.Resource, Component, ThreadedComponent):
         
             def __init__(self, **kw):
                 """Construct an initialized instance of this struct definition"""
-                for attrname, classattr in type(self).__dict__.items():
+                for attrname, classattr in list(type(self).__dict__.items()):
                     if type(classattr) == simple_property or type(classattr) == simpleseq_property:
                         classattr.initialize(self)
-                for k,v in kw.items():
+                for k,v in list(kw.items()):
                     setattr(self,k,v)
         
             def __str__(self):

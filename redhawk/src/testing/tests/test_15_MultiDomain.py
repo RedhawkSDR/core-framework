@@ -43,7 +43,7 @@ def launchDomain(number, root, dmdFile=''):
             orb = _CORBA.ORB_init(_sys.argv, _CORBA.ORB_ID)
             ns = orb.resolve_initial_references("NameService")
             root = ns._narrow(CosNaming.NamingContext)
-        except Exception, e:
+        except Exception as e:
             _domainManager = None
         if _domainManager:
             break
@@ -108,7 +108,7 @@ class MultiDomainTest(scatest.CorbaTestCase):
         self.assertEqual(len(self._domainManager_1._get_applicationFactories()), 0)
 
         value_1 = any.from_any(self._domainManager_2._get_deviceManagers()[0]._get_registeredDevices()[0].query(props)[0].value)
-        self.assertEquals(value_1, value_2)
+        self.assertEqual(value_1, value_2)
 
     def test_AllocationManagerDevices(self):
         """
@@ -269,20 +269,20 @@ class MultiDomainTest(scatest.CorbaTestCase):
                 resId = 'exec'
             else:
                 self.fail('Unexpected allocation in results')
-            self.assert_(allocMgrHelpers.compareAllocationStatus(status, results[resId]))
+            self.assertTrue(allocMgrHelpers.compareAllocationStatus(status, results[resId]))
 
         # Try to retrieve a local and remote allocation via allocations
         allocs = allocMgr_1.allocations([execId])
         self.assertEqual(len(allocs), 1)
-        self.assert_(allocMgrHelpers.compareAllocationStatus(allocs[0], results['exec']))
+        self.assertTrue(allocMgrHelpers.compareAllocationStatus(allocs[0], results['exec']))
         allocs = allocMgr_1.allocations([usesId])
         self.assertEqual(len(allocs), 1)
-        self.assert_(allocMgrHelpers.compareAllocationStatus(allocs[0], results['uses']))
+        self.assertTrue(allocMgrHelpers.compareAllocationStatus(allocs[0], results['uses']))
 
         # Make sure we can retrieve the local allocation via localAllocations
         allocs = allocMgr_1.localAllocations([execId])
         self.assertEqual(len(allocs), 1)
-        self.assert_(allocMgrHelpers.compareAllocationStatus(allocs[0], results['exec']))
+        self.assertTrue(allocMgrHelpers.compareAllocationStatus(allocs[0], results['exec']))
 
         # Try to retrieve a remote allocation via localAllocations, and make
         # sure that the invalid ID causes an exception
@@ -292,10 +292,10 @@ class MultiDomainTest(scatest.CorbaTestCase):
         # allocation, but via both allocations and localAllocations
         allocs = allocMgr_2.allocations([])
         self.assertEqual(len(allocs), 1)
-        self.assert_(allocMgrHelpers.compareAllocationStatus(allocs[0], results['uses']))
+        self.assertTrue(allocMgrHelpers.compareAllocationStatus(allocs[0], results['uses']))
         allocs = allocMgr_2.localAllocations([])
         self.assertEqual(len(allocs), 1)
-        self.assert_(allocMgrHelpers.compareAllocationStatus(allocs[0], results['uses']))
+        self.assertTrue(allocMgrHelpers.compareAllocationStatus(allocs[0], results['uses']))
 
         # The second domain shouldn't know about the local 'exec' allocation
         self.assertRaises(CF.AllocationManager.InvalidAllocationId, allocMgr_2.allocations, [execId])
@@ -306,11 +306,11 @@ class MultiDomainTest(scatest.CorbaTestCase):
         allocMgr_1.deallocate([usesId])
         allocs = allocMgr_1.allocations([])
         self.assertEqual(len(allocs), 1)
-        self.assert_(allocMgrHelpers.compareAllocationStatus(allocs[0], results['exec']))
+        self.assertTrue(allocMgrHelpers.compareAllocationStatus(allocs[0], results['exec']))
         self.assertRaises(CF.AllocationManager.InvalidAllocationId, allocMgr_1.allocations, [usesId])
         allocs = allocMgr_1.localAllocations([])
         self.assertEqual(len(allocs), 1)
-        self.assert_(allocMgrHelpers.compareAllocationStatus(allocs[0], results['exec']))
+        self.assertTrue(allocMgrHelpers.compareAllocationStatus(allocs[0], results['exec']))
 
         # The remote domain should have nothing left
         self.assertEqual(allocMgr_2.allocations([]), [])
@@ -460,9 +460,9 @@ class MultiDomainPersistenceTest(scatest.CorbaTestCase):
         self.launchDomainManager(endpoint='giop:tcp::5679', dbURI=self._dbfile)
         post = dict((al.allocationID, al) for al in allocMgr_1.allocations([]))
         self.assertEqual(len(pre), len(post))
-        self.assertEqual(pre.keys(), post.keys())
-        for allocId, status in pre.iteritems():
-            self.assert_(allocMgrHelpers.compareAllocationStatus(status, post[allocId]))
+        self.assertEqual(list(pre.keys()), list(post.keys()))
+        for allocId, status in pre.items():
+            self.assertTrue(allocMgrHelpers.compareAllocationStatus(status, post[allocId]))
 
 if __name__ == "__main__":
   # Run the unittests

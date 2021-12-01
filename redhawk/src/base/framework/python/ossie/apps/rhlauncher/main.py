@@ -22,7 +22,7 @@ import sys
 
 from PyQt4 import QtGui
 
-from launcherwindow import LauncherWindow
+from .launcherwindow import LauncherWindow
 
 def main():
     sdrroot = os.environ.get('SDRROOT', None)

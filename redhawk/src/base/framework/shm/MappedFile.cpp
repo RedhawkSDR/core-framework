@@ -36,7 +36,7 @@ static std::string error_string()
     return strerror(errno);
 }
 
-const size_t MappedFile::PAGE_SIZE = sysconf(_SC_PAGESIZE);
+const size_t MappedFile::SC_PAGE_SIZE = sysconf(_SC_PAGESIZE);
 
 MappedFile::MappedFile(const std::string& name) :
     _name(name),
@@ -87,13 +87,18 @@ size_t MappedFile::size() const
     return statbuf.st_size;
 }
 
+// see https://stackoverflow.com/questions/11497567/fallocate-command-equivalent-in-os-x
 void MappedFile::resize(size_t bytes)
 {
     size_t current_size = size();
     if (bytes <= current_size) {
         return;
     }
+#ifdef __APPLE__
+    int status = ENOSPC;    // FIXME: TODO! CK
+#else
     int status = posix_fallocate(_fd, current_size, bytes - current_size);
+#endif
     if (status == 0) {
         return;
     } else if (status == ENOSPC) {
@@ -119,8 +124,12 @@ void* MappedFile::map(size_t bytes, mode_e mode, off_t offset)
 
 void* MappedFile::remap(void* oldAddr, size_t oldSize, size_t newSize)
 {
+#ifdef __APPLE__
+    void* addr = MAP_FAILED;    // FIXME: TODO! CK
+#else
     int flags = MREMAP_MAYMOVE;
     void* addr = mremap(oldAddr, oldSize, newSize, flags);
+#endif
     if (addr == MAP_FAILED) {
         throw std::runtime_error("mremap: " + error_string());
     }

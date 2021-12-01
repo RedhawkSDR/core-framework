@@ -29,7 +29,7 @@ from ossie.utils import uuid
 from ossie.component import Component
 from ossie.threadedcomponent import *
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 from ossie.resource import usesport, providesport
 import bulkio
 

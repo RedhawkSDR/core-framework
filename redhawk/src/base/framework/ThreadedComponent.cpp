@@ -50,7 +50,13 @@ void ProcessThread::run()
     //     fails if the name exceeds that limit
     if (!_name.empty()) {
         std::string name = _name.substr(0, 15);
+
+#ifdef __APPLE__
+        (void)pthread_setname_np(name.c_str());
+#else
         pthread_setname_np(pthread_self(), name.c_str());
+#endif
+
     }
 
     while (_running) {
@@ -74,7 +80,7 @@ void ProcessThread::run()
             return;
         } else if (state == NOOP) {
             try {
-                boost::posix_time::time_duration boost_delay = boost::posix_time::microseconds(_delay.tv_sec*1e6 + _delay.tv_nsec*1e-3);
+                boost::posix_time::time_duration boost_delay = boost::posix_time::microseconds(_delay.tv_sec * 1000000 + _delay.tv_nsec / 1000);
                 boost::this_thread::sleep(boost_delay);
             } catch (boost::thread_interrupted &) {
                 break;

@@ -27,7 +27,7 @@ from ossie.utils import uuid
 
 from ossie.resource import Resource
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 
 NOOP = -1
 NORMAL = 0

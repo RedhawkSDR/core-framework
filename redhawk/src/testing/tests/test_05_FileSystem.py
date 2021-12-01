@@ -371,14 +371,14 @@ class FileManagerTest(scatest.CorbaTestCase):
         # Test query of '/'.  It should show the contents of '/'
         rootFiles = self._devMgr._get_fileSys().list("/")
         # Compare the length against the local directory (ignoring hidden files)
-        localFiles = filter(lambda x: not x.startswith('.'), os.listdir("sdr/dev"))
+        localFiles = [x for x in os.listdir("sdr/dev") if not x.startswith('.')]
         self.assertEqual(len(rootFiles), len(localFiles))
         files = {}
         for fi in rootFiles:
             files[fi.name] = fi
-        self.assert_(files.has_key("nodes"))
-        self.assert_(files.has_key("devices"))
-        self.assert_(files.has_key("mgr"))
+        self.assertTrue("nodes" in files)
+        self.assertTrue("devices" in files)
+        self.assertTrue("mgr" in files)
 
         rootFiles = fileMgr.list("/")
         files = {}
@@ -386,13 +386,13 @@ class FileManagerTest(scatest.CorbaTestCase):
             files[fi.name] = fi
 
         # Test a few expected directories, but don't be exhaustive
-        self.assert_(files.has_key("waveforms"))
+        self.assertTrue("waveforms" in files)
         self.assertEqual(files["waveforms"].kind, CF.FileSystem.DIRECTORY)
-        self.assert_(files.has_key("components"))
+        self.assertTrue("components" in files)
         self.assertEqual(files["components"].kind, CF.FileSystem.DIRECTORY)
 
         # Check that the DeviceManager mount point is listed
-        self.assert_(files.has_key("ExecutableDevice_node"))
+        self.assertTrue("ExecutableDevice_node" in files)
         self.assertEqual(files["ExecutableDevice_node"].kind, CF.FileSystem.FILE_SYSTEM)
 
         os.system("chmod 444 "+devlistdir.replace('/ExecutableDevice_node','sdr/dev')+'/'+dir_file_list_xml[0])
@@ -640,9 +640,9 @@ class FileManagerTest(scatest.CorbaTestCase):
         dirname = '/noaccess'
         testdir = os.path.join(scatest.getSdrPath(), 'dom' + dirname)
         if not os.path.exists(testdir):
-            os.mkdir(testdir, 0644)
+            os.mkdir(testdir, 0o644)
         else:
-            os.chmod(testdir, 0644)
+            os.chmod(testdir, 0o644)
 
         try:
             self.assertFalse(os.access(testdir, os.R_OK|os.X_OK), 'Current user can still access directory')
@@ -664,7 +664,7 @@ class ThreadedListWorker:
         while number_files != 0:
             try:
                 number_files = len(self.dommgr._get_fileMgr().list(self.basedir+'/'))
-            except CF.FileException, e:
+            except CF.FileException as e:
                 # this happens when $SDRROOT/dom/tmp (self.basedir) is deleted
                 if e.errorNumber != CF.CF_EEXIST:
                     raise

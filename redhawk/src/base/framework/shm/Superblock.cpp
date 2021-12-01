@@ -68,7 +68,7 @@ struct Superblock::FreeBlock : public Block {
 Superblock::Superblock(const std::string& heap, size_t offset, size_t size) :
     _offset(offset),
     _size(size),
-    _dataStart(MappedFile::PAGE_SIZE),
+    _dataStart(MappedFile::SC_PAGE_SIZE),
     _used(0),
     _first(0),
     _last(0)
