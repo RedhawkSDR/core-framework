@@ -222,7 +222,8 @@ class EksKubeProcess(LocalProcess):
                 exec_value = [exec_value]
             else:
                 exec_key = "command"
-                exec_value = [command]+arguments
+                tmp_command = command.replace("$SDRROOT", "/var/redhawk/sdr")
+                exec_value = [tmp_command]+arguments
     
             container_name = arguments[5].lower().replace("_", "").replace(".","-") + '-container'
             container_name = container_name.split('/')[-1]

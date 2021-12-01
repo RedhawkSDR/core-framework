@@ -259,11 +259,13 @@ class LocalLauncher(SandboxLauncher):
                 elif status < 0:
                     print('Component %s (pid=%d) terminated with signal %d' % (name, pid, -status))
             process.setTerminationCallback(terminate_callback)
-        else:
+        else: # these are just containers
             component_path = os.path.dirname(comp._profile)
             _sdrroot_path = os.path.dirname(component_path)
             entry_point = '$SDRROOT/dom/components'+component_path[len(_sdrroot_path):]+'/'+impl.get_code().get_entrypoint()
             componenthostid = 'component_host_'+str(uuid4())[:8]
+            if entry_point.endswith('startJava.sh'):
+                entry_point = entry_point.replace("$SDRROOT/", "/var/redhawk/sdr/")
             process = device.executeContainer(entry_point, deps, execparams, debugger, window, self._stdout, self._orchestrationType, componenthostid)
             command, arguments, environment, stdout = device.getExecArgs(entry_point, deps, execparams, debugger, window, self._stdout, self._orchestrationType)
             entryPoint = command.split("::")[0]
