@@ -33,7 +33,9 @@ fpaths_ordered = [
     'Install/install-from-source.md',
     'Install/external-dependencies.md',
     'Install/redhawk-yum-repo.md',
+    'Install/cpp.md',
     'Install/java-and-jacorb.md',
+    'Install/python.md',
     'Install/ide.md',
     'Install/troubleshooting.md',
 

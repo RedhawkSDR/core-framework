@@ -19,20 +19,26 @@ The Python-based sandbox includes basic analytical plotting tools based on the m
 
 The Python-based sandbox, like any other Python module, may be used in another Python program or run directly within the Python interpreter. The following examples assume that the sandbox is being used within the Python interpreter.
 
-To begin, start a Python interpreter session and import the sandbox:
+> **NOTE**:  REDHAWK 3 switched to Python 3 from Python 2.
 
+First, start a Python 3 session from the command line:
+```bash
+python3
+>>>
+```
+
+Then import the sandbox:
 ```python
 >>> from ossie.utils import sb
 ```
 
 As with any other Python module, the built-in functions `help()` and `dir()` are useful when searching for available commands.
-
 ```python
 >>> help(sb)
 >>> dir(sb)
 ```
 
-To exit the sandbox, press `Ctrl+D` at the Python prompt. On exit, the sandbox terminates and cleans up all of the components and helpers it creates.
+To exit the sandbox, press `Ctrl+D` at the Python prompt. On exit, the sandbox terminates and cleans up all of the components and helpers it created.
 
 ### Running the Sandbox
 

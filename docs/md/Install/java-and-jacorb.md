@@ -1,6 +1,6 @@
 # Java and JacORB
 
-Starting with version 3 Redhawk requires Java 11 to run Java components.  However, you don't need to install or configure Java if you configure Redhawk with:
+Starting with version 3, Redhawk requires Java 11 to run Java components.  However, you don't need to install or configure Java if you configure Redhawk with:
 ```sh
 ./configure --disable-java
 ```
@@ -111,3 +111,20 @@ export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk
 export PATH=$JAVA_HOME/bin:$PATH
 ```
 Make those settings persist any time you run the IDE.
+
+### Select JRE for the Redhawk IDE
+
+> In some cases, the IDE should use the Java 11 JRE, while in other cases, the Java 1.8 JRE.  Here is an example of setting it to use the Java 11 JRE.
+
+1. At the top of the tool bar click "Window" then "Preferences"
+2. In the Preferences Window expand the Java tab
+3. With the Java tab expanded, select "Installed JREs"
+4. Within the Installed JREs window:
+    * Select Add...
+    * Select Standard VM
+    * For Directory select `/usr/lib/jvm/java-11-openjdk`
+    * Check the box next to java-11-openjdk
+    * Click Apply
+5. With the Java tab expanded, select "Compiler"
+6. Set "Compiler compliance level:" to 10
+7. Apply and Close
