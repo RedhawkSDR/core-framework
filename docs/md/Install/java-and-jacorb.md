@@ -68,8 +68,7 @@ Refer to the [JacORB documentation](https://www.jacorb.org/documentation.html) f
 When JacORB is installed, it installs this file at `/etc/jacorb.properties`.
 The file is installed with suitable default values for running Redhawk.
 
-> **Note**  
-> In its inline comments, `jacorb.properties` claims to affect JacORB logging, but in this context it does not.
+> **Note**:  In its inline comments, `jacorb.properties` claims to affect JacORB logging, but in this context it does not.
 See below for how to set the JacORB logging level.
 
 ## Set `JACORB_HOME`
@@ -104,7 +103,8 @@ $ yum install java-1.8.0-openjdk-devel
 ```
 Note that Java 1.8 has an internal CORBA ORB implementation.  Things compiled and run with Java 1.8 will use that, and not JacORB.
 
-The IDE does not operate properly if it uses Java 11; however, it does not need to use the Java that is set in `alternatives`.  Conversely, REDHAWK does not use the environment variable `JAVA_HOME`.  
+The IDE does not operate properly if it uses Java 11; however, it does not need to use the Java that is set in `alternatives`. While REDHAWK does not use the environment variable `JAVA_HOME`, the REDHAWK IDE will use the `JAVA_HOME` value in certain cases such as the [Export to SDR] feature.
+
 To tell the IDE to use Java 1.8:
 ```sh
 export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk
@@ -114,7 +114,7 @@ Make those settings persist any time you run the IDE.
 
 ### Select JRE for the Redhawk IDE
 
-> In some cases, the IDE should use the Java 11 JRE, while in other cases, the Java 1.8 JRE.  Here is an example of setting it to use the Java 11 JRE.
+In some cases, the IDE should use the Java 11 JRE, while in other cases, the Java 1.8 JRE.  Here is an example of setting it to use the Java 11 JRE.
 
 1. At the top of the tool bar click "Window" then "Preferences"
 2. In the Preferences Window expand the Java tab

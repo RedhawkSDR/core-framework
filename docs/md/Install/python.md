@@ -17,3 +17,22 @@ For example:
 #!/usr/bin/env python3
 ```
 
+### Select Python 3 for IDE's Python Sandbox
+
+The IDE's 'REDHAWK Python Sandbox' console uses a Python 2 interpreter by default.
+Before using this console, set it to use Python 3:
+
+1. At the top of the tool bar click "Window" then "Preferences"
+1. In the Preferences Window expand the "PyDev" tab
+1. Expand the "Interpreters" tab then select "Python Interpreters"
+1. Within the Python Interpreters Window:
+    *  Select New
+    *  Interpreter Name: `Python 3`
+    *  Interpreter Executable: `/usr/bin/python3`
+    *  Click OK
+    *  Add all folders to SYSTEM pythonpath
+    *  Click OK
+    *  Select Up in order to move `Python 3` above `Python`
+        * The Python Interpreter that is highest on the list will be used by the    PyDev Console
+    *  Click Apply and Close
+1. Alternatively you can use the "Advanced Auto-Config" which will list all Python Interpreters installed on your local machine.
