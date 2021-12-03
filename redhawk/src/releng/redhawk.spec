@@ -68,6 +68,7 @@ Requires:       binutils
 Requires:       numactl
 Requires:       sqlite
 Requires:       java-11-openjdk jacorb
+Requires:       yaml-cpp-devel
 
 BuildRequires:  libuuid-devel
 BuildRequires:  boost-devel >= 1.41
@@ -93,6 +94,7 @@ BuildRequires:  cppunit-devel
 BuildRequires:  numactl-devel
 BuildRequires:  sqlite-devel
 BuildRequires:  autoconf-archive
+BuildRequires:  yaml-cpp-devel
 
 %description
 REDHAWK is a Software Defined Radio framework.
