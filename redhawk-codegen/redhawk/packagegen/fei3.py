@@ -567,6 +567,9 @@ def fei3_xml_gen(args):
         if not args.unnest and not nest:
             nest=parentClassName
 
+    update_parent_spd(fei3_devices['DEVICES'], fei3_devices, args.output_dir, args)
+    generate_wavedev(fei3_devices['DEVICES'], fei3_devices, args.output_dir, args)
+
     # run codegen with parent spd file
     if args.codegen:
         args.overwrite=False
@@ -755,6 +758,94 @@ def generate_redhawk_profile(namespace, devClassName, className, device_definiti
 
     return spd, scd, prf
 
+def update_parent_spd(devices_list, fei3_devices, output_dir, args):
+
+    found_parent = None
+    parent_dev = None
+    child_devs = []
+    for dev in devices_list:
+        devClassName, device_definition = list(dev.items())[0]
+        if 'children' in device_definition and device_definition['children']:
+            found_parent=devClassName
+            parent_dev = devClassName
+        else:
+            if found_parent != devClassName:
+                child_devs.append(devClassName)
+
+    opath=output_dir
+    if not output_dir:
+        opath=''
+    base_path = os.path.join(opath, parent_dev)
+    parent_path=os.path.join(base_path, parent_dev+'.spd.xml')
+    parent_scd_path=os.path.join(base_path, parent_dev+'.scd.xml')
+
+    if len(child_devs) > 0:
+        fp = open(parent_path, 'r')
+        parent_spd = fp.read()
+        fp.close()
+        agg_child_dev = '</implementation>\n'
+        child_str = '  <child name="@@@@">\n    <childSoftwarePackageFile>\n      <localfile name="@@@@.spd.xml"/>\n    </childSoftwarePackageFile>\n  </child>\n'
+        for child in child_devs:
+            new_child = child_str.replace('@@@@', child)
+            agg_child_dev += new_child
+        agg_child_dev += '</softpkg>'
+        parent_spd = parent_spd.replace('</implementation>\n</softpkg>', agg_child_dev)
+        parent_spd = parent_spd.replace("SharedLibrary", "Executable")
+        parent_spd = parent_spd.replace("cpp/"+parent_dev+".so", "cpp/"+parent_dev)
+        fp = open(parent_path, 'w')
+        fp.write(parent_spd)
+        fp.close()
+
+    fp = open(parent_scd_path, 'r')
+    parent_scd = fp.read()
+    fp.close()
+    agg_dev_def = '<componentfeatures>\n    <supportsinterface repid="IDL:CF/AggregateDevice:1.0" supportsname="AggregateDevice"/>\n    <supportsinterface repid="IDL:CF/Device:1.0" supportsname="Device"/>'
+    parent_scd = parent_scd.replace('<componentfeatures>\n    <supportsinterface repid="IDL:CF/Device:1.0" supportsname="Device"/>', agg_dev_def)
+    fp = open(parent_scd_path, 'w')
+    fp.write(parent_scd)
+    fp.close()
+
+def generate_wavedev(devices_list, fei3_devices, output_dir, args):
+
+    found_parent = None
+    cpp_gen = ["redhawk.codegen.jinja.cpp.component.frontend" , "gov.redhawk.ide.codegen.jinja.cplusplus.CplusplusGenerator"]
+    python_gen = ["redhawk.redhawk.codegen.jinja.python.component.frontend", "gov.redhawk.ide.codegen.jinja.python.PythonGenerator"]
+    java_gen = ["redhawk.codegen.jinja.java.component.frontend", "gov.redhawk.ide.codegen.jinja.java.JavaGenerator"]
+    parent_dev = None
+    child_devs = []
+    for dev in devices_list:
+        devClassName, device_definition = list(dev.items())[0]
+        if 'children' in device_definition and device_definition['children']:
+            found_parent=devClassName
+            parent_dev = devClassName
+        else:
+            if found_parent != devClassName:
+                child_devs.append(devClassName)
+
+    opath=output_dir
+    if not output_dir:
+        opath=''
+    base_path = os.path.join(opath, parent_dev)
+    wavedev_path=os.path.join(base_path,"."+parent_dev+".wavedev")
+    f=open(wavedev_path,'w+')
+    f.write('<?xml version="1.0" encoding="ASCII"?>\n<codegen:WaveDevSettings xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:codegen="http://www.redhawk.gov/model/codegen">\n')
+    f.write('  <implSettings key="'+args.lang+'">\n    <value outputDir="'+args.lang+'" ')
+    if args.lang == "java":
+        f.write('template="'+java_gen[0]+'" generatorId="'+java_gen[1]+'"/>\n')
+    elif args.lang == "python":
+        f.write('template="'+python_gen[0]+'" generatorId="'+python_gen[1]+'"/>\n')
+    else:
+        f.write('template="'+cpp_gen[0]+'" generatorId="'+cpp_gen[1]+'"/>\n')
+    for child in child_devs:
+        f.write('    <child name="'+child+'">\n')
+        if args.lang == "java":
+            f.write('        <childvalue template="'+java_gen[0]+'" generatorId="'+java_gen[1]+'"/>\n')
+        elif args.lang == "python":
+            f.write('        <childvalue template="'+python_gen[0]+'" generatorId="'+python_gen[1]+'"/>\n')
+        else:
+            f.write('        <childvalue template="'+cpp_gen[0]+'" generatorId="'+cpp_gen[1]+'"/>\n')
+        f.write('    </child>\n')
+    f.write('  </implSettings>\n</codegen:WaveDevSettings>\n')
 
 def create_spd_definition( namespace, devClassName, className, lang, device_definition, devices_list, fei3_devices, args):
     macros=get_macros(args)
@@ -1595,7 +1686,8 @@ def fei3_codegen(args):
     if outdir != '':
        os.chdir(outdir)
     try:
-        cmd="redhawk-codegen --frontend {} {}".format(ovr,spd_xml)
+        cmd="redhawk-codegen {} {}".format(ovr,spd_xml)
+        # cmd="redhawk-codegen --frontend {} {}".format(ovr,spd_xml)
         logger.debug("Running codegen as <{}>".format(cmd))
         if sys.version_info[0] == 3:
             process=subprocess.run(cmd.split())
@@ -1651,7 +1743,7 @@ def process_command_line():
 
     parser.add_argument( '--debug',
                         dest="debug",
-                        default='info',
+                        default='error',
                         choices=['critical','error', 'warn', 'info', 'debug'],
                          help="Specify logging level for output messaging")
 
@@ -1835,7 +1927,7 @@ if __name__ == "__main__":
 
     # process command line
     args, remaining_args=process_command_line()
-    print(args)
+    # print(args)
 
     configureLogging(args.debug, args.log)
 
