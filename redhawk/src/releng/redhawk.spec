@@ -71,6 +71,7 @@ Requires:       numactl
 Requires:       sqlite
 Requires:       java-11-openjdk jacorb
 Requires:       yaml-cpp-devel
+Requires:       devtoolset-9-gcc-c++
 
 BuildRequires:  libuuid-devel
 BuildRequires:  boost-devel >= 1.41
