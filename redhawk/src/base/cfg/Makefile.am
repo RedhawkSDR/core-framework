@@ -18,9 +18,22 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-if HAVE_JAVASUPPORT
-  JAVADIR = framework/java
-endif
+all-local:
+	echo Configured for Docker by default
 
-SUBDIRS = framework/idl framework/python $(JAVADIR) parser framework include plugin cfg
+clean-local:
+	echo Nothing to clean
 
+install-exec-hook:
+	./build.py --cluster Docker
+
+# REGISTRY="\"\""
+# SSH_KEY="\"\""
+# SERVER_USER="\"\""
+# SERVER_IP="\"\""
+# DOCKER_DIR="\"\""
+# MOUNT_DIR="\"\""
+# JSON="\"\""
+
+# Docker:
+# 	./build.py --cluster Docker

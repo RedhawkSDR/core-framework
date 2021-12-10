@@ -317,6 +317,7 @@ AC_CONFIG_FILES(Makefile \
                 base/include/ossie/Makefile \
                 base/include/Makefile \
                 base/parser/Makefile \
+                base/cfg/Makefile \
                 base/plugin/Makefile \
                 base/plugin/logcfg/Makefile \
                 base/plugin/clustermgr/Makefile \
