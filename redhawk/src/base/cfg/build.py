@@ -17,6 +17,8 @@ parser.add_argument("--json",        default="\"\"")
 args = parser.parse_args()
 
 OSSIEHOME = os.getenv('OSSIEHOME')
+if not OSSIEHOME:
+    OSSIEHOME = '/usr/local/redhawk/core'
 
 content = 'This is about page'
 
