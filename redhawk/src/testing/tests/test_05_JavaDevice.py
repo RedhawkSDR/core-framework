@@ -168,7 +168,10 @@ class JavaDeviceTest(scatest.CorbaTestCase):
         for prop in device.runTest(561, []):
             self.assertNotEqual(any.from_any(prop.value), None, 'execparams not set in intialize()')
 
-        device.releaseObject()
+        try:
+            device.releaseObject()
+        except:
+            pass
 
         scatest.verifyDeviceLaunch(self, devMgr, 0)
         self.assertEqual(len(domMgr._get_deviceManagers()), 1)

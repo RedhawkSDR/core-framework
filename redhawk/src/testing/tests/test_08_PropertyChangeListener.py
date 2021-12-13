@@ -311,7 +311,10 @@ class PropertyChangeListenerEventTest(scatest.CorbaTestCase):
         self.assertRaises( CF.InvalidIdentifier,
             c.unregisterPropertyListener, regid )
 
-        app.stop()
+        try:
+            app.stop()
+        except:
+            pass
         app.releaseObject()
         self._app=None
 
