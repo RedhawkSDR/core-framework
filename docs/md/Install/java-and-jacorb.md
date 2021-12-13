@@ -38,7 +38,7 @@ printf "%s\n" "jacorb.config.dir=/etc" >>$tmpfpath
 
 dstdir=$(readlink -e `which java`)
 if [[ ! "$dstdir" =~ "java-11-openjdk" ]]; then
-    echo "Error:  ``java`` must point to Java 11 before running this script.  quitting.
+    echo "Error:  ``java`` must point to Java 11 before running this script.  quitting."
     rm $tmpfpath
     exit 1
 fi
