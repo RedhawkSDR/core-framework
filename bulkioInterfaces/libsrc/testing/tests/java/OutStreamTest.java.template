@@ -88,9 +88,8 @@ public class Out@name@StreamTest {
         // Generate a ramp using the scalar type; if the data needs to be pushed as
         // complex, it will be reintepreted there
         @type@ scalars = new @elem@[200];
-        for (int ii = 0; ii < scalars.length; ++ii) {
-            scalars[ii] = (@elem@)ii;
-        }
+        ArrayData.ramp(scalars);
+
         int sample_count = scalars.length;
         if (stream.complex()) {
             sample_count /= 2;
@@ -668,9 +667,7 @@ public class Out@name@StreamTest {
         int single_push_size = 100;
         int push_size = 801;
         @type@ scalars = new @elem@[push_size];
-        for (int ii = 0; ii < scalars.length; ++ii) {
-            scalars[ii] = (@elem@)ii;
-        }
+        ArrayData.ramp(scalars);
         int sample_count = scalars.length;
 
         // Create 9 timestamps

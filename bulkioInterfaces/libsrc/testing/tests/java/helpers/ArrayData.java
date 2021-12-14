@@ -28,14 +28,14 @@ public class ArrayData {
         // REDHAWK uses it for signed 8-bit integers. So, in order to generate
         // valid data, we have to explicitly mask off the upper bits.
         for (int ii = 0; ii < data.length; ii++) {
-            data[ii] = (char) (ii & 0xFF);
+            data[ii] = (char) (ii % 128);
         }
     }
 
     public static void ramp(byte[] data)
     {
         for (int ii = 0; ii < data.length; ii++) {
-            data[ii] = (byte) ii;
+            data[ii] = (byte) (ii % 128);
         }
     }
 
