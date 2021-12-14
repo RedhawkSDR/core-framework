@@ -32,7 +32,7 @@ public abstract class Stub<E> implements BULKIO.updateSRIOperations,
 
     public void pushSRI(BULKIO.StreamSRI H)
     {
-        this.H.add(H);
+        this.H.add(new BULKIO.StreamSRI(H.hversion, H.xstart, H.xdelta, H.xunits, H.subsize, H.ystart, H.ydelta, H.yunits, H.mode, H.streamID, H.blocking, H.keywords));
     }
 
     public BULKIO.StreamSRI[] activeSRIs()
