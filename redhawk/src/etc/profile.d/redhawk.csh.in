@@ -13,18 +13,6 @@ if (! $?OSSIEHOME) then
         setenv PYTHONPATH $OSSIEHOME/lib64/python:$OSSIEHOME/lib/python
     endif
 endif
-if (! $?KUBECONFIG) then
-    setenv KUBECONFIG $OSSIEHOME/.kube/config
-endif
-if (! $?AWS_CONFIG_FILE) then
-    setenv AWS_CONFIG_FILE $OSSIEHOME/aws/config
-endif
-if (! $?AWS_SHARED_CREDENTIALS_FILE) then
-    setenv AWS_SHARED_CREDENTIALS_FILE $OSSIEHOME/aws/credentials
-endif
-if (! $?AWS_PROFILE) then
-    setenv AWS_PROFILE redhawk
-endif
 if (! $?LD_LIBRARY_PATH) then
     setenv LD_LIBRARY_PATH @libdir@
 else
