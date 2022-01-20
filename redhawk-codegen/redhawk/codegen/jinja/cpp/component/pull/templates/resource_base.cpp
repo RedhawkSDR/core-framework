@@ -141,6 +141,11 @@ void ${className}::construct()
 {
 /*# Devices have multiple constructors; rather than duplicate the code, the
  *# constructor body is placed in the construct() method. #*/
+/*{%   if component.isChild %}*/
+    size_t last_slash = this->_softwareProfile.find_last_of("/");
+    std::string base_directory = this->_softwareProfile.substr(0,last_slash);
+    this->_softwareProfile=base_directory+"/${component.name}.spd.xml";
+/*{%   endif %}*/
 ${self.constructorBody()}
 }
 
