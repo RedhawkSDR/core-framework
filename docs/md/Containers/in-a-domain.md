@@ -23,6 +23,9 @@ No plugins are built and installed by default. Two plugins are currently include
 - Docker for running containers on the local system
 - EksKube for running containers on an AWS EKS cluster
 
+Note that installations from rpm go to $OSSIEHOME/lib64, while installations from source builds go to $OSSIEHOME/lib.
+If you installed REDHAWK from rpm, after the plugin is built and installed, copy it from $OSSIEHOME/lib to $OSSIEHOME/lib64.
+
 ### Docker
 
 To build an install the plugin for Docker:
