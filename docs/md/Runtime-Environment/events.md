@@ -194,6 +194,7 @@ An example of the use of `eventviewer` is described below:
     {'sourceId': 'DCE:f5781785-9dd7-4873-8f30-99d7e2ca1a8f', 'sourceName': 'GPP_localhost_localdomain', 'sourceCategory': DEVICE, 'producerId': 'DCE:516aa867-e262-4c70-8355-db415f4b0fc6'}
     {'sourceId': 'DCE:83f3c741-19bf-4794-877f-0322cd62290a','sourceName': 'DevMgr_localhost-localdomain', 'sourceCategory': DEVICE_MANAGER, 'producerId': 'DCE:516aa867-e262-4c70-8355-db415f4b0fc6'}
     ```
+
 ### Writing Your Own Event Consumer
 
 In CORBA's Event API, messages are passed as an `CORBA::Any` type, so when the event is consumed from an event channel, it arrives as a `CORBA::Any` type. The application `eventviewer` contains an example of how to create an event consumer.
