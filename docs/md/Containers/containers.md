@@ -8,7 +8,7 @@ Users can:
 
 - build components into Docker containers
 - run REDHAWK, or portions, in containers
-- users can write plugins for other orchestration technologies
+- write plugins for other orchestration technologies
 
 ## Dependencies
 General:

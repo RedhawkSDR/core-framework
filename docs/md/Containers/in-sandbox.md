@@ -88,7 +88,11 @@ registry =
 tag = latest
 dockerconfigjson = ""
 ```
-An url value is required for the `registry` key in order for the sandbox to find the Docker image.  For our example repository, the url should be `container-registry.my-company.org`.
+An url value is required for the `registry` key for the sandbox to find the Docker image.  For our example, the url should be:
+```ini
+[EksKube]
+registry = container-registry.my-company.org
+```
 
 > **NOTE**:  The value of registry must be unquoted and must not end with a slash `/`.
 
