@@ -1,4 +1,4 @@
-FROM geontech/redhawk-ubuntu-development as builder
+FROM @@@BASE_IMAGE@@@ as builder
 
 ARG repo_url=https://github.com/RedhawkSDR/core-framework.git
 ARG branch_or_tag=2.2.8
@@ -13,7 +13,7 @@ RUN apt-get install -y git rpm libyaml-cpp-dev && \
     /bin/bash -lc "./build.sh distclean && ./build.sh" && \
     apt-get clean autoclean && apt-get autoremove --yes
     
-FROM geontech/redhawk-ubuntu-runtime as runner
+FROM @@@BASE_IMAGE@@@ as runner
 WORKDIR /root/rpms
 COPY --from=builder /root/core-framework /root/core-framework
 RUN apt-get update && \

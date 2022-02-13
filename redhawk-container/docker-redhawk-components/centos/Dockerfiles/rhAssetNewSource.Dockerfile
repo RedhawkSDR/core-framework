@@ -1,5 +1,4 @@
-FROM redhawk/framework-tests:develop-el7 as builder
-# FROM geontech/redhawk-development as builder
+FROM @@@BASE_IMAGE@@@ as builder
 
 ARG rh_asset
 
@@ -15,7 +14,7 @@ RUN /bin/bash -lc "./build.sh rpm" && \
     mkdir /root/rpms && \
     find /root/rpmbuild/RPMS -name "*.rpm" -exec cp {} /root/rpms \;
 
-FROM geontech/redhawk-runtime as runner
+FROM @@@BASE_IMAGE@@@ as runner
 WORKDIR /root/rpms
 ENV LD_LIBRARY_PATH=/usr/local/redhawk/core/lib:$LD_LIBRARY_PATH
 COPY --from=builder /root/core-framework /root/core-framework

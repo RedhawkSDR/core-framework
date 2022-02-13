@@ -1,4 +1,4 @@
-FROM geontech/redhawk-ubuntu-development as builder
+FROM @@@BASE_IMAGE@@@ as builder
 
 ARG rh_asset
 
@@ -17,7 +17,7 @@ RUN apt-get update && \
     /bin/bash -lc "./build.sh rpm" && \
     find /root/rpmbuild/RPMS -name "*.rpm" -exec cp {} /root/rpms \; 
 
-FROM geontech/redhawk-ubuntu-runtime as runner
+FROM @@@BASE_IMAGE@@@ as runner
 WORKDIR /root/rpms
 COPY --from=builder /root/rpms /root/rpms
 RUN apt-get update && \

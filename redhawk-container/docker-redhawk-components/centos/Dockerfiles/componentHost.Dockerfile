@@ -1,5 +1,4 @@
-FROM redhawk/framework-tests:develop-el7 as builder
-# FROM geontech/redhawk-development as builder
+FROM @@@BASE_IMAGE@@@ as builder
 
 ARG repo_url=https://github.com/RedhawkSDR/core-framework.git
 ARG branch_or_tag=2.2.8

@@ -1,4 +1,4 @@
-FROM geontech/redhawk-development as builder
+FROM @@@BASE_IMAGE@@@ as builder
 
 ARG custom_asset
 
@@ -9,7 +9,7 @@ RUN yum install -y rpm-build git && \
     mkdir /root/rpms && \
     find /root/rpmbuild/RPMS -name "*.rpm" -exec cp {} /root/rpms \;
 
-FROM geontech/redhawk-runtime as runner
+FROM @@@BASE_IMAGE@@@ as runner
 WORKDIR /root/rpms
 COPY --from=builder /root/rpms /root/rpms
 RUN yum install -y /root/rpms/*.rpm

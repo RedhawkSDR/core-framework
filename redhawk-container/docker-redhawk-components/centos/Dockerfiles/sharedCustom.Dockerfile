@@ -1,5 +1,4 @@
-FROM redhawk/framework-tests:develop-el7 as builder
-# FROM geontech/redhawk-development as builder
+FROM @@@BASE_IMAGE@@@ as builder
 
 ARG shared_asset
 

@@ -1,4 +1,4 @@
-FROM geontech/redhawk-ubuntu-development as builder
+FROM @@@BASE_IMAGE@@@ as builder
 
 ARG gnu_asset
 
@@ -14,7 +14,7 @@ RUN apt-get update && \
     mkdir /root/rpms && \
     find /root/rpmbuild/RPMS -name "*.rpm" -exec cp {} /root/rpms \;
 
-FROM geontech/gnuradio-redhawk-runtime as runner
+FROM @@@BASE_IMAGE@@@ as runner
 WORKDIR /root/rpms
 #COPY ./tmpCustom/output /root/
 COPY --from=builder /root/rpms /root/rpms
