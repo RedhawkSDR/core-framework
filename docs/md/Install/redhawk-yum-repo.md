@@ -71,8 +71,7 @@ These dependencies are required for RHEL/CentOS 7 systems.  Since they have been
   - `omniORB`
   - `omniORBpy-debuginfo`
   - `omniORBpy-devel`
-  - `omniORBpy-libs`
-  - `python-omniORB`
+  - `python3-omniORB`
 
 To install the dependencies for RHEL/CentOS 7:
 
@@ -80,7 +79,7 @@ To install the dependencies for RHEL/CentOS 7:
 sudo yum install jacorb libomniEvents2 libomniEvents2-devel omniEvents-bootscripts \
     omniEvents-debuginfo omniEvents-doc omniEvents-server omniEvents-utils \
     omniORB omniORB-debuginfo omniORB-devel omniORB-doc omniORB-servers omniORB-utils \
-    omniORBpy-debuginfo omniORBpy-devel omniORBpy-libs python-omniORB
+    omniORBpy-debuginfo omniORBpy-devel python3-omniORB
 ```
 
 ## REDHAWK Yum Groups
