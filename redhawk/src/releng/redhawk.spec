@@ -188,6 +188,9 @@ rm -rf --preserve-root $RPM_BUILD_ROOT
 cd src
 make install DESTDIR=$RPM_BUILD_ROOT
 
+# add symlink to reload4j-<version>.jar
+ln -sf %{_prefix}/lib/reload4j-1.2.19.jar    %{buildroot}/usr/local/redhawk/core/lib/reload4j.jar
+
 %clean
 rm -rf --preserve-root $RPM_BUILD_ROOT
 
@@ -225,7 +228,8 @@ fi
 %endif
 %{_prefix}/lib/CFInterfaces.jar
 %{_prefix}/lib/apache-commons-lang-2.4.jar
-%{_prefix}/lib/log4j-1.2.15.jar
+%{_prefix}/lib/reload4j-1.2.19.jar
+%{_prefix}/lib/reload4j.jar
 %{_prefix}/lib/ossie.jar
 %{_prefix}/lib/python
 %exclude %{_prefix}/lib/python/ossie/apps/qtbrowse

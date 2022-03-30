@@ -238,7 +238,7 @@ AC_SUBST(PROJECTDEPS_CFLAGS, '$(OSSIE_CFLAGS) -I$(top_srcdir)/base/include/ossie
 AC_SUBST(PROJECTDEPS_LIBS, '$(top_builddir)/base/framework/libossiecf.la $(OSSIEIDL_LIBS)')
 
 if test "$HAVE_JAVASUPPORT" = yes; then
-  AC_SUBST(OSSIE_CLASSPATH, '$(top_srcdir)/base/framework/java/CFInterfaces.jar:$(top_srcdir)/base/framework/java/log4j-1.2.15.jar:$(top_srcdir)/base/framework/java/ossie/ossie.jar')
+  AC_SUBST(OSSIE_CLASSPATH, '$(top_srcdir)/base/framework/java/CFInterfaces.jar:$(top_srcdir)/base/framework/java/reload4j.jar:$(top_srcdir)/base/framework/java/ossie/ossie.jar')
 
   # Set up omnijni-required variables
   # Enable other parts of the framework to locate omnijni
