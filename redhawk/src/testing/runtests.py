@@ -67,7 +67,7 @@ def configureTestPaths():
     # Add Java libraries to CLASSPATH so that test components can find them
     # regardless of where they run.
     jarfiles = [ 'CFInterfaces.jar', 'apache-commons-lang-2.4.jar',
-                 'log4j-1.2.15.jar', 'ossie/ossie.jar' ]
+                 'reload4j.jar', 'ossie/ossie.jar' ]
     for jarfile in jarfiles:
         appendClassPath(os.path.join(topdir, 'base/framework/java', jarfile))
 

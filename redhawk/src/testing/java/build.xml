@@ -34,7 +34,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     <pathelement path="${java.class.path}"/>
     <pathelement location="${basedir}/ossie-tests.jar"/>
     <pathelement location="${lib.java.dir}/CFInterfaces.jar"/>
-    <pathelement location="${lib.java.dir}/log4j-1.2.15.jar"/>
+    <pathelement location="${lib.java.dir}/reload4j.jar"/>
     <pathelement location="${lib.java.dir}/apache-commons-lang-2.4.jar"/>
     <pathelement location="${lib.java.dir}/ossie/ossie.jar"/>
     <pathelement location="${lib.java.dir}/ossie/ossie-legacy.jar"/>

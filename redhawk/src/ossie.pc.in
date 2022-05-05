@@ -5,7 +5,7 @@ includedir=${prefix}/include
 extraincludedir=${prefix}/include/ossie
 idldir=${prefix}/share/idl
 javadir=@javadir@
-classpath=${javadir}/ossie.jar:${javadir}/CFInterfaces.jar:${javadir}/log4j-1.2.15.jar:${javadir}/apache-commons-lang-2.4.jar
+classpath=${javadir}/ossie.jar:${javadir}/CFInterfaces.jar:${javadir}/reload4j.jar:${javadir}/apache-commons-lang-2.4.jar
 
 Name: ossie
 Description: OSSIE Core Framework
