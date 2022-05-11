@@ -19,7 +19,6 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-
 from distutils.core import setup
 import sys
 
@@ -47,11 +46,7 @@ unitTestHelper = [
     '_unitTestHelpers.runtestHelpers',
     '_unitTestHelpers.buildconfig']
 
-<<<<<<< HEAD
 version='2.3.0'
-=======
-version='2.2.9'
->>>>>>> updates-2.2
 
 setup(
     name='unitTestHelper',
