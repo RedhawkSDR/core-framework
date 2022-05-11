@@ -196,7 +196,7 @@ ossie_legacy_jar_CLASSPATH = ../CFInterfaces.jar
 ossie_legacy_jar_JAVACFLAGS = -g -Xlint:-deprecation
 
 # Additional Java compiler flags
-ossie_jar_CLASSPATH = ../apache-commons-lang-2.4.jar:../CFInterfaces.jar:../log4j-1.2.15.jar
+ossie_jar_CLASSPATH = ../apache-commons-lang-2.4.jar:../CFInterfaces.jar:../reload4j.jar
 ossie_jar_JAVACFLAGS = -g -Xlint:deprecation -Xlint:unchecked
 ossie_jar_JARADD = -C src . ossie-legacy.jar
 

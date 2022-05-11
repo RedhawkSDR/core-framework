@@ -29,7 +29,7 @@ Prefix:         %{_prefix}
 
 Name:           burstioInterfaces
 Version:        2.3.0
-Release:        5%{?dist}
+Release:        1%{?dist}
 Summary:        BURSTIO interfaces for REDHAWK
 
 Group:          Applications/Engineering

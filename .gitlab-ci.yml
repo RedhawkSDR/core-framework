@@ -1,12 +1,11 @@
 variables:
   rpm_release: "0.$CI_PIPELINE_ID"
   specfile: $project.spec
-  redhawk_deps_loc: redhawk-dependencies/redhawk-dependencies
-  other_repos: ${s3_repo_url}${redhawk_deps_loc}
-  redhawk_version: '2.3.0'
-  # The REDHAWK branch variable tracks the mainline branch from which a topic
+  rh_deps_in_s3: ${s3_repo_url}redhawk-dependencies/redhawk-dependencies/yum
+  rh_ver: '2.3.0'
+  # The rh_lts_branch variable tracks the Long Term Service branch from which a topic
   # branch was forked, allowing it to still trigger that branch's test pipeline
-  redhawk_lts_branch: 'develop-2.3'
+  rh_lts_branch: 'develop-2.3'
   # By default, pull dependencies from the REDHAWK branch, but should there be
   # a need to use a different set, override that here
   commit: $CI_COMMIT_SHA
@@ -29,10 +28,11 @@ stages:
     - if [ -n "$CI_COMMIT_TAG" ]; then rpm_release=""; fi
     - if [ -f output/repo.tar.gz ]; then cd output; tar xvf repo.tar.gz; cd -; cp -r output $project; fi
     - cd $project
+    - echo "pwd => $(pwd)"
     - echo "commit hash => ${commit:0:8}"
     - datetime=$(git show -s --format=%cd ${commit})
     - echo "commit date => ${datetime}"
-    - printf "FROM ${docker_registry}${rpmbuild_repository}redhawk/rpmbuild:${dist}-${arch}-onbuild" > Dockerfile
+    - printf "FROM ${docker_registry}redhawk/rpmbuild:${dist}-${arch}-onbuild" > Dockerfile
     # Don't build redhawk tests as part of rpmbuild to save time
     - if [ "$project" == "redhawk" ]; then sed -i 's|testing||' src/Makefile.am; fi
     - proj_lower=$(echo $project | tr '[:upper:]' '[:lower:]')
@@ -47,7 +47,7 @@ stages:
                    --build-arg "arch=$arch"
                    --build-arg "spec_file=$specfile"
                    --build-arg "rpm_release=$rpm_release"
-                   --build-arg "other_repos=${other_repos}/yum/${redhawk_lts_branch}/$dist/$arch"
+                   --build-arg "other_repos=${rh_deps_in_s3}/${rh_lts_branch}/$dist/$arch"
                    --build-arg "local_repo=$local_repo" .
     # Create a yum repository from the packages we just built and any packages we've built in a previous stage
     - id=$(docker create -it ${docker_registry}redhawk/redhawk-rpmbuild:$proj_lower-$safe_ref-$dist-$arch bash -lc 'mkdir -p /tmp/repo;
@@ -148,7 +148,7 @@ frontend:el7:
     project: MPF/rf/redhawk-testing/core-framework
     # Feature branches trigger a test pipeline using the develop branch
     # from which they were forked unless overridden here.
-    branch: $redhawk_lts_branch
+    branch: $rh_lts_branch
 
 # For bug/feature branches, require the developer to manually trigger the tests
 test-trigger:branch:
@@ -256,6 +256,7 @@ burstio:abi:
     - for file in `find output -name *.rpm`; do
         cp $file $arch;
       done
+    # create and push just redhawk rpms
     - createrepo $arch
     - ls -la $arch
     - s3cmd sync -F -v --delete-removed $arch s3://${s3_bucket}/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/yum/$CI_COMMIT_REF_SLUG/$dist/
@@ -265,7 +266,7 @@ burstio:abi:
       fi
     # Add the dependencies for the related LTS branch, make a repo, and put it in 'redhawk/cf-and-deps/yum/<branch>'.
     - rm -r $arch/repodata  # Get rid of the repodata/ we created with `createrepo`.
-    - s3cmd get -rv s3://${s3_bucket}/mpf/rf/${redhawk_deps_loc}/yum/$redhawk_lts_branch/${dist}/${arch}/ $arch
+    - s3cmd get -rv s3://${s3_bucket}/mpf/rf/${rh_deps_loc}/yum/$rh_lts_branch/${dist}/${arch}/ $arch
     - rm -rf $arch/repodata $arch/redhawk-dependencies.repo  # Get rid of extra stuff we pulled from s3.
     - createrepo $arch
     - s3cmd sync -F -v --delete-removed $arch s3://${s3_bucket}/$CI_PROJECT_NAMESPACE/cf-and-deps/yum/$CI_COMMIT_REF_SLUG/$dist/
