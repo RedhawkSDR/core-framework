@@ -34,7 +34,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     <pathelement location="/usr/share/java/junit4.jar"/>
     <pathelement location="${basedir}/frontend-tests.jar"/>
     <pathelement location="${env.OSSIEHOME}/lib/CFInterfaces.jar"/>
-    <pathelement location="${env.OSSIEHOME}/lib/log4j-1.2.15.jar"/>
+    <pathelement location="${env.OSSIEHOME}/lib/reload4j.jar"/>
     <pathelement location="${env.OSSIEHOME}/lib/ossie.jar"/>
     <pathelement location="${env.OSSIEHOME}/lib/BULKIOInterfaces.jar"/>
     <pathelement location="${top.dir}/libsrc/frontend.jar"/>

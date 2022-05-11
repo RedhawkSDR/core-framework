@@ -24,7 +24,7 @@ boost = '1.41'
 omniORB4 = '4.1.0'
 python = '2.4'
 java = '1.8'
-log4j = '1.2.15'
+reload4j = '1.2.19'
 octave = '3.4.3'
 
 bulkio = redhawk

@@ -47,4 +47,4 @@ fi
 exec $JAVA -cp :$myDir/BasicAC_java_impl1.jar:$myDir/bin:$CLASSPATH basicac_java_impl1.basicac_java_impl1 "$@"
 
 #JacORB start lines
-#$JAVA_HOME/bin/java -cp $OSSIEHOME/lib/log4j.jar:$OSSIEHOME/lib/CFInterfaces.jar:$OSSIEHOME/lib/ossie.jar:$myDir/jacorb.jar:$myDir/antlr.jar:$myDir/avalon-framework.jar:$myDir/backport-util-concurrent.jar:$myDir/logkit.jar:$OSSIEHOME/lib/CFInterfaces.jar:$myDir:$myDir/BasicAC_java_impl1.jar:$myDir/bin:$CLASSPATH basicac_java_impl1.basicac_java_impl1 "$@"
+#$JAVA_HOME/bin/java -cp $OSSIEHOME/lib/reload4j.jar:$OSSIEHOME/lib/CFInterfaces.jar:$OSSIEHOME/lib/ossie.jar:$myDir/jacorb.jar:$myDir/antlr.jar:$myDir/avalon-framework.jar:$myDir/backport-util-concurrent.jar:$myDir/logkit.jar:$OSSIEHOME/lib/CFInterfaces.jar:$myDir:$myDir/BasicAC_java_impl1.jar:$myDir/bin:$CLASSPATH basicac_java_impl1.basicac_java_impl1 "$@"
