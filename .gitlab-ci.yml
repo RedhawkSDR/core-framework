@@ -1,7 +1,8 @@
 variables:
   rpm_release: "0.$CI_PIPELINE_ID"
   specfile: $project.spec
-  rh_deps_in_s3: ${s3_repo_url}redhawk-dependencies/redhawk-dependencies/yum
+  redhawk_deps_loc: redhawk-dependencies/redhawk-dependencies
+  other_repos: ${s3_repo_url}${redhawk_deps_loc}
   rh_ver: '2.2.8'
   # The rh_lts_branch variable tracks the Long Term Service branch from which a topic
   # branch was forked, allowing it to still trigger that branch's test pipeline
@@ -47,7 +48,7 @@ stages:
                    --build-arg "arch=$arch"
                    --build-arg "spec_file=$specfile"
                    --build-arg "rpm_release=$rpm_release"
-                   --build-arg "other_repos=${rh_deps_in_s3}/${rh_lts_branch}/$dist/$arch"
+                   --build-arg "other_repos=${other_repos}/yum/${rh_lts_branch}/$dist/$arch"
                    --build-arg "local_repo=$local_repo" .
     # Create a yum repository from the packages we just built and any packages we've built in a previous stage
     - id=$(docker create -it ${docker_registry}redhawk/redhawk-rpmbuild:$proj_lower-$safe_ref-$dist-$arch bash -lc 'mkdir -p /tmp/repo;
@@ -266,7 +267,7 @@ burstio:abi:
       fi
     # Add the dependencies for the related LTS branch, make a repo, and put it in 'redhawk/cf-and-deps/yum/<branch>'.
     - rm -r $arch/repodata  # Get rid of the repodata/ we created with `createrepo`.
-    - s3cmd get -rv s3://${s3_bucket}/mpf/rf/${rh_deps_loc}/yum/$rh_lts_branch/${dist}/${arch}/ $arch
+    - s3cmd get -rv s3://${s3_bucket}/mpf/rf/${redhawk_deps_loc}/yum/$rh_lts_branch/${dist}/${arch}/ $arch
     - rm -rf $arch/repodata $arch/redhawk-dependencies.repo  # Get rid of extra stuff we pulled from s3.
     - createrepo $arch
     - s3cmd sync -F -v --delete-removed $arch s3://${s3_bucket}/$CI_PROJECT_NAMESPACE/cf-and-deps/yum/$CI_COMMIT_REF_SLUG/$dist/
