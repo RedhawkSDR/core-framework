@@ -1,11 +1,12 @@
+include:
+  - project: 'mpf/rf/redhawk-ci/templates'
+    file: 'Workflows/default.yml'
+    ref: develop-2.2
+
 variables:
   specfile: $project.spec
   redhawk_deps_loc: redhawk-dependencies/redhawk-dependencies
   other_repos: ${s3_repo_url}${redhawk_deps_loc}
-  rh_ver: '2.2.9'
-  # The rh_lts_branch variable tracks the Long Term Service branch from which a topic
-  # branch was forked, allowing it to still trigger that branch's test pipeline
-  rh_lts_branch: 'develop-2.2'
   # By default, pull dependencies from the REDHAWK branch, but should there be
   # a need to use a different set, override that here
   commit: $CI_COMMIT_SHA
@@ -56,7 +57,7 @@ stages:
                    --build-arg "arch=$arch"
                    --build-arg "spec_file=$specfile"
                    --build-arg "rpm_release=$rpm_release"
-                   --build-arg "other_repos=${other_repos}/yum/${rh_lts_branch}/$dist/$arch"
+                   --build-arg "other_repos=${other_repos}/yum/${ref_name}/$dist/$arch"
                    --build-arg "local_repo=$local_repo" .
     # Create a yum repository from the packages we just built and any packages we've built in a previous stage
     - id=$(docker create -it ${docker_registry}redhawk/redhawk-rpmbuild:$proj_lower-$safe_ref-$dist-$arch bash -lc 'mkdir -p /tmp/repo;
@@ -150,17 +151,14 @@ frontend:el7:
 # Trigger separate tests pipeline
 .trigger-common: &trigger-common
   stage: deploy
-  variables:
-    triggering_ref_name: $CI_COMMIT_REF_NAME
-    triggering_ref_slug: $CI_COMMIT_REF_SLUG
   trigger:
-    project: MPF/rf/redhawk-testing/core-framework
+    project: mpf/rf/redhawk-testing/core-framework
     # Feature branches trigger a test pipeline using the develop branch
     # from which they were forked unless overridden here.
-    branch: $rh_lts_branch
+    branch: $ref_name
 
 # For bug/feature branches, require the developer to manually trigger the tests
-test-trigger:branch:
+test-trigger:feature:
   <<: *trigger-common
   when: manual
   only:
@@ -169,21 +167,12 @@ test-trigger:branch:
     - master
     - /^develop.*$/
 
-# For develop branches, automatically trigger test pipeline
-test-trigger:develop:
+# For develop branches and tags, automatically trigger test pipeline
+test-trigger:release:
   <<: *trigger-common
   only:
-    - /^develop.*$/
-
-test-trigger:release:
-  stage: deploy
-  variables:
-    triggering_ref_name: $CI_COMMIT_REF_NAME
-  trigger:
-    project: MPF/rf/redhawk-testing/core-framework
-    branch: $CI_COMMIT_REF_NAME
-  only:
     - tags
+    - /^develop.*$/
   except:
     - /^(\d+\.)?(\d+)?(\.\d+)$/
 
@@ -275,7 +264,7 @@ burstio:abi:
       fi
     # Add the dependencies for the related LTS branch, make a repo, and put it in 'redhawk/cf-and-deps/yum/<branch>'.
     - rm -r $arch/repodata  # Get rid of the repodata/ we created with `createrepo`.
-    - s3cmd get -rv s3://${s3_bucket}/mpf/rf/${redhawk_deps_loc}/yum/$rh_lts_branch/${dist}/${arch}/ $arch
+    - s3cmd get -rv s3://${s3_bucket}/mpf/rf/${redhawk_deps_loc}/yum/$ref_name/${dist}/${arch}/ $arch
     - rm -rf $arch/repodata $arch/redhawk-dependencies.repo  # Get rid of extra stuff we pulled from s3.
     - createrepo $arch
     - s3cmd sync -F -v --delete-removed $arch s3://${s3_bucket}/$CI_PROJECT_NAMESPACE/cf-and-deps/yum/$CI_COMMIT_REF_SLUG/$dist/
