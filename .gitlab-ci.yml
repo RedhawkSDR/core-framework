@@ -158,10 +158,10 @@ frontend:el7:
     project: mpf/rf/redhawk-testing/core-framework
     # Feature branches trigger a test pipeline using the develop branch
     # from which they were forked unless overridden here.
-    branch: $ref_name
+    branch: $rh_lts_branch
 
 # For bug/feature branches, require the developer to manually trigger the tests
-test-trigger:feature:
+test-trigger:branch:
   <<: *trigger-common
   when: manual
   only:
@@ -170,12 +170,22 @@ test-trigger:feature:
     - master
     - /^develop.*$/
 
-# For develop branches and tags, automatically trigger test pipeline
-test-trigger:release:
+# For develop branches, automatically trigger test pipeline
+test-trigger:develop:
   <<: *trigger-common
   only:
-    - tags
     - /^develop.*$/
+
+# For develop branches and tags, automatically trigger test pipeline
+test-trigger:release:
+  stage: deploy
+  variables:
+    triggering_ref_name: $CI_COMMIT_REF_NAME
+  trigger:
+    project: mpf/rf/redhawk-testing/core-framework
+    branch: $CI_COMMIT_REF_NAME
+  only:
+    - tags
   except:
     - /^(\d+\.)?(\d+)?(\.\d+)$/
 
