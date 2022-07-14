@@ -1,8 +1,12 @@
+include:
+  - project: 'mpf/rf/redhawk-ci/templates'
+    file: 'Workflows/default.yml'
+    ref: develop-2.2
+
 variables:
   specfile: $project.spec
   redhawk_deps_loc: redhawk-dependencies/redhawk-dependencies
   other_repos: ${s3_repo_url}${redhawk_deps_loc}
-  rh_ver: '2.2.9'
   # The rh_lts_branch variable tracks the Long Term Service branch from which a topic
   # branch was forked, allowing it to still trigger that branch's test pipeline
   rh_lts_branch: 'develop-2.2'
@@ -150,42 +154,39 @@ frontend:el7:
 # Trigger separate tests pipeline
 .trigger-common: &trigger-common
   stage: deploy
-  variables:
-    triggering_ref_name: $CI_COMMIT_REF_NAME
-    triggering_ref_slug: $CI_COMMIT_REF_SLUG
   trigger:
-    project: MPF/rf/redhawk-testing/core-framework
+    project: mpf/rf/redhawk-testing/core-framework
     # Feature branches trigger a test pipeline using the develop branch
-    # from which they were forked unless overridden here.
+    # from which they were branched unless overridden here.
     branch: $rh_lts_branch
 
 # For bug/feature branches, require the developer to manually trigger the tests
 test-trigger:branch:
   <<: *trigger-common
-  when: manual
-  only:
-    - branches
-  except:
-    - master
-    - /^develop.*$/
+  variables:
+    core_framework_ref_name: $CI_COMMIT_REF_NAME
+    core_framework_ref_slug: $CI_COMMIT_REF_SLUG
+  rules:
+    - if: $CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH !~ /^develop/ && $CI_COMMIT_BRANCH !~ /^master/
+      when: manual
 
 # For develop branches, automatically trigger test pipeline
 test-trigger:develop:
   <<: *trigger-common
-  only:
-    - /^develop.*$/
+  rules:
+    - if: $CI_COMMIT_BRANCH =~ /^develop/
 
-test-trigger:release:
+# For release candidate tags, automatically trigger test pipeline
+test-trigger:release-candidate:
   stage: deploy
   variables:
-    triggering_ref_name: $CI_COMMIT_REF_NAME
+    core_framework_ref_name: $CI_COMMIT_REF_NAME
+    core_framework_ref_slug: $CI_COMMIT_REF_SLUG
   trigger:
-    project: MPF/rf/redhawk-testing/core-framework
-    branch: $CI_COMMIT_REF_NAME
-  only:
-    - tags
-  except:
-    - /^(\d+\.)?(\d+)?(\.\d+)$/
+    project: mpf/rf/redhawk-testing/core-framework
+    branch: $rh_lts_branch
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^[0-9]+\.[0-9]+\.[0-9]+-rc([0-9]+)$/
 
 .abi-common: &abi-common
   image: ${docker_registry}redhawk/rpmbuild:el7-x86_64
