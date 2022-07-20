@@ -31,7 +31,7 @@ stages:
     - |
       # For release candidate tag a.b.c-rcn, set rpm_release = n.
       # For all other cases, set rpm_release = 0.<pipeline id>.
-      if [[ "$CI_COMMIT_TAG" =~ ^[1-9][0-9]*\.[1-9][0-9]*\.[1-9][0-9]*-rc([1-9][0-9]*)$ ]]; then
+      if [[ "$CI_COMMIT_TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+-rc([0-9]+)$ ]]; then
           rpm_release=${BASH_REMATCH[1]}  # The contents of the parentheses in the regular expression.
       else
           rpm_release="0.$CI_PIPELINE_ID"
