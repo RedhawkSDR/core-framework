@@ -1,8 +1,12 @@
+include:
+  - project: 'mpf/rf/redhawk-ci/templates'
+    file: 'Workflows/default.yml'
+    ref: develop-2.2
+
 variables:
-  rpm_release: "0.$CI_PIPELINE_ID"
   specfile: $project.spec
-  rh_deps_in_s3: ${s3_repo_url}redhawk-dependencies/redhawk-dependencies/yum
-  rh_ver: '2.2.8'
+  redhawk_deps_loc: redhawk-dependencies/redhawk-dependencies
+  other_repos: ${s3_repo_url}${redhawk_deps_loc}
   # The rh_lts_branch variable tracks the Long Term Service branch from which a topic
   # branch was forked, allowing it to still trigger that branch's test pipeline
   rh_lts_branch: 'develop-2.2'
@@ -23,9 +27,18 @@ stages:
   tags:
     - docker
     - redhawk
+  before_script:
+    - |
+      # For release candidate tag a.b.c-rcn, set rpm_release = n.
+      # For all other cases, set rpm_release = 0.<pipeline id>.
+      if [[ "$CI_COMMIT_TAG" =~ ^[1-9][0-9]*\.[1-9][0-9]*\.[1-9][0-9]*-rc([1-9][0-9]*)$ ]]; then
+          rpm_release=${BASH_REMATCH[1]}  # The contents of the parentheses in the regular expression.
+      else
+          rpm_release="0.$CI_PIPELINE_ID"
+      fi
+      echo "rpm_release == ${rpm_release}"
   script:
     # Use RPM release from specfile if this is a tag
-    - if [ -n "$CI_COMMIT_TAG" ]; then rpm_release=""; fi
     - if [ -f output/repo.tar.gz ]; then cd output; tar xvf repo.tar.gz; cd -; cp -r output $project; fi
     - cd $project
     - echo "pwd => $(pwd)"
@@ -47,7 +60,7 @@ stages:
                    --build-arg "arch=$arch"
                    --build-arg "spec_file=$specfile"
                    --build-arg "rpm_release=$rpm_release"
-                   --build-arg "other_repos=${rh_deps_in_s3}/${rh_lts_branch}/$dist/$arch"
+                   --build-arg "other_repos=${other_repos}/yum/${rh_lts_branch}/$dist/$arch"
                    --build-arg "local_repo=$local_repo" .
     # Create a yum repository from the packages we just built and any packages we've built in a previous stage
     - id=$(docker create -it ${docker_registry}redhawk/redhawk-rpmbuild:$proj_lower-$safe_ref-$dist-$arch bash -lc 'mkdir -p /tmp/repo;
@@ -141,42 +154,39 @@ frontend:el7:
 # Trigger separate tests pipeline
 .trigger-common: &trigger-common
   stage: deploy
-  variables:
-    triggering_ref_name: $CI_COMMIT_REF_NAME
-    triggering_ref_slug: $CI_COMMIT_REF_SLUG
   trigger:
-    project: MPF/rf/redhawk-testing/core-framework
+    project: mpf/rf/redhawk-testing/core-framework
     # Feature branches trigger a test pipeline using the develop branch
-    # from which they were forked unless overridden here.
+    # from which they were branched unless overridden here.
     branch: $rh_lts_branch
 
 # For bug/feature branches, require the developer to manually trigger the tests
 test-trigger:branch:
   <<: *trigger-common
-  when: manual
-  only:
-    - branches
-  except:
-    - master
-    - /^develop.*$/
+  variables:
+    core_framework_ref_name: $CI_COMMIT_REF_NAME
+    core_framework_ref_slug: $CI_COMMIT_REF_SLUG
+  rules:
+    - if: $CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH !~ /^develop/ && $CI_COMMIT_BRANCH !~ /^master/
+      when: manual
 
 # For develop branches, automatically trigger test pipeline
 test-trigger:develop:
   <<: *trigger-common
-  only:
-    - /^develop.*$/
+  rules:
+    - if: $CI_COMMIT_BRANCH =~ /^develop/
 
-test-trigger:release:
+# For release candidate tags, automatically trigger test pipeline
+test-trigger:release-candidate:
   stage: deploy
   variables:
-    triggering_ref_name: $CI_COMMIT_REF_NAME
+    core_framework_ref_name: $CI_COMMIT_REF_NAME
+    core_framework_ref_slug: $CI_COMMIT_REF_SLUG
   trigger:
-    project: MPF/rf/redhawk-testing/core-framework
-    branch: $CI_COMMIT_REF_NAME
-  only:
-    - tags
-  except:
-    - /^(\d+\.)?(\d+)?(\.\d+)$/
+    project: mpf/rf/redhawk-testing/core-framework
+    branch: $rh_lts_branch
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^[0-9]+\.[0-9]+\.[0-9]+-rc([0-9]+)$/
 
 .abi-common: &abi-common
   image: ${docker_registry}redhawk/rpmbuild:el7-x86_64
@@ -266,7 +276,7 @@ burstio:abi:
       fi
     # Add the dependencies for the related LTS branch, make a repo, and put it in 'redhawk/cf-and-deps/yum/<branch>'.
     - rm -r $arch/repodata  # Get rid of the repodata/ we created with `createrepo`.
-    - s3cmd get -rv s3://${s3_bucket}/mpf/rf/${rh_deps_loc}/yum/$rh_lts_branch/${dist}/${arch}/ $arch
+    - s3cmd get -rv s3://${s3_bucket}/mpf/rf/${redhawk_deps_loc}/yum/$rh_lts_branch/${dist}/${arch}/ $arch
     - rm -rf $arch/repodata $arch/redhawk-dependencies.repo  # Get rid of extra stuff we pulled from s3.
     - createrepo $arch
     - s3cmd sync -F -v --delete-removed $arch s3://${s3_bucket}/$CI_PROJECT_NAMESPACE/cf-and-deps/yum/$CI_COMMIT_REF_SLUG/$dist/
