@@ -112,6 +112,9 @@ public class Out@name@Port extends ChunkingOutPort<@idl@Operations,@type@[]> {
   
     public Out@name@Stream createStream(BULKIO.StreamSRI sri)
     {
+        if (sri == null) {
+            return null;
+        }
         Out@name@Stream stream = null;
         synchronized (this.updatingPortsLock) {
             String streamID = sri.streamID;
