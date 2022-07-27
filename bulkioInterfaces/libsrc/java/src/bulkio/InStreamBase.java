@@ -69,6 +69,9 @@ public class InStreamBase {
         * @pre  Stream is valid.
         */
     public BULKIO.StreamSRI sri() {
+        if (_impl == null) {
+            return null;
+        }
         return _impl.sri();
     };
 
@@ -84,6 +87,9 @@ public class InStreamBase {
         * each frame.
         */
     public double xstart() {
+        if (_impl == null) {
+            return 0;
+        }
         return _impl.sri().xstart;
     };
 
@@ -101,6 +107,9 @@ public class InStreamBase {
         * a frame.
         */
     public double xdelta() {
+        if (_impl == null) {
+            return 0;
+        }
         return _impl.sri().xdelta;
     };
 
@@ -115,6 +124,9 @@ public class InStreamBase {
         * of frequency, @c BULKIO::UNITS_FREQUENCY.
         */
     public short xunits() {
+        if (_impl == null) {
+            return 0;
+        }
         return _impl.sri().xunits;
     };
 
@@ -133,6 +145,9 @@ public class InStreamBase {
         * Y-axis fields are applicable.
         */
     public int subsize() {
+        if (_impl == null) {
+            return 0;
+        }
         return _impl.sri().subsize;
     };
 
@@ -147,6 +162,9 @@ public class InStreamBase {
         * This specifies the start of the stream in terms of @c yunits.
         */
     public double ystart() {
+        if (_impl == null) {
+            return 0;
+        }
         return _impl.sri().ystart;
     };
 
@@ -162,6 +180,9 @@ public class InStreamBase {
         * This specifies the interval between frames in terms of @c yunits.
         */
     public double ydelta() {
+        if (_impl == null) {
+            return 0;
+        }
         return _impl.sri().ydelta;
     };
 
@@ -177,6 +198,9 @@ public class InStreamBase {
         * Axis units are specified using constants in the BULKIO namespace.
         */
     public short yunits() {
+        if (_impl == null) {
+            return 0;
+        }
         return _impl.sri().yunits;
     };
 
@@ -188,6 +212,9 @@ public class InStreamBase {
         * A stream is considered complex if @c sri.mode is non-zero.
         */
     public boolean complex() {
+        if (_impl == null) {
+            return false;
+        }
         return _impl.complex();
     };
 
@@ -198,6 +225,9 @@ public class InStreamBase {
         * @pre  Stream is valid.
         */
     public boolean blocking() {
+        if (_impl == null) {
+            return false;
+        }
         return _impl.sri().blocking;
     };
 
@@ -211,6 +241,9 @@ public class InStreamBase {
         * default CORBA sequence.
         */
     public  CF.DataType[] keywords() {
+        if (_impl == null) {
+            return null;
+        }
         return _impl.sri().keywords;
     };
 
@@ -243,6 +276,9 @@ public class InStreamBase {
         * checked with hasKeyword().
         */
     public Any getKeyword(final String name) {
+        if (_impl == null) {
+            return null;
+        }
         for (DataType keyword : _impl.sri().keywords) {
             if (keyword.id.equals(name)) {
                 return keyword.value;

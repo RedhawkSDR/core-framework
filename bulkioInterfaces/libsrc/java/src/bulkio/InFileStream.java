@@ -76,6 +76,10 @@ public class InFileStream extends InStreamBase {
         //self.__blockType = blockType
     }
 
+    public BULKIO.StreamSRI sri() {
+        return this._sri;
+    }
+
     public FileDataBlock read() {
         /*
         Blocking read of the next packet for this stream.
