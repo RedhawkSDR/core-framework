@@ -114,6 +114,9 @@ public class OutXMLPort extends OutDataPort<dataXMLOperations,String> {
   
     public OutXMLStream createStream(BULKIO.StreamSRI sri)
     {
+        if (sri == null) {
+            return null;
+        }
         OutXMLStream stream = null;
         synchronized (this.updatingPortsLock) {
             String streamID = sri.streamID;

@@ -107,6 +107,9 @@ public class OutFilePort extends OutDataPort<dataFileOperations,String> {
   
     public OutFileStream createStream(BULKIO.StreamSRI sri)
     {
+        if (sri == null) {
+            return null;
+        }
         OutFileStream stream = null;
         synchronized (this.updatingPortsLock) {
             String streamID = sri.streamID;
