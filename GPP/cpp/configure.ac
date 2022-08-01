@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
-AC_INIT(GPP, 2.3.0)
+AC_INIT(GPP, 2.3.1)
 AM_INIT_AUTOMAKE([foreign nostdinc subdir-objects])
 AC_CONFIG_MACRO_DIR([m4])
 
