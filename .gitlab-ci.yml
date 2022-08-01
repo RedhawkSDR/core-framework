@@ -1,7 +1,7 @@
 include:
   - project: 'mpf/rf/redhawk-ci/templates'
     file: 'Workflows/default.yml'
-    ref: develop-2.2
+    ref: updates-2.2
 
 variables:
   specfile: $project.spec
