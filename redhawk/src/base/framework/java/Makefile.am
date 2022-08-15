@@ -74,12 +74,15 @@ CFInterfaces_jar_JARADD = -C $(IDLJ_BUILDDIR) . -C $(omnijni_builddir)/src/java 
 java_JARFILES = CFInterfaces.jar
 java_DATA = reload4j-1.2.19.jar \
             commons-lang3-3.12.0.jar \
-            jboss-rmi-api_1.0_spec-1.0.6.Final.jar
+            jboss-rmi-api_1.0_spec-1.0.6.Final.jar \
+            slf4j-api-1.7.32.jar slf4j-log4j12-1.7.32.jar
 
 # Would use `java_DATA` or so, but how to make that create symlinks instead of copies?
 install-data-local: $(prefix)/lib/jacorb.jar \
                     $(prefix)/lib/jacorb-omgapi.jar \
                     $(prefix)/lib/jacorb-services.jar \
+                    $(prefix)/lib/slf4j-api.jar \
+                    $(prefix)/lib/log4j12.jar \
                     $(prefix)/lib/reload4j.jar
 
 $(prefix)/lib/jacorb.jar:

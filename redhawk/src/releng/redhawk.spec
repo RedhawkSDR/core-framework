@@ -205,6 +205,8 @@ ln -sf ${JACORB_HOME}/lib/jacorb-omgapi-3.9.jar    %{buildroot}/usr/local/redhaw
 ln -sf ${JACORB_HOME}/lib/jacorb-omgapi-3.9.jar    %{buildroot}/usr/local/redhawk/core/lib/jacorb-omgapi-3.9.jar
 ln -sf ${JACORB_HOME}/lib/jacorb-services-3.9.jar    %{buildroot}/usr/local/redhawk/core/lib/jacorb-services.jar
 ln -sf ${JACORB_HOME}/lib/jacorb-services-3.9.jar    %{buildroot}/usr/local/redhawk/core/lib/jacorb-services-3.9.jar
+ln -sf %{_prefix}/lib/slf4j-api-1.7.32.jar    %{buildroot}/usr/local/redhawk/core/lib/slf4j-api.jar
+ln -sf %{_prefix}/lib/slf4j-log4j12-1.7.32.jar    %{buildroot}/usr/local/redhawk/core/lib/slf4j-log4j12.jar
 ln -sf %{_prefix}/lib/reload4j-1.2.19.jar    %{buildroot}/usr/local/redhawk/core/lib/reload4j.jar
 
 %clean
@@ -249,6 +251,10 @@ fi
 %{_prefix}/lib/jacorb-omgapi-3.9.jar
 %{_prefix}/lib/jacorb-services.jar
 %{_prefix}/lib/jacorb-services-3.9.jar
+%{_prefix}/lib/slf4j-api.jar
+%{_prefix}/lib/slf4j-api-1.7.32.jar
+%{_prefix}/lib/slf4j-log4j12.jar
+%{_prefix}/lib/slf4j-log4j12-1.7.32.jar
 %{_prefix}/lib/reload4j-1.2.19.jar
 %{_prefix}/lib/reload4j.jar
 %{_prefix}/lib/commons-lang3-3.12.0.jar
