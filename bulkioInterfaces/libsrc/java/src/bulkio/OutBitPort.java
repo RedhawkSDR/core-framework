@@ -108,6 +108,9 @@ public class OutBitPort extends ChunkingOutPort<dataBitOperations,BULKIO.BitSequ
   
     public OutBitStream createStream(BULKIO.StreamSRI sri)
     {
+        if (sri == null) {
+            return null;
+        }
         OutBitStream stream = null;
         synchronized (this.updatingPortsLock) {
             String streamID = sri.streamID;

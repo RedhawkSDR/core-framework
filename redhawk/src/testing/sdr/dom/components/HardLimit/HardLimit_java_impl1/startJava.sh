@@ -29,4 +29,3 @@ done
 
 # NOTE: the $@ must be quoted "$@" for arguments to be passed correctly
 exec java -cp $classpath:$CLASSPATH HardLimit_java_impl1.HardLimit_java_impl1 "$@"
-

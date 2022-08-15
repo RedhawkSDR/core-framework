@@ -5,7 +5,7 @@ includedir=${prefix}/include
 extraincludedir=${prefix}/include/ossie
 idldir=${prefix}/share/idl
 javadir=@javadir@
-classpath=${javadir}/ossie.jar:${javadir}/CFInterfaces.jar:${javadir}/jacorb-3.9.jar:${javadir}/jacorb-omgapi-3.9.jar:${javadir}/jacorb-services-3.9.jar:${javadir}/slf4j-api-1.7.32.jar:${javadir}/slf4j-log4j12-1.7.32.jar:${javadir}/log4j-1.2.17.jar:${javadir}/commons-lang3-3.12.0.jar:${javadir}/jboss-rmi-api_1.0_spec-1.0.6.Final.jar
+classpath=${javadir}/ossie.jar:${javadir}/CFInterfaces.jar:${javadir}/jacorb-3.9.jar:${javadir}/jacorb-omgapi-3.9.jar:${javadir}/jacorb-services-3.9.jar:${javadir}/reload4j.jar:${javadir}/commons-lang3-3.12.0.jar:${javadir}/jboss-rmi-api_1.0_spec-1.0.6.Final.jar
 
 Name: ossie
 Description: OSSIE Core Framework

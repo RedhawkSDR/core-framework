@@ -40,6 +40,10 @@ import stubs.Stub;
 import bulkio.Out@name@Port;
 import bulkio.Out@name@Stream;
 
+import bulkio.In@name@Port;
+import bulkio.In@name@Stream;
+import bulkio.@name@DataBlock;
+
 @RunWith(JUnit4.class)
 public class Out@name@StreamTest {
 
@@ -185,6 +189,39 @@ public class Out@name@StreamTest {
         Assert.assertFalse(stub.packets.get(0).EOS);
         Assert.assertTrue(_checkLastTimestamp(time));
         Assert.assertEquals(stream.streamID(), stub.packets.get(0).streamID);
+    }
+
+    @Test
+    public void testInitializeStream()
+    {
+        In@name@Port in_port;
+        BULKIO.@idl@Operations in_corbaPort;
+
+        in_port = helper.createInPort("sample_inport");
+        in_corbaPort = helper.toCorbaType(in_port);
+
+        BULKIO.StreamSRI in_sri = bulkio.sri.utils.create("input_streamid");
+        in_corbaPort.pushSRI(in_sri);
+        helper.pushTestPacket(in_port, 1024, bulkio.time.utils.now(), false, in_sri.streamID);
+
+        In@name@Stream input_stream = in_port.getCurrentStream(125);
+        Assert.assertFalse(input_stream == null);
+
+        Assert.assertEquals(input_stream.streamID(), "input_streamid");
+
+        // Make sure the output stream does not exist
+        Out@name@Stream output_stream = port.getStream(input_stream.streamID());
+        Assert.assertTrue(output_stream == null);
+        
+        // Attempt to create the stream with a null references (make sure there's no NPE)
+        BULKIO.StreamSRI null_sri = null;
+        output_stream = port.createStream(null_sri);
+        Assert.assertTrue(output_stream == null);
+
+        // Attempt to create the stream with the input stream's sri
+        output_stream = port.createStream(input_stream.sri());
+        Assert.assertFalse(output_stream == null);
+        Assert.assertEquals(output_stream.streamID(), "input_streamid");
     }
 
     @Test

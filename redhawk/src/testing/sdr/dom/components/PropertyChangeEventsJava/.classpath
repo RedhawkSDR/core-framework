@@ -21,7 +21,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 
 <classpath>
 	<classpathentry kind="var" path="OSSIEHOME/lib/ossie.jar"/>
-	<classpathentry kind="var" path="OSSIEHOME/lib/log4j.jar"/>
+	<classpathentry kind="var" path="OSSIEHOME/lib/reload4j.jar"/>
 	<classpathentry kind="var" path="OSSIEHOME/lib/CosEventChannelAdminInterfaces.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="var" path="OSSIEHOME/lib/CFInterfaces.jar"/>

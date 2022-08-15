@@ -22,8 +22,8 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 <classpath>
 	<classpathentry kind="src" path="framework/java/ossie/src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/J2SE-1.5"/>
-	<classpathentry kind="lib" path="framework/java/log4j.jar"/>
+	<classpathentry kind="lib" path="framework/java/reload4j.jar"/>
 	<classpathentry kind="lib" path="framework/java/CFInterfaces.jar"/>
-	<classpathentry kind="lib" path="framework/java/apache-commons-lang-2.4.jar"/>
+	<classpathentry kind="lib" path="framework/java//commons-lang3-3.12.0.jar"/>
 	<classpathentry kind="output" path="framework/java/ossie/bin"/>
 </classpath>
