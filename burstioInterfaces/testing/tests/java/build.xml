@@ -44,7 +44,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     <pathelement location="${env.OSSIEHOME}/lib/jboss-rmi-api_1.0_spec-1.0.6.Final.jar"/>
     <pathelement location="${env.OSSIEHOME}/lib/slf4j-api.jar"/>
     <pathelement location="${env.OSSIEHOME}/lib/slf4j-log4j12.jar"/>
-    <pathelement location="${env.OSSIEHOME}/lib/log4j.jar"/>
+    <pathelement location="${env.OSSIEHOME}/lib/reload4j.jar"/>
   </path>
 
   <target name="generate">

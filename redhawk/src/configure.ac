@@ -245,7 +245,7 @@ AC_SUBST(PROJECTDEPS_CFLAGS, '$(OSSIE_CFLAGS) -I$(top_srcdir)/base/include/ossie
 AC_SUBST(PROJECTDEPS_LIBS, '$(top_builddir)/base/framework/libossiecf.la $(OSSIEIDL_LIBS)')
 
 if test "$HAVE_JAVASUPPORT" = yes; then
-  AC_SUBST(OSSIE_CLASSPATH, '$(top_srcdir)/base/framework/java/CFInterfaces.jar:$(top_srcdir)/base/framework/java/ossie/ossie.jar:$(top_srcdir)/base/framework/java/jacorb.jar:$(top_srcdir)/base/framework/java/jacorb-omgapi.jar:$(top_srcdir)/base/framework/java/jacorb-services.jar:$(top_srcdir)/base/framework/java/slf4j-api.jar:$(top_srcdir)/base/framework/java/slf4j-log4j12.jar:$(top_srcdir)/base/framework/java/log4j.jar:$(top_srcdir)/base/framework/java/commons-lang3-3.12.0.jar:$(top_srcdir)/base/framework/java/jboss-rmi-api_1.0_spec-1.0.6.Final.jar')
+  AC_SUBST(OSSIE_CLASSPATH, '$(top_srcdir)/base/framework/java/CFInterfaces.jar:$(top_srcdir)/base/framework/java/ossie/ossie.jar:$(top_srcdir)/base/framework/java/jacorb.jar:$(top_srcdir)/base/framework/java/jacorb-omgapi.jar:$(top_srcdir)/base/framework/java/jacorb-services.jar:$(top_srcdir)/base/framework/java/slf4j-api.jar:$(top_srcdir)/base/framework/java/slf4j-log4j12.jar:$(top_srcdir)/base/framework/java/reload4j.jar:$(top_srcdir)/base/framework/java/commons-lang3-3.12.0.jar:$(top_srcdir)/base/framework/java/jboss-rmi-api_1.0_spec-1.0.6.Final.jar')
 
   # Set up omnijni-required variables
   # Enable other parts of the framework to locate omnijni

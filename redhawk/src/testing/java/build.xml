@@ -35,15 +35,15 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     <pathelement location="${basedir}/ossie-tests.jar"/>
     <pathelement location="${lib.java.dir}/CFInterfaces.jar"/>
     <pathelement location="${lib.java.dir}/commons-lang3-3.12.0.jar"/>
+    <pathelement location="${lib.java.dir}/slf4j-api.jar"/>
+    <pathelement location="${lib.java.dir}/slf4j-log4j12.jar"/>
+    <pathelement location="${lib.java.dir}/reload4j.jar"/>
     <pathelement location="${lib.java.dir}/ossie/ossie.jar"/>
     <pathelement location="${lib.java.dir}/ossie/ossie-legacy.jar"/>
     <pathelement location="/usr/share/java/junit4.jar"/>
     <pathelement location="${env.JACORB_HOME}/lib/jacorb.jar"/>
     <pathelement location="${env.JACORB_HOME}/lib/jacorb-omgapi.jar"/>
     <pathelement location="${env.JACORB_HOME}/lib/jacorb-services.jar"/>
-    <pathelement location="${lib.java.dir}/slf4j-api.jar"/>
-    <pathelement location="${lib.java.dir}/slf4j-log4j12.jar"/>
-    <pathelement location="${lib.java.dir}/log4j.jar"/>
   </path>
 
   <target name="compile">

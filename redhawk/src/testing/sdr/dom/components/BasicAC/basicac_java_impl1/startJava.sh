@@ -29,4 +29,3 @@ done
 
 # NOTE: the $@ must be quoted "$@" for arguments to be passed correctly
 exec java -cp $classpath:$CLASSPATH basicac_java_impl1.basicac_java_impl1 "$@"
-

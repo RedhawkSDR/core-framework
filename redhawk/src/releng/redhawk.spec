@@ -207,7 +207,7 @@ ln -sf ${JACORB_HOME}/lib/jacorb-services-3.9.jar    %{buildroot}/usr/local/redh
 ln -sf ${JACORB_HOME}/lib/jacorb-services-3.9.jar    %{buildroot}/usr/local/redhawk/core/lib/jacorb-services-3.9.jar
 ln -sf %{_prefix}/lib/slf4j-api-1.7.32.jar    %{buildroot}/usr/local/redhawk/core/lib/slf4j-api.jar
 ln -sf %{_prefix}/lib/slf4j-log4j12-1.7.32.jar    %{buildroot}/usr/local/redhawk/core/lib/slf4j-log4j12.jar
-ln -sf %{_prefix}/lib/log4j-1.2.17.jar    %{buildroot}/usr/local/redhawk/core/lib/log4j.jar
+ln -sf %{_prefix}/lib/reload4j-1.2.19.jar    %{buildroot}/usr/local/redhawk/core/lib/reload4j.jar
 
 %clean
 rm -rf --preserve-root $RPM_BUILD_ROOT
@@ -255,8 +255,9 @@ fi
 %{_prefix}/lib/slf4j-api-1.7.32.jar
 %{_prefix}/lib/slf4j-log4j12.jar
 %{_prefix}/lib/slf4j-log4j12-1.7.32.jar
-%{_prefix}/lib/log4j.jar
-%{_prefix}/lib/log4j-1.2.17.jar
+%{_prefix}/lib/reload4j-1.2.19.jar
+%{_prefix}/lib/reload4j.jar
+%{_prefix}/lib/commons-lang3-3.12.0.jar
 %{_prefix}/lib/ossie.jar
 %{_prefix}/lib/commons-lang3-3.12.0.jar
 %{_prefix}/lib/jboss-rmi-api_1.0_spec-1.0.6.Final.jar

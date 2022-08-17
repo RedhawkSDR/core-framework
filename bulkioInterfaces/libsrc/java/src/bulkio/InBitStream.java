@@ -79,6 +79,10 @@ public class InBitStream extends InStreamBase {
         //self.__blockType = blockType
     }
 
+    public BULKIO.StreamSRI sri() {
+        return this._sri;
+    }
+
     public String streamID() {
         if (this._sri != null) {
             return this._sri.streamID;

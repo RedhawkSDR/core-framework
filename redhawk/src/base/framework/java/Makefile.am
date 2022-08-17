@@ -72,7 +72,7 @@ CFInterfaces_jar_MANIFEST = META-INF/MANIFEST.MF
 CFInterfaces_jar_JARADD = -C $(IDLJ_BUILDDIR) . -C $(omnijni_builddir)/src/java omnijni
 
 java_JARFILES = CFInterfaces.jar
-java_DATA = log4j-1.2.17.jar \
+java_DATA = reload4j-1.2.19.jar \
             commons-lang3-3.12.0.jar \
             jboss-rmi-api_1.0_spec-1.0.6.Final.jar \
             slf4j-api-1.7.32.jar slf4j-log4j12-1.7.32.jar
@@ -82,8 +82,8 @@ install-data-local: $(prefix)/lib/jacorb.jar \
                     $(prefix)/lib/jacorb-omgapi.jar \
                     $(prefix)/lib/jacorb-services.jar \
                     $(prefix)/lib/slf4j-api.jar \
-                    $(prefix)/lib/slf4j-log4j12.jar \
-                    $(prefix)/lib/log4j.jar
+                    $(prefix)/lib/slf4j-log4j12-1.7.32.jar \
+                    $(prefix)/lib/reload4j.jar
 
 $(prefix)/lib/jacorb.jar:
 	mkdir -p $(prefix)/lib
@@ -108,9 +108,9 @@ $(prefix)/lib/slf4j-log4j12.jar:
 	mkdir -p $(prefix)/lib
 	ln -sf $(prefix)/lib/slf4j-log4j12-1.7.32.jar $(prefix)/lib/slf4j-log4j12.jar
 
-$(prefix)/lib/log4j.jar:
+$(prefix)/lib/reload4j.jar:
 	mkdir -p $(prefix)/lib
-	ln -sf $(prefix)/lib/log4j-1.2.17.jar $(prefix)/lib/log4j.jar
+	ln -sf $(prefix)/lib/reload4j-1.2.19.jar $(prefix)/lib/reload4j.jar
 
 clean-local:
 	rm -rf $(IDLJ_BUILDDIR)
