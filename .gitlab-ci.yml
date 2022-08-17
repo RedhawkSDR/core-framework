@@ -1,7 +1,7 @@
 include:
   - project: 'mpf/rf/redhawk-ci/templates'
     file: 'Workflows/default.yml'
-    ref: develop-2.3
+    ref: develop-3.0
 
 variables:
   specfile: $project.spec
@@ -13,7 +13,7 @@ variables:
   rh_lts_branch: 'develop-3.0'
   # By default, pull dependencies from the REDHAWK branch, but should there be
   # a need to use a different set, override that here
-  redhawk_deps: 'develop'
+  redhawk_deps: $rh_lts_branch
   commit: $CI_COMMIT_SHA
   datetime: ""
 
@@ -62,7 +62,7 @@ stages:
                    --build-arg "arch=$arch"
                    --build-arg "spec_file=$specfile"
                    --build-arg "rpm_release=$rpm_release"
-                   --build-arg "other_repos=${other_repos}/yum/${rh_lts_branch}/$dist/$arch"
+                   --build-arg "other_repos=${other_repos}/yum/${redhawk_deps}/$dist/$arch"
                    --build-arg "local_repo=$local_repo" .
     # Create a yum repository from the packages we just built and any packages we've built in a previous stage
     - id=$(docker create -it ${docker_registry}redhawk/redhawk-rpmbuild:$proj_lower-$safe_ref-$dist-$arch bash -lc 'mkdir -p /tmp/repo;

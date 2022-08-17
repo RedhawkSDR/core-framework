@@ -82,7 +82,7 @@ install-data-local: $(prefix)/lib/jacorb.jar \
                     $(prefix)/lib/jacorb-omgapi.jar \
                     $(prefix)/lib/jacorb-services.jar \
                     $(prefix)/lib/slf4j-api.jar \
-                    $(prefix)/lib/log4j12.jar \
+                    $(prefix)/lib/slf4j-log4j12-1.7.32.jar \
                     $(prefix)/lib/reload4j.jar
 
 $(prefix)/lib/jacorb.jar:
@@ -107,10 +107,6 @@ $(prefix)/lib/slf4j-api.jar:
 $(prefix)/lib/slf4j-log4j12.jar:
 	mkdir -p $(prefix)/lib
 	ln -sf $(prefix)/lib/slf4j-log4j12-1.7.32.jar $(prefix)/lib/slf4j-log4j12.jar
-
-$(prefix)/lib/log4j.jar:
-	mkdir -p $(prefix)/lib
-	ln -sf $(prefix)/lib/log4j-1.2.17.jar $(prefix)/lib/log4j.jar
 
 $(prefix)/lib/reload4j.jar:
 	mkdir -p $(prefix)/lib
