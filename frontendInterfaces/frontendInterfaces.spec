@@ -35,18 +35,18 @@ Prefix: %{_prefix}
 
 Summary:        The frontend library for REDHAWK
 Name:           frontendInterfaces
-Version:        3.0.0
+Version:        3.0.1
 Release:        1%{?dist}
 License:        LGPLv3+
 Group:          REDHAWK/Interfaces
 Source:         %{name}-%{version}.tar.gz
 Vendor:         REDHAWK
 
-Requires:       redhawk >= 3.0.0
-Requires:       bulkioInterfaces >= 3.0.0
+Requires:       redhawk >= 3.0.1
+Requires:       bulkioInterfaces >= 3.0.1
 Requires:       java-11-openjdk jacorb
-BuildRequires:  redhawk-devel >= 3.0.0
-BuildRequires:  bulkioInterfaces >= 3.0.0
+BuildRequires:  redhawk-devel >= 3.0.1
+BuildRequires:  bulkioInterfaces >= 3.0.1
 BuildRequires:  cppunit-devel
 BuildRequires:  autoconf-archive
 BuildRequires:  java-11-openjdk-devel jacorb
