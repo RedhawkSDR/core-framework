@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
-codegen = '3.0.0'
+codegen = '3.0.1'
 redhawk = '3.0'
 jinja2 = '2.11'
 boost = '1.53'
