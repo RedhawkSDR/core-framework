@@ -1,4 +1,5 @@
 # IDE
+> **WARNING**:  The IDE has been deprecated as of REDHAWK version 3.0.0.
 
 The REDHAWK IDE leverages Java technologies and requires Java 8. The IDE also includes native libraries that allow the IDE to have a look and feel appropriate for the OS. A minimum of 2 GB of RAM is required, but 4 GB+ is recommended.
 

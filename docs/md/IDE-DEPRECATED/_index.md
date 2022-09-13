@@ -1,5 +1,7 @@
 # IDE
 
+> **WARNING**:  The IDE has been deprecated as of REDHAWK version 3.0.0.
+
 The REDHAWK IDE is a tool that enables developers to create, test, and deploy software for REDHAWK systems. This tool is built on Eclipse, which is a generic, extensible IDE that allows developers to add custom modules. The REDHAWK IDE, therefore, leverages all of the features available in a bare-bones Eclipse IDE while also providing customized features specific to REDHAWK development.
 
 The following features are included in the REDHAWK IDE:
