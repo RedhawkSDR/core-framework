@@ -144,7 +144,7 @@ fpaths_ordered = [
     'Sandbox/Python/sdds-data.md',
     'Sandbox/Python/plotting-data.md',
     'Sandbox/Python/misc.md',
-    'Sandbox/IDE/_index.md',
+    'Sandbox/IDE-DEPRECATED/_index.md',
 
     'Runtime-Environment/_index.md',
     'Runtime-Environment/launching-a-domain.md',

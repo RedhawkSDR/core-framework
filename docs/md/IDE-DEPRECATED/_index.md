@@ -1,4 +1,4 @@
-# IDE
+# IDE(DEPRECATED)
 
 > **WARNING**:  The IDE has been deprecated as of REDHAWK version 3.0.0.
 
