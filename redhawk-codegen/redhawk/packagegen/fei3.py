@@ -809,7 +809,7 @@ def generate_wavedev(devices_list, fei3_devices, output_dir, args):
 
     found_parent = None
     cpp_gen = ["redhawk.codegen.jinja.cpp.component.frontend" , "gov.redhawk.ide.codegen.jinja.cplusplus.CplusplusGenerator"]
-    python_gen = ["redhawk.redhawk.codegen.jinja.python.component.frontend", "gov.redhawk.ide.codegen.jinja.python.PythonGenerator"]
+    python_gen = ["redhawk.codegen.jinja.python.component.frontend", "gov.redhawk.ide.codegen.jinja.python.PythonGenerator"]
     java_gen = ["redhawk.codegen.jinja.java.component.frontend", "gov.redhawk.ide.codegen.jinja.java.JavaGenerator"]
     parent_dev = None
     child_devs = []
