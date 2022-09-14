@@ -1,5 +1,7 @@
 # IDE Sandbox (DEPRECATED)
 
+> **WARNING**:  The IDE has been deprecated as of REDHAWK version 3.0.0.
+
 The IDE-based sandbox provides a graphical environment for launching, inspecting, and debugging <abbr title="See Glossary.">components</abbr>, <abbr title="See Glossary.">devices</abbr>, <abbr title="See Glossary.">services</abbr>, and <abbr title="See Glossary.">waveforms</abbr>. The IDE-based sandbox can host an instance of a Python-based <abbr title="See Glossary.">sandbox</abbr>, with both interlinked, allowing artifacts from the Python environment to interact with those on the graphical UI.
 
 ### Launching Components in the IDE Sandbox
