@@ -1640,10 +1640,10 @@ def create_simple_property( className, property_name, property_definition ):
             enum=copy.copy(e)
             if type(e) != dict:
                 # convert singletons to tuple for dictionary processing
-                enum= {e,e}
+                enum= {e: e}
                 if attrs['type']!='string':
                     # if default non-string types to indexed value starting at 0
-                    enum={e,_ord}
+                    enum={e: _ord}
                     _ord +=1
             _label, _value = next(iter(enum.items()))
             enums.append( { 'label' : _label, 'value' : _value })
