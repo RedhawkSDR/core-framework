@@ -1,5 +1,7 @@
 # Waveform Editor
 
+> **WARNING**:  The IDE has been deprecated as of REDHAWK version 3.0.0.
+
 The following sections further describe the definition of the <abbr title="See Glossary.">waveform</abbr> as well as its creation and manipulation within the IDE. Like the Properties File (PRF), Software Component Descriptor (SCD), and Software Package Descriptor (SPD) XML files of a <abbr title="See Glossary.">component</abbr>, a waveform is completely represented by its Software Assembly Descriptor (SAD) file (`*.sad.xml`). The REDHAWK IDE provides a means of modifying the XML files without the need to directly edit this file by hand.
 
 ### Overview Tab
