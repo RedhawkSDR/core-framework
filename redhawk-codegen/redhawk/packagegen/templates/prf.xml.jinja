@@ -62,7 +62,7 @@ id="{{attrs.id}}" name="{{attrs.name}}"{% for attr_name in [ 'mode', 'complex', 
 {% if enums is defined and enums -%}
 <{{element_name}}>
 {%   for enum in enums %}
-  <{{enum_label}} label="{{enum.label}}", value="{{enum.value}}"/>
+  <{{enum_label}} label="{{enum.label}}" value="{{enum.value}}"/>
 {%   endfor %}
 </{{element_name}}>
 {% endif %}
