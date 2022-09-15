@@ -1,4 +1,4 @@
-# REDHAWK Manual - 3.0.0
+# REDHAWK Manual - 3.0.1
 
 REDHAWK is a software framework designed to support the design, development, deployment, management, upgrade, and recycling of real-time distributed applications as well as the systems that run them.
 
