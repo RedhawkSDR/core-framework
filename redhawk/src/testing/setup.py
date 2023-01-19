@@ -47,7 +47,7 @@ unitTestHelper = [
     '_unitTestHelpers.runtestHelpers',
     '_unitTestHelpers.buildconfig']
 
-version='2.2.9'
+version='2.2.10'
 
 setup(
     name='unitTestHelper',
