@@ -814,6 +814,11 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertEquals(comp.escape__structseq[0].val_2, "test")
         self.assertEquals(comp.escape__structseq[1].val__1, 22)
 
+    def test_loadSADFile_no_default_kind(self):
+        retval = sb.loadSADFile('sdr/dom/waveforms/time_py_now_w/time_py_now_w.sad.xml')
+        self.assertEquals(retval, True)
+        comp_ac = sb.getComponent('time_py_now_1')
+
     def test_loadSADFile(self):
         retval = sb.loadSADFile('sdr/dom/waveforms/ticket_462_w/ticket_462_w.sad.xml')
         self.assertEquals(retval, True)
