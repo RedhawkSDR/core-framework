@@ -819,6 +819,17 @@ class SBTestTest(scatest.CorbaTestCase):
         self.assertEquals(retval, True)
         comp_ac = sb.getComponent('time_py_now_1')
 
+    def test_loadSADFile_commandline(self):
+        retval = sb.loadSADFile('sdr/dom/waveforms/commandline_prop_w/commandline_prop_w.sad.xml', props={'testprop':'foo'})
+        self.assertEquals(retval, True)
+        comp = sb.getComponent('commandline_prop_1')
+        self.assertEquals(comp.testprop, 'foo')
+        comp_pid = str(comp._pid)
+        cmdline = str(open('/proc/'+comp_pid+'/cmdline', 'r').read().replace(b'\0', b' ').decode())
+        cmds = cmdline.split(' ')
+        self.assertEquals(cmds[-3], 'testprop')
+        self.assertEquals(cmds[-2], 'foo')
+
     def test_loadSADFile(self):
         retval = sb.loadSADFile('sdr/dom/waveforms/ticket_462_w/ticket_462_w.sad.xml')
         self.assertEquals(retval, True)

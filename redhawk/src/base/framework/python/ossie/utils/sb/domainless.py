@@ -803,6 +803,8 @@ def loadSADFile(filename, props={}):
                         if prop_check.get_mode() == 'readwrite' or prop_check.get_mode() == 'writeonly':
                             configurable[instanceName].append(str(prop_check.get_id()))
                     if prop_check.get_kind()[0].get_kindtype() == 'property':
+                        if prop_check.get_commandline() == 'true':
+                            execprops.append(str(prop_check.get_id()))
                         if prop_check.get_mode() == 'readwrite' or prop_check.get_mode() == 'writeonly':
                             configurable[instanceName].append(str(prop_check.get_id()))
                 for prop_check in _prf.get_simplesequence():
