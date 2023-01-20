@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This file is protected by Copyright. Please refer to the COPYRIGHT file
+distributed with this source distribution.
+
+This file is part of REDHAWK core.
+
+REDHAWK core is free software: you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version.
+
+REDHAWK core is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+details.
+
+You should have received a copy of the GNU Lesser General Public License along
+with this program.  If not, see http://www.gnu.org/licenses/.
+-->
+<!DOCTYPE softwareassembly PUBLIC "-//JTRS//DTD SCA V2.2.2 SAD//EN" "softwareassembly.dtd">
+<softwareassembly id="DCE:61057ef0-c1b1-4220-a301-d9bd8e2b4b2d" name="commandline_prop_w">
+  <componentfiles>
+    <componentfile id="commandline_prop_90b7d70d-cfc3-44e8-b49d-aafa5994e832" type="SPD">
+      <localfile name="/components/commandline_prop/commandline_prop.spd.xml"/>
+    </componentfile>
+  </componentfiles>
+  <partitioning>
+    <componentplacement>
+      <componentfileref refid="commandline_prop_90b7d70d-cfc3-44e8-b49d-aafa5994e832"/>
+      <componentinstantiation id="commandline_prop_1" startorder="0">
+        <usagename>commandline_prop_1</usagename>
+        <findcomponent>
+          <namingservice name="commandline_prop_1"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+    <componentplacement>
+      <componentfileref refid="commandline_prop_90b7d70d-cfc3-44e8-b49d-aafa5994e832"/>
+      <componentinstantiation id="commandline_prop_2" startorder="0">
+        <usagename>commandline_prop_2</usagename>
+        <findcomponent>
+          <namingservice name="commandline_prop_2"/>
+        </findcomponent>
+      </componentinstantiation>
+    </componentplacement>
+  </partitioning>
+  <assemblycontroller>
+    <componentinstantiationref refid="commandline_prop_1"/>
+  </assemblycontroller>
+  <externalproperties>
+    <property comprefid="commandline_prop_2" propid="testprop" externalpropid="my_external_prop"/>
+  </externalproperties>
+</softwareassembly>
