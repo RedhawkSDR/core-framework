@@ -887,7 +887,7 @@ class FileSource(_SourceBase):
         if self._midasFile:
             hdr, data = _bluefile.read(self._filename, list)
             if hdr['format'].endswith('B'):
-                dataFormat = 'char'
+                dataFormat = 'octet'
             elif hdr['format'].endswith('I'):
                 dataFormat = 'short'
             elif hdr['format'].endswith('L'):
