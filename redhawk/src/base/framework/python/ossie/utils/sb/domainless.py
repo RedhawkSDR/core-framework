@@ -803,6 +803,8 @@ def loadSADFile(filename, props={}):
                         if prop_check.get_mode() == 'readwrite' or prop_check.get_mode() == 'writeonly':
                             configurable[instanceName].append(str(prop_check.get_id()))
                     if prop_check.get_kind()[0].get_kindtype() == 'property':
+                        if prop_check.get_commandline() == 'true':
+                            execprops.append(str(prop_check.get_id()))
                         if prop_check.get_mode() == 'readwrite' or prop_check.get_mode() == 'writeonly':
                             configurable[instanceName].append(str(prop_check.get_id()))
                 for prop_check in _prf.get_simplesequence():
@@ -833,6 +835,14 @@ def loadSADFile(filename, props={}):
                         props.pop(simple.refid)
                     container = overloadContainer(str(simple.refid),overload_value)
                     simple_exec_vals[container.id] = container.value
+                for ep in externprops:
+                    if ep['comprefid'] != instanceID:
+                        continue
+                    if ep['propid'] in execprops and ep['externalpropid'] in props:
+                        overload_value = props[ep['externalpropid']]
+                        props.pop(ep['externalpropid'])
+                        container = overloadContainer(str(ep['propid']), overload_value)
+                        simple_exec_vals[container.id] = container.value
                 # If AC execparam property is overriden in props but not SAD file, update value
                 for prop in list(props):
                     if prop in execprops and instanceID == assemblyControllerRefid:
