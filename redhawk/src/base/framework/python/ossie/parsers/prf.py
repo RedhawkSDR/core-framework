@@ -836,7 +836,10 @@ class configurationKind(GeneratedsSuper):
         else:
             return configurationKind(*args_, **kwargs_)
     factory = staticmethod(factory)
-    def get_kindtype(self): return self.kindtype
+    def get_kindtype(self):
+        if len(self.kindtype) == 0:
+            return [configurationKind()]
+        return self.kindtype
     def set_kindtype(self, kindtype): self.kindtype = kindtype
     kindtypeProp = property(get_kindtype, set_kindtype)
     def validate_StructPropertyConfigurationType(self, value):
@@ -1171,7 +1174,10 @@ class kind(GeneratedsSuper):
         else:
             return kind(*args_, **kwargs_)
     factory = staticmethod(factory)
-    def get_kindtype(self): return self.kindtype
+    def get_kindtype(self):
+        if len(self.kindtype) == 0:
+            return [configurationKind()]
+        return self.kindtype
     def set_kindtype(self, kindtype): self.kindtype = kindtype
     kindtypeProp = property(get_kindtype, set_kindtype)
     def validate_PropertyConfigurationType(self, value):
@@ -1640,7 +1646,10 @@ class simple(GeneratedsSuper):
     def get_enumerations(self): return self.enumerations
     def set_enumerations(self, enumerations): self.enumerations = enumerations
     enumerationsProp = property(get_enumerations, set_enumerations)
-    def get_kind(self): return self.kind
+    def get_kind(self):
+        if len(self.kind) == 0:
+            return [configurationKind()]
+        return self.kind
     def set_kind(self, kind): self.kind = kind
     def add_kind(self, value): self.kind.append(value)
     def insert_kind_at(self, index, value): self.kind.insert(index, value)
@@ -2100,7 +2109,10 @@ class simpleSequence(GeneratedsSuper):
     def get_range(self): return self.range_
     def set_range(self, range_): self.range_ = range_
     rangeProp = property(get_range, set_range)
-    def get_kind(self): return self.kind
+    def get_kind(self):
+        if len(self.kind) == 0:
+            return [configurationKind()]
+        return self.kind
     def set_kind(self, kind): self.kind = kind
     def add_kind(self, value): self.kind.append(value)
     def insert_kind_at(self, index, value): self.kind.insert(index, value)

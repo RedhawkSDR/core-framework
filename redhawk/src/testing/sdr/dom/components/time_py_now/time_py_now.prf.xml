@@ -3,7 +3,6 @@
 <properties>
   <simple id="rightnow" mode="readwrite" type="utctime">
     <value>now</value>
-    <kind kindtype="property"/>
     <action type="external"/>
   </simple>
   <simple id="simple1970" mode="readwrite" type="utctime">
