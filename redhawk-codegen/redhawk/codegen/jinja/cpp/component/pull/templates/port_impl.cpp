@@ -27,7 +27,10 @@
 
 #include "${component.userclass.header}"
 
+/*{%   if component.isChild %}*/
+using namespace ${component.name}_ns;
 
+/*{%   endif %}*/
 /******************************************
  *
  * Logging:

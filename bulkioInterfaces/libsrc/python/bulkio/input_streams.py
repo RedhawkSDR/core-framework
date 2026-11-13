@@ -410,7 +410,7 @@ class BufferedInputStream(InputStream):
         if count is None:
             if consume is not None:
                 raise ValueError('cannot specify consume without count')
-            elif consume > count:
+            if consume and consume > 0:
                 raise ValueError('cannot specify consume larger than count')
             return InputStream.read(self)
         return self._read(count, consume, True)
@@ -487,7 +487,7 @@ class BufferedInputStream(InputStream):
         self._consumeData(count)
 
         # Convert scalars back to samples
-        return count / item_size
+        return count // item_size
 
     def _disable(self):
         # NB: A lock is not required to modify the internal stream queue state,

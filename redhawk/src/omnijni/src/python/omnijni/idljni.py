@@ -20,8 +20,8 @@
 
 import os
 from omniidl import idlast, idlvisitor, idltype
-import cppcode
-from typeinfo import *
+from . import cppcode
+from .typeinfo import *
 
 primitiveTypeMap = {
     idltype.tk_void:      'void',
@@ -231,10 +231,7 @@ def methodNameType (itype):
     return jtype[0].upper() + jtype[1:]
 
 def throwClause (exList):
-    if not exList:
-        return ''
-    names = ['::'.join(ex.scopedName()) for ex in exList]
-    return ' throw (' + ', '.join(names) +')'
+    return ''
 
 def mangleUnderscores (name):
     outname = ''

@@ -25,6 +25,8 @@
 #include <set>
 #include <string>
 
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
+
 #include <boost/thread.hpp>
 
 #include <BULKIO/bio_runtimeStats.h>

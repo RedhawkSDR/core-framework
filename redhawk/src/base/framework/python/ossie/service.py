@@ -27,7 +27,7 @@ from omniORB import CORBA
 from ossie.resource import load_logging_config_uri
 from ossie.cf import CF
 import ossie.logger
-import containers
+from . import containers
 import types
 
 def __exit_handler(signum, frame):
@@ -166,7 +166,7 @@ def start_service(serviceclass, thread_policy=None):
     
     if len(sys.argv) == 2:
         if sys.argv[1] == '-i':
-            print "Interactive mode (-i) no longer supported. Please use the sandbox to run Components/Devices/Services outside the scope of a Domain"
+            print("Interactive mode (-i) no longer supported. Please use the sandbox to run Components/Devices/Services outside the scope of a Domain")
             sys.exit(-1)
     try:
         # IMPORTANT YOU CANNOT USE gnu_getopt OR OptionParser
@@ -177,9 +177,9 @@ def start_service(serviceclass, thread_policy=None):
         # they cannot start with -, therefore this is safe
         opts, args = getopt.getopt(sys.argv[1:], "", [""])
     except getopt.GetoptError:
-        print "usage: %s [options] [execparams]" % sys.argv[0]
-        print
-        print serviceclass.__doc__
+        print("usage: %s [options] [execparams]" % sys.argv[0])
+        print()
+        print(serviceclass.__doc__)
         sys.exit(2)
 
     options = {}
@@ -220,11 +220,11 @@ def start_service(serviceclass, thread_policy=None):
             poaManager.activate()
            
             # If provided, get the device manager
-            if execparams.has_key("DEVICE_MGR_IOR"):
+            if "DEVICE_MGR_IOR" in execparams:
                 devMgr = orb.string_to_object(execparams["DEVICE_MGR_IOR"])
                 devMgr = devMgr._narrow(CF.DeviceManager)
            
-            if not execparams.has_key("SERVICE_NAME"):
+            if "SERVICE_NAME" not in execparams:
                 logging.warning("No 'SERVICE_NAME' argument provided")
                 execparams["SERVICE_NAME"] = ""
 
@@ -258,7 +258,7 @@ def start_service(serviceclass, thread_policy=None):
                 component_Obj._domMgr = containers.DomainManagerContainer(devMgr._get_domMgr())
                 devMgr.registerService(component_Var, execparams["SERVICE_NAME"])
             else:
-                print orb.object_to_string(component_Var)
+                print(orb.object_to_string(component_Var))
 
             ## sets up logging context for resource to support CF::Logging
             component_Obj.saveLoggingContext( log_config_uri, debug_level, ctx )

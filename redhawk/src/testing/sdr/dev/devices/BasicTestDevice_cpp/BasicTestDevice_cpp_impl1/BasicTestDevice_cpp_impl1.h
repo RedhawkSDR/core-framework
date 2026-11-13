@@ -52,12 +52,10 @@ class BasicTestDevice_cpp_impl1_i :
 
         ~BasicTestDevice_cpp_impl1_i(void);
 
-        CORBA::Boolean allocateCapacity (const CF::Properties & capacities)
-                throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState);
-        void deallocateCapacity (const CF::Properties & capacities)
-                throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState);
+        CORBA::Boolean allocateCapacity (const CF::Properties & capacities);
+        void deallocateCapacity (const CF::Properties & capacities);
 
-        void releaseObject() throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
+        void releaseObject();
 
         // main omni_thread function
         void loadProperties();

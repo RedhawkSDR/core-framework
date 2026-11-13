@@ -108,7 +108,7 @@ class ThreadedComponent(object):
         if process_thread:
             process_thread.stop()
             process_thread.join(timeout)
-            return not process_thread.isAlive()
+            return not process_thread.is_alive()
         else:
             return True
 

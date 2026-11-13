@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -86,7 +86,7 @@ class BitBufferTest(unittest.TestCase):
 
     def testFromGenerator(self):
         # Use a generator expresion to populate the bit data (0111, repeating)
-        buf = bitbuffer(bool(x%4) for x in xrange(48))
+        buf = bitbuffer(bool(x%4) for x in range(48))
         self.assertEqual(48, len(buf))
         expected = '\x77'*6
         self.assertEqual(expected, buf.bytes())
@@ -183,7 +183,7 @@ class BitBufferTest(unittest.TestCase):
 
     def testCopy(self):
         # Create a bitbuffer with known data: bit is set if index is odd
-        original = bitbuffer(x&1 for x in xrange(127))
+        original = bitbuffer(x&1 for x in range(127))
 
         # Make a copy and modify the original; the copy should be unaffected
         copied = copy.copy(original)
@@ -235,7 +235,7 @@ class BitBufferTest(unittest.TestCase):
 
     def testGetItemSlice(self):
         # Fill a new bit buffer with alternating 0's and 1's
-        buf = bitbuffer(x & 1 for x in xrange(12))
+        buf = bitbuffer(x & 1 for x in range(12))
 
         # Take a 4-bit slice from the middle and check that it has the expected
         # bits
@@ -450,12 +450,12 @@ class BitBufferTest(unittest.TestCase):
         ascii = buf.takeskip(7, 1, start=1)
 
         # Reconstruct the input text by taking 7 bits at a time
-        result = ''.join(chr(int(ascii[bit:bit+7])) for bit in xrange(0, len(ascii), 7))
+        result = ''.join(chr(int(ascii[bit:bit+7])) for bit in range(0, len(ascii), 7))
         self.assertEqual(msg, result)
 
         # Repeat with a starting and ending offset
         ascii = buf.takeskip(7, 1, start=41, end=97)
-        result = ''.join(chr(int(ascii[bit:bit+7])) for bit in xrange(0, len(ascii), 7))
+        result = ''.join(chr(int(ascii[bit:bit+7])) for bit in range(0, len(ascii), 7))
         self.assertEqual(msg[5:12], result)
 
     def testAdd(self):

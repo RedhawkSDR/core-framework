@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -107,12 +107,9 @@ class props_i(props_base):
 
     def onconfigure_prop_octetSeq(self, oldvalue, newvalue):
         if newvalue:
-            list = [x for x in newvalue]
-            list.reverse()
-            tmp = ''
-            for x in list:
-                tmp = tmp+x
-            self.octetSeq = tmp
+            _list = [x for x in newvalue]
+            _list.reverse()
+            self.octetSeq = _list[:]
 
     def onconfigure_prop_charSeq(self, oldvalue, newvalue):
         if newvalue:

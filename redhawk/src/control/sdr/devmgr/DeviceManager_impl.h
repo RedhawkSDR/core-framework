@@ -64,52 +64,38 @@ public:
                       const char *, bool *, const std::string&, int);
 
     ~DeviceManager_impl ();
-    char* deviceConfigurationProfile ()
-        throw (CORBA::SystemException);
+    char* deviceConfigurationProfile ();
 
-    CF::FileSystem_ptr fileSys ()
-        throw (CORBA::SystemException);
+    CF::FileSystem_ptr fileSys ();
 
-    char* identifier ()
-        throw (CORBA::SystemException);
+    char* identifier ();
 
-    char* label ()
-        throw (CORBA::SystemException);
+    char* label ();
 
-    CF::DomainManager_ptr domMgr ()
-        throw (CORBA::SystemException);
+    CF::DomainManager_ptr domMgr ();
 
-    CF::DeviceSequence * registeredDevices ()
-        throw (CORBA::SystemException);
+    CF::DeviceSequence * registeredDevices ();
 
-    CF::DeviceManager::ServiceSequence * registeredServices ()
-        throw (CORBA::SystemException);
+    CF::DeviceManager::ServiceSequence * registeredServices ();
 
     // Run this after the constructor
-    void postConstructor( const char*) throw (CORBA::SystemException, std::runtime_error);
+    void postConstructor( const char*);
 
     // Re-start all devices and services, and re-associate with the Domain
     void reset();
 
-    void registerDevice (CF::Device_ptr registeringDevice)
-        throw (CF::InvalidObjectReference, CORBA::SystemException);
+    void registerDevice (CF::Device_ptr registeringDevice);
 
-    void unregisterDevice (CF::Device_ptr registeredDevice)
-        throw (CF::InvalidObjectReference, CORBA::SystemException);
+    void unregisterDevice (CF::Device_ptr registeredDevice);
 
-    void shutdown ()
-        throw (CORBA::SystemException);
-    void _local_shutdown ()
-        throw (CORBA::SystemException);
+    void shutdown ();
+    void _local_shutdown ();
 
-    void registerService (CORBA::Object_ptr registeringService, const char* name)
-        throw (CF::InvalidObjectReference, CORBA::SystemException);
+    void registerService (CORBA::Object_ptr registeringService, const char* name);
 
-    void unregisterService (CORBA::Object_ptr registeredService, const char* name)
-        throw (CF::InvalidObjectReference, CORBA::SystemException);
+    void unregisterService (CORBA::Object_ptr registeredService, const char* name);
 
-    char* getComponentImplementationId (const char* componentInstantiationId)
-        throw (CORBA::SystemException);
+    char* getComponentImplementationId (const char* componentInstantiationId);
 
     bool getUseLogConfigResolver() { return _useLogConfigUriResolver; };
 
@@ -122,10 +108,10 @@ public:
     uint32_t  getClientWaitTime( ) { return CLIENT_WAIT_TIME; }
 
     // set the log level for one of the loggers on a component on the waveform
-    void setLogLevel( const char *logger_id, const CF::LogLevel newLevel ) throw (CF::UnknownIdentifier);
+    void setLogLevel( const char *logger_id, const CF::LogLevel newLevel );
 
     // get the log level from one of the loggers on a component on the waveform
-    CF::LogLevel getLogLevel( const char *logger_id ) throw (CF::UnknownIdentifier);
+    CF::LogLevel getLogLevel( const char *logger_id );
 
     // retrieves the list of named loggers from all the components associated with the waveform
     CF::StringSequence* getNamedLoggers();

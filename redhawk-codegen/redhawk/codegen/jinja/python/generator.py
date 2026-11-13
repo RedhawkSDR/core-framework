@@ -19,9 +19,21 @@
 #
 
 from redhawk.codegen.jinja.generator import CodeGenerator
+from redhawk.codegen.jinja.python import PythonTemplate
 
 class PythonCodeGenerator(CodeGenerator):
     def sourceFiles(self, component):
         for template in self.templates(component):
             if template.filename.endswith('.py'):
                 yield template.filename
+
+    def templatesChildren(self, component):
+        templates = []
+        if not component.get('children'):
+            return templates
+
+        for child_key in component['children']:
+            templates.append({child_key: PythonTemplate('resource.py', child_key+'/'+component['children'][child_key]['userclass']['file'], userfile=True)})
+            templates.append({child_key: PythonTemplate('base/__init__.py', child_key+'/__init__.py')})
+            templates.append({child_key: PythonTemplate('resource_base.py', child_key+'/'+component['children'][child_key]['baseclass']['file'])})
+        return templates

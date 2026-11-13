@@ -81,8 +81,7 @@ namespace bulkio {
 
     public:
 
-      virtual char* attach(const StreamDefinition& stream, const char* userid)
-        throw (typename PortType::AttachError, typename PortType::StreamInputError) = 0;
+      virtual char* attach(const StreamDefinition& stream, const char* userid) = 0;
 
       virtual void detach(const char* attachId) = 0;
 
@@ -188,8 +187,7 @@ namespace bulkio {
     // completion, this method returns an attachment identifier.  This identifier is required
     // to perform the detach operation
     //
-    virtual char* attach(const StreamDefinition& stream, const char* userid)
-      throw (typename PortType::AttachError, typename PortType::StreamInputError);
+    virtual char* attach(const StreamDefinition& stream, const char* userid);
 
     //
     // detach
@@ -692,8 +690,7 @@ namespace bulkio {
     // Send out a request to attach to the provided stream definition.  The end point servicing
     // this request will provide an attachment identifier that can be used by the detach request
     //    
-    virtual char* attach(const StreamDefinition& stream, const char* userid) 
-        throw (typename PortType::AttachError, typename PortType::StreamInputError);
+    virtual char* attach(const StreamDefinition& stream, const char* userid);
 
     //
     // detach

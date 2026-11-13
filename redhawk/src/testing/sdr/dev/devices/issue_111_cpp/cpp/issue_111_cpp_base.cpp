@@ -74,11 +74,11 @@ void issue_111_cpp_base::construct()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void issue_111_cpp_base::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException)
+void issue_111_cpp_base::initialize()
 {
 }
 
-void issue_111_cpp_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void issue_111_cpp_base::start()
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
     if (serviceThread == 0) {
@@ -91,7 +91,7 @@ void issue_111_cpp_base::start() throw (CORBA::SystemException, CF::Resource::St
     }
 }
 
-void issue_111_cpp_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void issue_111_cpp_base::stop()
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
     // release the child thread (if it exists)
@@ -108,7 +108,7 @@ void issue_111_cpp_base::stop() throw (CORBA::SystemException, CF::Resource::Sto
 }
 
 
-void issue_111_cpp_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void issue_111_cpp_base::releaseObject()
 {
     // This function clears the component running condition so main shuts down everything
     try {

@@ -18,6 +18,8 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
+
 #include <ossie/ProvidesPort.h>
 #include <ossie/PropertyMap.h>
 #include <ossie/ossieSupport.h>

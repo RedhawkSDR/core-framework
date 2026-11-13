@@ -175,7 +175,7 @@ def eraseKeyword(sri, name):
     Erases the first instance of the keyword "name" from the SRI keywords. If
     no keyword "name" is found, the keywords are not modified.
     """
-    for index in xrange(len(sri.keywords)):
+    for index in range(len(sri.keywords)):
         if sri.keywords[index].id == name:
             del sri.keywords[index]
             return

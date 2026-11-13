@@ -43,6 +43,8 @@ class NamingContextStub(CosNaming__POA.NamingContextExt):
     def __init__(self):
         self._context = {}
         self._lock = threading.RLock()
+        self._app = None
+        self._dommgr = None
 
     def bind(self, name, object):
         uri = URI.nameToString(name)
@@ -135,10 +137,10 @@ class ApplicationRegistrarStub(CF__POA.ApplicationRegistrar, NamingContextStub):
     operations.
     """
     def _get_app(self):
-        return None
+        return self._app
 
     def _get_domMgr(self):
-        return None
+        return self._dommgr
 
     def registerComponent(self, name, obj):
         with self._lock:

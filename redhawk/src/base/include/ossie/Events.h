@@ -362,14 +362,12 @@ namespace events {
     //
     // Request a Publisher on a specified Event Channel
     //
-    PublisherPtr Publisher( const std::string &channelName, const std::string &registrationId="" ) 
-      throw(RegistrationExists, RegistrationFailed );
+    PublisherPtr Publisher( const std::string &channelName, const std::string &registrationId="" );
  
     //
     // Request a Subscriber to a specified Event Channel
     //
-    SubscriberPtr  Subscriber( const std::string &channelName, const std::string &registrationId="" )
-      throw (RegistrationExists, RegistrationFailed );
+    SubscriberPtr  Subscriber( const std::string &channelName, const std::string &registrationId="" );
 
   private:
 

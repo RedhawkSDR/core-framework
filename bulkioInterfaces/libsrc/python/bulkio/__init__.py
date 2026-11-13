@@ -40,14 +40,14 @@ that support this library:
 #
 
 # 
-from statistics import *
+from .statistics import *
 
-import timestamp
+from . import timestamp
 
-import sri
+from . import sri
 
-import const
+from . import const
 
-from input_ports import *
+from .input_ports import *
 
-from output_ports import *
+from .output_ports import *

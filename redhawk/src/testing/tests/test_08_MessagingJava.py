@@ -73,13 +73,13 @@ class EventPortConnectionsTest(scatest.CorbaTestCase):
         time.sleep(2)
         components = app._get_registeredComponents()
         for component in components:
-            print component.componentObject._get_identifier()
+            print(component.componentObject._get_identifier())
             if 'DCE:b1fe6cc1-2562-4878-9a69-f191f89a6ef8' in component.componentObject._get_identifier():
                 stuff = component.componentObject.query([])
         recval = any.from_any(stuff[0].value)
-        self.assertEquals(6, len(recval))
+        self.assertEqual(6, len(recval))
         for val in recval:
-            self.assertEquals('test_message' in val, True)
+            self.assertEqual('test_message' in val, True)
         app.releaseObject() # kill producer/consumer
 
     def test_EventDevicePortConnectionJavaOnly(self):
@@ -97,13 +97,13 @@ class EventPortConnectionsTest(scatest.CorbaTestCase):
         app.start() # kick off events
         time.sleep(2)
         for component in components:
-            print component.componentObject._get_identifier()
+            print(component.componentObject._get_identifier())
             if 'EventReceiveJava_1' in component.componentObject._get_identifier():
                 stuff = component.componentObject.query([CF.DataType("received_messages", any.to_any(None))])
         recval = any.from_any(stuff[0].value)
-        self.assertEquals(6, len(recval))
+        self.assertEqual(6, len(recval))
         for val in recval:
-            self.assertEquals('test_message' in val, True)
+            self.assertEqual('test_message' in val, True)
         app.releaseObject() # kill producer/consumer
 
     def test_QueryablePortJava(self):

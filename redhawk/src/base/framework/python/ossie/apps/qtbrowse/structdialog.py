@@ -19,9 +19,10 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-
-from PyQt4.QtGui import *
-from structdialogbase import StructDialogBase
+from PyQt5 import QtGui, QtCore, uic, QtWidgets
+from PyQt5.QtWidgets import QMainWindow, QApplication
+from PyQt5.QtCore import *
+from .structdialogbase import StructDialogBase
 
 
 class StructDialog(StructDialogBase):

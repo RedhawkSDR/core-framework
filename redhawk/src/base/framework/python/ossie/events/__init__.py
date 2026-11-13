@@ -21,7 +21,7 @@
 import sys
 import time as _time
 import threading
-import Queue
+import queue
 import copy
 import logging
 import atexit
@@ -39,10 +39,10 @@ import CosEventChannelAdmin, CosEventChannelAdmin__POA
 import CosNaming
 import CosLifeCycle
 
-from DomainEventWriter import *
-from Publisher import *
-from Subscriber import *
-from Manager import *
+from .DomainEventWriter import *
+from .Publisher import *
+from .Subscriber import *
+from .Manager import *
 
 
 ##
@@ -62,14 +62,14 @@ class PropertyEventSupplier(CF__POA.Port):
 
     def sendEvent(self, event):
             self._component._log.debug("sendEvent %s %s", event, self._outPorts)
-            for connectionId, connection in self._outPorts.items():
+            for connectionId, connection in list(self._outPorts.items()):
                 self._component._log.debug("Sending event to '%s'", connectionId)
                 if 'proxy_consumer' not in connection:
                     continue
                 try:
                     connection['proxy_consumer'].push(event)
                 except:
-                    self._component._log.warn("Unable to send PropertySetChangeEventType to '%s': %s", connectionId, sys.exc_info()[0])
+                    self._component._log.warning("Unable to send PropertySetChangeEventType to '%s': %s", connectionId, sys.exc_info()[0])
 
     def sendPropertyEvent(self, id):
         self.sendPropertiesEvent((id,))
@@ -81,7 +81,7 @@ class PropertyEventSupplier(CF__POA.Port):
             return
 
         if ids is None:
-            ids = [prop.id_ for prop in self._component._props.values() if prop.isSendEventChange()]
+            ids = [prop.id_ for prop in list(self._component._props.values()) if prop.isSendEventChange()]
         self._component._log.debug("sendPropertiesEvent %s", ids)
         
         properties = []
@@ -100,7 +100,7 @@ class PropertyEventSupplier(CF__POA.Port):
 
     def sendChangedPropertiesEvent(self):
         eventable_ids = []
-        for prop_id in self._component._props.keys():
+        for prop_id in list(self._component._props.keys()):
             prop_def = self._component._props.getPropDef(prop_id)
             if prop_def.isSendEventChange():
                 newValue = self._component._props[prop_id]
@@ -122,12 +122,12 @@ class PropertyEventSupplier(CF__POA.Port):
         try:
             channel = connection._narrow(CosEventChannelAdmin.EventChannel)
         except:
-            self._component._log.warn("Could not narrow channel object: %s", sys.exc_info()[0])
+            self._component._log.warning("Could not narrow channel object: %s", sys.exc_info()[0])
             return
         self._outPorts[str(connectionId)] = self._connectSupplierToEventChannel(channel)
 
     def disconnectPort (self, connectionId):
-        if self._outPorts.has_key(str(connectionId)):
+        if str(connectionId) in self._outPorts:
             try:
                 consumer = self._outPorts[connectionId]['proxy_consumer']
                 consumer.disconnect_push_consumer()
@@ -146,7 +146,7 @@ class PropertyEventSupplier(CF__POA.Port):
             proxy_consumer.connect_push_supplier(None)
             connection['proxy_consumer'] = proxy_consumer
         except:
-            self._component._log.warn("Failed to connect to event channel")
+            self._component._log.warning("Failed to connect to event channel")
 
         return connection
 
@@ -360,7 +360,7 @@ class MessageConsumerPort(ExtendedEvent__POA.MessageEvent, threading.Thread):
         self._pauseMe=True
         self.state = threading.Condition()
         self.setDaemon(True)
-        self.actionQueue = Queue.Queue()
+        self.actionQueue = queue.Queue()
         self.thread_sleep = thread_sleep
         self._messages = {}
         self._allMsg = []
@@ -384,13 +384,13 @@ class MessageConsumerPort(ExtendedEvent__POA.MessageEvent, threading.Thread):
         try:
             channel = connection._narrow(CosEventChannelAdmin.EventChannel)
         except:
-            print "WARNING: Could not narrow channel object: %s" % (sys.exc_info()[0])
-            print connection._NP_RepositoryId
+            print("WARNING: Could not narrow channel object: %s" % (sys.exc_info()[0]))
+            print(connection._NP_RepositoryId)
             return
         self._connections[str(connectionId)] = self._connectConsumerToEventChannel(channel, str(connectionId))
 
     def disconnectPort (self, connectionId):
-        if self._connections.has_key(str(connectionId)):
+        if str(connectionId) in self._connections:
             supplier = self._connections[connectionId]['proxy_supplier']
             del self._connections[connectionId]
             supplier.disconnect_push_supplier()
@@ -471,7 +471,7 @@ class MessageConsumerPort(ExtendedEvent__POA.MessageEvent, threading.Thread):
                 elif action == 'message':
                     values = payload.value(CF._tc_Properties)
                     if values is None:
-                        print 'WARNING: Unrecognized message type', payload.typecode()
+                        print('WARNING: Unrecognized message type', payload.typecode())
                     for value in values:
                         id = value.id
                         if id in self._messages:
@@ -479,16 +479,16 @@ class MessageConsumerPort(ExtendedEvent__POA.MessageEvent, threading.Thread):
                             tmp_value = struct_from_any(value.value, msgstruct, strictComplete=False)
                             try:
                                 callback(id, tmp_value)
-                            except Exception, e:
-                                print "Callback for message "+str(id)+" failed with exception: "+str(e)
+                            except Exception as e:
+                                print("Callback for message "+str(id)+" failed with exception: "+str(e))
                         for allMsg in self._allMsg:
                             if self._storeMessages:
                                 self._storedMessages.append(prop_to_dict(value))
                             callback = allMsg[1]
                             try:
                                 callback(id, value)
-                            except Exception, e:
-                                print "Callback for message "+str(id)+" failed with exception: "+str(e)
+                            except Exception as e:
+                                print("Callback for message "+str(id)+" failed with exception: "+str(e))
             else:
                 _time.sleep(self.thread_sleep)
 
@@ -511,8 +511,8 @@ class MessageSupplierPort(ExtendedCF__POA.QueryablePort):
         try:
             channel = connection._narrow(CosEventChannelAdmin.EventChannel)
         except:
-            print "WARNING: Could not narrow channel object: %s" % (sys.exc_info()[0])
-            print connection._NP_RepositoryId
+            print("WARNING: Could not narrow channel object: %s" % (sys.exc_info()[0]))
+            print(connection._NP_RepositoryId)
             self.portInterfaceAccess.release()
             return
         self._connections[str(connectionId)] = self._connectSupplierToEventChannel(channel)
@@ -522,7 +522,7 @@ class MessageSupplierPort(ExtendedCF__POA.QueryablePort):
     def disconnectPort (self, connectionId):
         self.portInterfaceAccess.acquire()
         try:
-            if self._connections.has_key(str(connectionId)):
+            if str(connectionId) in self._connections:
                 consumer = self._connections[connectionId]['proxy_consumer']
                 consumer.disconnect_push_consumer()
                 del self._connections[connectionId]
@@ -559,7 +559,7 @@ class MessageSupplierPort(ExtendedCF__POA.QueryablePort):
         try:
             self._push( data, connectionId )
         except CORBA.MARSHAL:
-            self._port_log.warn("Could not deliver the message. Maximum message size exceeded")
+            self._port_log.warning("Could not deliver the message. Maximum message size exceeded")
 
 
     # CosEventComm.PushSupplier delegation
@@ -578,16 +578,16 @@ class MessageSupplierPort(ExtendedCF__POA.QueryablePort):
         with self.portInterfaceAccess:
             self._checkConnectionId(connectionId)
 
-            for identifier, connection in self._connections.iteritems():
+            for identifier, connection in self._connections.items():
                 if not self._isConnectionSelected(identifier, connectionId):
                     continue
 
                 try:
                     connection['proxy_consumer'].push(data)
-                except CORBA.MARSHAL, e:
+                except CORBA.MARSHAL as e:
                     raise e
                 except:
-                    self._port_log.warn("WARNING: Unable to send data to " + identifier)
+                    self._port_log.warning("WARNING: Unable to send data to " + identifier)
 
 
     def sendMessage(self, data_struct, connectionId=None):
@@ -633,25 +633,25 @@ class MessageSupplierPort(ExtendedCF__POA.QueryablePort):
             self._push(outmsg, connectionId)
         except CORBA.MARSHAL:
             if len(data_structs) == 1:
-                self._port_log.warn("Could not deliver the message id="+str(msgid)+". Maximum message size exceeded")
+                self._port_log.warning("Could not deliver the message id="+str(msgid)+". Maximum message size exceeded")
             else:
-                self._port_log.warn("Could not deliver the message. Maximum message size exceeded, trying individually")
+                self._port_log.warning("Could not deliver the message. Maximum message size exceeded, trying individually")
                 # try resending individually
                 for msg in data_structs:
                     outm = props_to_any([CF.DataType(id=msg.getId(),value=struct_to_any(msg))])
                     try:
                         self._push(outm,connectionId)
                     except CORBA.MARSHAL:
-                        self._port_log.warn("Could not deliver the message id="+str(msg.getId())+". Maximum message size exceeded")
+                        self._port_log.warning("Could not deliver the message id="+str(msg.getId())+". Maximum message size exceeded")
                         break
                     except:
-                        print "WARNING: Unable to send data to",connection
+                        print("WARNING: Unable to send data to",connection)
 
     def disconnect_push_supplier(self):
         pass
 
     def _get_connections(self):
-        return [ExtendedCF.UsesConnection(k, v['port']) for k, v in self._connections.iteritems()]
+        return [ExtendedCF.UsesConnection(k, v['port']) for k, v in self._connections.items()]
 
     def _isConnectionSelected(self, connectionId, targetId):
         if not targetId:

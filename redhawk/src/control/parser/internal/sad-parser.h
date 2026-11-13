@@ -29,7 +29,7 @@
 
 namespace ossie {
     namespace internalparser {
-        std::auto_ptr<ossie::SoftwareAssembly::SAD> parseSAD(std::istream& input) throw (ossie::parser_error);
+        std::unique_ptr<ossie::SoftwareAssembly::SAD> parseSAD(std::istream& input);
     }
 }
 

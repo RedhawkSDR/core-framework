@@ -20,7 +20,7 @@
 import time
 import copy
 import math
-
+from cmath  import isclose
 from ossie.cf import CF
 from omniORB import any as _any
 
@@ -129,6 +129,43 @@ def compare(t1, t2):
     else:
         return cmp(t1.twsec, t2.twsec)
 
+def _equal(t1, t2):
+    if  not isinstance(t1, CF.UTCTime) or not isinstance(t2, CF.UTCTime):
+        return False
+    return isclose(t1.twsec,t2.twsec) and isclose(t1.tfsec, t2.tfsec)
+
+def _lt(t1, t2):
+    if  not isinstance(t1, CF.UTCTime) or not isinstance(t2, CF.UTCTime):
+        return False    
+    ret=(t1.twsec<t2.twsec)
+    if not ret and isclose(t1.twsec,t2.twsec):
+         ret=(t1.tfsec < t2.tfsec)
+    return ret
+
+def _le(t1, t2):
+    if  not isinstance(t1, CF.UTCTime) or not isinstance(t2, CF.UTCTime):
+        return False        
+    ret=(t1.twsec<t2.twsec)
+    if not ret and isclose(t1.twsec,t2.twsec):
+         ret=(t1.tfsec <= t2.tfsec)
+    return ret
+
+def _gt(t1, t2):
+    if  not isinstance(t1, CF.UTCTime) or not isinstance(t2, CF.UTCTime):
+        return False
+    ret=(t1.twsec>t2.twsec)
+    if not ret and isclose(t1.twsec,t2.twsec):
+         ret=(t1.tfsec > t2.tfsec)
+    return ret
+
+def _ge(t1, t2):
+    if  not isinstance(t1, CF.UTCTime) or not isinstance(t2, CF.UTCTime):
+        return False 
+    ret=(t1.twsec>t2.twsec)
+    if not ret and isclose(t1.twsec,t2.twsec):
+         ret=(t1.tfsec >= t2.tfsec)
+    return ret
+
 def toString(tstamp):
     # Break out the whole seconds into a GMT time
     gmt = time.gmtime(tstamp.twsec)
@@ -156,3 +193,8 @@ CF.UTCTime.__sub__ = sub
 CF.UTCTime.__isub__ = isub
 CF.UTCTime.__str__ = toString
 CF.UTCTime.__cmp__ = compare
+CF.UTCTime.__eq__ = _equal
+CF.UTCTime.__lt__ = _lt
+CF.UTCTime.__le__ = _le
+CF.UTCTime.__gt__ = _gt
+CF.UTCTime.__ge__ = _ge

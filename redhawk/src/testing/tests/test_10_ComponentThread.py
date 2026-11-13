@@ -37,56 +37,56 @@ class ComponentThreadTest(scatest.CorbaTestCase):
     def test_defaultDelay(self):
         self.comp = sb.launch('check_noop')
         self.comp.start()
-        self.assertEquals(self.comp.evaluate, 'done')
-        self.assertEquals(self.comp.average_delay, 0.0)
+        self.assertEqual(self.comp.evaluate, 'done')
+        self.assertEqual(self.comp.average_delay, 0.0)
         self.comp.evaluate = 'go'
         begin_time = time.time()
         while time.time()-begin_time < self.timeout and self.comp.evaluate != 'done':
             time.sleep(0.1)
-        self.assertAlmostEquals(self.comp.average_delay, 0.1, places=2)
+        self.assertAlmostEqual(self.comp.average_delay, 0.1, places=2)
 
     # check that the delay can change to something other than the default
     def test_updateDelay(self):
         self.comp = sb.launch('check_noop')
         self.comp.start()
-        self.assertEquals(self.comp.evaluate, 'done')
-        self.assertEquals(self.comp.average_delay, 0.0)
+        self.assertEqual(self.comp.evaluate, 'done')
+        self.assertEqual(self.comp.average_delay, 0.0)
         self.comp.evaluate = 'go'
         begin_time = time.time()
         while time.time()-begin_time < self.timeout and self.comp.evaluate != 'done':
             time.sleep(0.1)
-        self.assertAlmostEquals(self.comp.average_delay, 0.1, places=2)
+        self.assertAlmostEqual(self.comp.average_delay, 0.1, places=2)
         new_delay = 0.05
         self.comp.noop_delay = new_delay
         self.comp.evaluate = 'go'
         begin_time = time.time()
         while time.time()-begin_time < self.timeout and self.comp.evaluate != 'done':
             time.sleep(0.1)
-        self.assertAlmostEquals(self.comp.average_delay, new_delay, places=2)
+        self.assertAlmostEqual(self.comp.average_delay, new_delay, places=2)
 
     # check that the delay can change multiple times
     # also check that delays can be shorted or longer than the default delay
     def test_changeDelay(self):
         self.comp = sb.launch('check_noop')
         self.comp.start()
-        self.assertEquals(self.comp.evaluate, 'done')
-        self.assertEquals(self.comp.average_delay, 0.0)
+        self.assertEqual(self.comp.evaluate, 'done')
+        self.assertEqual(self.comp.average_delay, 0.0)
         self.comp.evaluate = 'go'
         begin_time = time.time()
         while time.time()-begin_time < self.timeout and self.comp.evaluate != 'done':
             time.sleep(0.1)
-        self.assertAlmostEquals(self.comp.average_delay, 0.1, places=2)
+        self.assertAlmostEqual(self.comp.average_delay, 0.1, places=2)
         new_delay = 0.05
         self.comp.noop_delay = new_delay
         self.comp.evaluate = 'go'
         begin_time = time.time()
         while time.time()-begin_time < self.timeout and self.comp.evaluate != 'done':
             time.sleep(0.1)
-        self.assertAlmostEquals(self.comp.average_delay, new_delay, places=2)
+        self.assertAlmostEqual(self.comp.average_delay, new_delay, places=2)
         new_delay = 0.15
         self.comp.noop_delay = new_delay
         self.comp.evaluate = 'go'
         begin_time = time.time()
         while time.time()-begin_time < self.timeout and self.comp.evaluate != 'done':
             time.sleep(0.1)
-        self.assertAlmostEquals(self.comp.average_delay, new_delay, places=2)
+        self.assertAlmostEqual(self.comp.average_delay, new_delay, places=2)

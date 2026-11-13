@@ -26,7 +26,7 @@ from redhawk.codegen.lang.idl import IDLInterface, IDLStruct
 from redhawk.codegen.jinja.ports import PortFactory
 from redhawk.codegen.jinja.cpp import CppTemplate
 
-from generator import CppPortGenerator
+from .generator import CppPortGenerator
 
 from ossie.utils.sca.importIDL import SequenceType, BaseType
 

@@ -18,6 +18,7 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <functional>
 
 #include "ThresholdMonitor.h"

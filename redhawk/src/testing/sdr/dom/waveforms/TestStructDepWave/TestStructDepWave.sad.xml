@@ -20,7 +20,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 -->
 
 <!DOCTYPE softwareassembly PUBLIC '-//JTRS//DTD SCA V2.2.2 SAD//EN' 'softwareassembly.dtd'>
-<softwareassembly id="DCE:0a1c1379-6f55-47b5-b493-ffa56a7e41c0" name="TestStructDepWave" version="1.0">
+<softwareassembly id="DCE:0a1c1379-6f55-47b5-b493-ffa56a7e41c0" name="TestStructDepWave">
     <componentfiles>
         <componentfile id="TestStructDep_592b8bd6-b011-4468-9417-705af45e907b" type="SPD">
             <localfile name="/components/TestStructDep/TestStructDep.spd.xml"/>

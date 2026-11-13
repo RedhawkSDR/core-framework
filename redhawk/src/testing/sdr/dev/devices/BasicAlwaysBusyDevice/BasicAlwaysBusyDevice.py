@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -25,7 +25,7 @@ from ossie.device import ExecutableDevice, AggregateDevice, start_device
 from ossie.properties import simple_property, simpleseq_property, struct_property
 import os, sys, stat
 from omniORB import URI, any
-import commands, copy, time, signal, pprint, subprocess
+import subprocess, copy, time, signal, pprint, subprocess
 import logging
 import signal
 import shutil

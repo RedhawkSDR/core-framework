@@ -882,6 +882,7 @@ namespace rh_logger {
     LoggerPtr ret;
     if ( name != "" ) {
       if (newroot) {
+        // L4HierarchyPtr tmpHierarchy(new L4Hierarchy(name));
         L4HierarchyPtr tmpHierarchy(new L4Hierarchy(name));
 
         // make sure that the new root logger inherit the log level from the global root logger

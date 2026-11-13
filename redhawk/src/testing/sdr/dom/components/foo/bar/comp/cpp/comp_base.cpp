@@ -44,13 +44,13 @@ comp_base::~comp_base()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void comp_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void comp_base::start()
 {
     Component::start();
     ThreadedComponent::startThread();
 }
 
-void comp_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void comp_base::stop()
 {
     Component::stop();
     if (!ThreadedComponent::stopThread()) {
@@ -58,7 +58,7 @@ void comp_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
     }
 }
 
-void comp_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void comp_base::releaseObject()
 {
     // This function clears the component running condition so main shuts down everything
     try {

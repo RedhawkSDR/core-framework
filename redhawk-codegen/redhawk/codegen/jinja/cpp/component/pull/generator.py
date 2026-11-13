@@ -26,7 +26,7 @@ from redhawk.codegen.jinja.cpp.properties import CppPropertyMapper
 from redhawk.codegen.jinja.cpp.ports import CppPortMapper, CppPortFactory
 from redhawk.codegen.jinja.template import TemplateFile
 
-from mapping import PullComponentMapper
+from .mapping import PullComponentMapper
 
 if not '__package__' in locals():
     # Python 2.4 compatibility
@@ -83,7 +83,10 @@ class PullComponentGenerator(CppCodeGenerator):
         templates = set()
         for generator in component['portgenerators']:
             if generator.hasDeclaration():
-                generator.setHeader('"port_impl.h"')
+                if component.get('isChild'):
+                    generator.setHeader('"'+component['name']+'_port_impl.h"')
+                else:
+                    generator.setHeader('"port_impl.h"')
                 templates.add('port_impl.h')
             if generator.hasImplementation():
                 templates.add('port_impl.cpp')

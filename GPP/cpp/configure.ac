@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
-AC_INIT(GPP, 2.2.10)
+AC_INIT(GPP, 4.0.4)
 AM_INIT_AUTOMAKE([foreign nostdinc subdir-objects])
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -33,8 +33,8 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 # Dependencies
 export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:/usr/local/lib/pkgconfig"
-PKG_CHECK_MODULES([PROJECTDEPS], [ossie >= 2.2 omniORB4 >= 4.1.0  ])
-OSSIE_ENABLE_LOG4CXX
+PKG_CHECK_MODULES([PROJECTDEPS], [ossie >= 4.0 omniORB4 >= 4.1.0  ])
+#OSSIE_ENABLE_LOG4CXX
 AX_BOOST_BASE([1.41])
 AX_BOOST_SYSTEM
 AX_BOOST_THREAD

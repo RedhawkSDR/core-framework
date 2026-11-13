@@ -10,7 +10,7 @@
     <code type="SharedLibrary">
       <localfile name="share"/>
     </code>
-    <compiler name="/usr/bin/gcc" version="4.1.2"/>
+    <compiler name="devtoolset" version="9"/>
     <os name="Linux"/>
   </implementation>
 </softpkg>

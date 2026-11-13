@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-from generator import ProgrammableComponentGenerator, loader
+from .generator import ProgrammableComponentGenerator, loader
 
 def factory(**opts):
     return ProgrammableComponentGenerator(**opts)

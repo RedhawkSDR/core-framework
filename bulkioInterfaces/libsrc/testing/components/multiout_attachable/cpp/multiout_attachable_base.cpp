@@ -67,13 +67,13 @@ multiout_attachable_base::~multiout_attachable_base()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void multiout_attachable_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void multiout_attachable_base::start() 
 {
     Resource_impl::start();
     ThreadedComponent::startThread();
 }
 
-void multiout_attachable_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void multiout_attachable_base::stop() 
 {
     Resource_impl::stop();
     if (!ThreadedComponent::stopThread()) {
@@ -81,7 +81,7 @@ void multiout_attachable_base::stop() throw (CORBA::SystemException, CF::Resourc
     }
 }
 
-void multiout_attachable_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void multiout_attachable_base::releaseObject() 
 {
     // This function clears the component running condition so main shuts down everything
     try {

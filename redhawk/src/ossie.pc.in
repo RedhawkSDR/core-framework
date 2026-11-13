@@ -5,11 +5,11 @@ includedir=${prefix}/include
 extraincludedir=${prefix}/include/ossie
 idldir=${prefix}/share/idl
 javadir=@javadir@
-classpath=${javadir}/ossie.jar:${javadir}/CFInterfaces.jar:${javadir}/reload4j.jar:${javadir}/apache-commons-lang-2.4.jar
+classpath=${javadir}/ossie.jar:${javadir}/CFInterfaces.jar:${javadir}/jacorb-3.9.jar:${javadir}/jacorb-omgapi-3.9.jar:${javadir}/jacorb-services-3.9.jar:${javadir}/slf4j-api-1.7.36.jar:${javadir}/slf4j-reload4j-1.7.36.jar:${javadir}/reload4j.jar:${javadir}/commons-lang3-3.12.0.jar:${javadir}/jboss-rmi-api_1.0_spec-1.0.6.Final.jar
 
 Name: ossie
 Description: OSSIE Core Framework
 Requires:
 Version: @VERSION@
 Libs: -L${libdir} -lossiecf -lossieidl @OMNICOS_LIBS@ @OMNIORB_LIBS@ @OMNIDYNAMIC_LIBS@ 
-Cflags: -I${includedir} -I${extraincludedir} -I${idldir} @OMNICOS_CFLAGS@ @OMNIORB_CFLAGS@ @OMNIDYNAMIC_CFLAGS@ @LOG4CXX_CFLAGS@ @ENABLE_EVENTS_FLAGS@
+Cflags: -I${includedir} -I${extraincludedir} -I${idldir} @OMNICOS_CFLAGS@ @OMNIORB_CFLAGS@ @OMNIDYNAMIC_CFLAGS@ -I/usr/local/include/log4cxx @ENABLE_EVENTS_FLAGS@

@@ -241,7 +241,6 @@ int ${className}::serviceFunction()
 
 /*{% if component is device %}*/
 CORBA::Boolean ${className}::allocateCapacity(const CF::Properties& capacities)
-        throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::InsufficientCapacity, CORBA::SystemException) 
 {
     bool allocationSuccess = false;
 
@@ -264,7 +263,6 @@ CORBA::Boolean ${className}::allocateCapacity(const CF::Properties& capacities)
 }
 
 void ${className}::deallocateCapacity(const CF::Properties& capacities)
-        throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CORBA::SystemException) 
 {
 
     /*

@@ -68,7 +68,7 @@ public class StructSequenceProperty<T extends StructDef> extends AbstractSequenc
         for (final Any item : AnySeqHelper.extract(any)) {
             T itemValue;
             try {
-                itemValue = this.structClass.newInstance();
+                itemValue = this.structClass.getDeclaredConstructor().newInstance();
             } catch (Exception ex) {
                 throw new IllegalArgumentException("Unable to construct new struct value: " + ex.getMessage(), ex);
             }

@@ -70,11 +70,11 @@ void CppTestDevice_base::construct()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void CppTestDevice_base::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException)
+void CppTestDevice_base::initialize()
 {
 }
 
-void CppTestDevice_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void CppTestDevice_base::start()
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
     if (serviceThread == 0) {
@@ -87,7 +87,7 @@ void CppTestDevice_base::start() throw (CORBA::SystemException, CF::Resource::St
     }
 }
 
-void CppTestDevice_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void CppTestDevice_base::stop()
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
     // release the child thread (if it exists)
@@ -103,7 +103,7 @@ void CppTestDevice_base::stop() throw (CORBA::SystemException, CF::Resource::Sto
     }
 }
 
-void CppTestDevice_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void CppTestDevice_base::releaseObject()
 {
     // This function clears the device running condition so main shuts down everything
     try {

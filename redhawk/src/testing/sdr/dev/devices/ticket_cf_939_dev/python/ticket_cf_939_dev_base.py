@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -32,7 +32,7 @@ from ossie.utils import uuid
 from ossie.device import ExecutableDevice 
 from ossie.properties import simple_property
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 
 NOOP = -1
 NORMAL = 0
@@ -106,7 +106,7 @@ class ticket_cf_939_dev_base(CF__POA.ExecutableDevice, ExecutableDevice):
                 if process_thread != None:
                     process_thread.stop()
                     process_thread.join(self.TIMEOUT)
-                    if process_thread.isAlive():
+                    if process_thread.is_alive():
                         raise CF.Resource.StopError(CF.CF_NOTSET, "Processing thread did not die")
                 ExecutableDevice.stop(self)
             finally:

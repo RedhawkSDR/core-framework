@@ -94,13 +94,13 @@ void GPP_base::construct()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void GPP_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void GPP_base::start()
 {
     ExecutableDevice_impl::start();
     ThreadedComponent::startThread();
 }
 
-void GPP_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void GPP_base::stop()
 {
     ExecutableDevice_impl::stop();
     if (!ThreadedComponent::stopThread()) {
@@ -108,7 +108,7 @@ void GPP_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
     }
 }
 
-void GPP_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void GPP_base::releaseObject()
 {
     // This function clears the device running condition so main shuts down everything
     try {
@@ -395,13 +395,13 @@ void GPP_base::loadProperties()
                 "external",
                 "configure");
 
-    addProperty(mcastnicVLANs,
+    /*addProperty(mcastnicVLANs,
                 "DCE:65544aad-4c73-451f-93de-d4d76984025a",
                 "mcastnicVLANs",
                 "readwrite",
                 "",
                 "external",
-                "allocation");
+                "allocation");*/
 
     // Set the sequence with its initial values
     nic_interfaces.push_back("e.*");

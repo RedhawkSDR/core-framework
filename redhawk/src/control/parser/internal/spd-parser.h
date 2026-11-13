@@ -27,7 +27,7 @@
 
 namespace ossie {
     namespace internalparser {
-        std::auto_ptr<ossie::SPD> parseSPD(std::istream& input) throw (ossie::parser_error);
+        std::unique_ptr<ossie::SPD> parseSPD(std::istream& input);
     }
 }
 #endif

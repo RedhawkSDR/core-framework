@@ -42,12 +42,10 @@ public:
     };
 
     // Override this method with component specific initialization.
-    void initialize ()
-    throw (CF::LifeCycle::InitializeError, CORBA::SystemException);
+    void initialize ();
 
     // Override this method with the code require to release the object.
-    void releaseObject ()
-    throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
+    void releaseObject ();
 
 };
 #endif                                            /*  */

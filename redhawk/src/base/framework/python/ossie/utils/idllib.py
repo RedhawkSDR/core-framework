@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
-import commands
+import subprocess
 import os
 import glob
 import threading
@@ -39,7 +39,7 @@ class UnknownInterfaceError(IDLError):
         super(UnknownInterfaceError, self).__init__("Unknown IDL interface '"+repoid+"'")
 
 def _pkgconfigVar(name, variable):
-    status, path = commands.getstatusoutput('pkg-config --variable=%s %s' % (variable, name))
+    status, path = subprocess.getstatusoutput('pkg-config --variable=%s %s' % (variable, name))
     if status == 0:
         return path
     else:

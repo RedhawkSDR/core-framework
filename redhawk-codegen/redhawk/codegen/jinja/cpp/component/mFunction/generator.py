@@ -24,7 +24,7 @@ from redhawk.codegen.jinja.template import TemplateFile
 from redhawk.codegen.jinja.cpp import CppTemplate
 from redhawk.codegen import versions
 
-from mapping import MFunctionMapper
+from .mapping import MFunctionMapper
 
 if not '__package__' in locals():
     # Python 2.4 compatibility
@@ -99,11 +99,11 @@ class OctaveComponentGenerator(PullComponentGenerator):
         # in the code template.
         component['vararginList'] = []
 
-        if component.has_key('properties'):
+        if 'properties' in component:
             for property in component['properties']:
                 if property['cppname'].find("varargin") == 0:
                     component['vararginList'].append(property['cppname'])
-        if component.has_key('ports'):
+        if 'ports' in component:
             for port in component['ports']:
                 if port['cppname'].find("varargin") == 0:
                     component['vararginList'].append(port['cppname'])

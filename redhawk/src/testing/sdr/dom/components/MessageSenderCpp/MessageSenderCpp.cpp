@@ -41,7 +41,7 @@ MessageSenderCpp::~MessageSenderCpp (void)
 
 }
 
-CORBA::Object_ptr MessageSenderCpp::getPort (const char* name) throw (CF::PortSupplier::UnknownPort, CORBA::SystemException)
+CORBA::Object_ptr MessageSenderCpp::getPort (const char* name)
 {
     if (strcmp(name, "message_out") != 0) {
         throw CF::PortSupplier::UnknownPort();
@@ -50,7 +50,7 @@ CORBA::Object_ptr MessageSenderCpp::getPort (const char* name) throw (CF::PortSu
     return message_out->_this();
 }
 
-void MessageSenderCpp::releaseObject (void) throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void MessageSenderCpp::releaseObject (void)
 {
     PortableServer::POA_ptr root_poa = ossie::corba::RootPOA();
     PortableServer::ObjectId_var oid = root_poa->servant_to_id(message_out);
@@ -59,7 +59,7 @@ void MessageSenderCpp::releaseObject (void) throw (CORBA::SystemException, CF::L
     Resource_impl::releaseObject();
 }
 
-void MessageSenderCpp::start (void) throw (CF::Resource::StartError)
+void MessageSenderCpp::start (void)
 {
     test_message_struct tmp;
     tmp.item_float = 1.0;

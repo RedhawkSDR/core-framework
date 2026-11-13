@@ -33,7 +33,7 @@ PREPARE_LOGGING(props_i)
 props_i::props_i(const char *uuid, const char *label) :
     props_base(uuid, label)
 {
-    old_bool = false;
+    getPropertyFromId("boolSimple")->enableNil(true);
     setPropertyChangeListener("stringSimple", this, &props_i::stringSimpleChanged);
     setPropertyChangeListener("boolSimple", this, &props_i::boolSimpleChanged);
     setPropertyChangeListener("ulongSimple", this, &props_i::ulongSimpleChanged);
@@ -73,12 +73,7 @@ void props_i::stringSimpleChanged (const std::string& id)
 
 void props_i::boolSimpleChanged (const std::string& id)
 {
-    if (!old_bool) {
-        boolSimple = !boolSimple;
-        old_bool = true;
-    } else {
-        old_bool = false;
-    }
+    boolSimple = !boolSimple;
 }
 
 void props_i::ulongSimpleChanged (const std::string& id)

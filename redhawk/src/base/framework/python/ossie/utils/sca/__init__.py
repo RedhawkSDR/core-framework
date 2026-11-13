@@ -23,8 +23,8 @@
 This package contains utilities related to
 sca functionality.
 """
-import base
-from base import *
+from . import base
+from .base import *
 
-import importIDL
-import importResource
+from . import importIDL
+from . import importResource

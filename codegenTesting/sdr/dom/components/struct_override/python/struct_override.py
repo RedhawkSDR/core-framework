@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -41,8 +41,8 @@ class struct_override_i(struct_override_base):
 
         """
         # TODO add customization here.
-        print self.Foobar.foo
-        print self._Foobar()
+        print(self.Foobar.foo)
+        print(self._Foobar())
         
     def process(self):
         """

@@ -69,4 +69,4 @@ clean-local:
 	test ! -h redhawk/burstio || rm redhawk/burstio
 
 install-exec-hook: source-link
-	python setup.py install -f --$(PYTHON_INSTALL_SCHEME)=$(DESTDIR)$(prefix)
+	python3 setup.py install -f --$(PYTHON_INSTALL_SCHEME)=$(DESTDIR)$(prefix)

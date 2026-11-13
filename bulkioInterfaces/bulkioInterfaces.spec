@@ -22,13 +22,14 @@
 # You can override this at install time using --prefix /usr/local/redhawk/core when invoking rpm (preferred)
 %{!?_ossiehome: %global _ossiehome /usr/local/redhawk/core}
 %define _prefix %{_ossiehome}
+%define __python /usr/bin/python3
 Prefix:         %{_prefix}
 
 # Assume Java support by default. Use "rpmbuild --without java" to disable
 %bcond_without java
 
 Name:           bulkioInterfaces
-Version:        2.2.10
+Version:        4.0.4
 Release:        1%{?dist}
 Summary:        The bulkio library for REDHAWK
 
@@ -53,7 +54,7 @@ Libraries and interface definitions for bulkio interfaces.
 
 %build
 ./reconf
-%configure %{?_without_java: --disable-java}
+%configure
 make %{?_smp_mflags}
 
 
@@ -79,11 +80,6 @@ rm -rf --preserve-root $RPM_BUILD_ROOT
 %if 0%{?rhel} >= 6 || 0%{?fedora} >= 12
 %{_prefix}/lib/python/bulkio-%{version}-py%{python_version}.egg-info
 %{_prefix}/lib/python/bulkioInterfaces-%{version}-py%{python_version}.egg-info
-%endif
-%if %{with java}
-%{_prefix}/lib/BULKIOInterfaces.jar
-%{_prefix}/lib/bulkio.jar
-%{_prefix}/%{_lib}/libbulkiojni.*
 %endif
 
 

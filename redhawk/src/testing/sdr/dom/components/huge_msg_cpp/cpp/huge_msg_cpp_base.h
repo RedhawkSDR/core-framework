@@ -14,11 +14,11 @@ class huge_msg_cpp_base : public Component, protected ThreadedComponent
         huge_msg_cpp_base(const char *uuid, const char *label);
         ~huge_msg_cpp_base();
 
-        void start() throw (CF::Resource::StartError, CORBA::SystemException);
+        void start();
 
-        void stop() throw (CF::Resource::StopError, CORBA::SystemException);
+        void stop();
 
-        void releaseObject() throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
+        void releaseObject();
 
         void loadProperties();
 

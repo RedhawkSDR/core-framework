@@ -166,8 +166,6 @@ void PropertySet_impl::setCommandLineProperty(const std::string& id, const redha
 
 void
 PropertySet_impl::initializeProperties(const CF::Properties& ctorProps)
-throw (CF::PropertyEmitter::AlreadyInitialized, CF::PropertySet::PartialConfiguration,
-       CF::PropertySet::InvalidConfiguration, CORBA::SystemException)
 {
     TRACE_ENTER(PropertySet_impl);
     boost::mutex::scoped_lock lock(propertySetAccess);
@@ -213,8 +211,6 @@ throw (CF::PropertyEmitter::AlreadyInitialized, CF::PropertySet::PartialConfigur
 
 void
 PropertySet_impl::configure (const CF::Properties& configProperties)
-throw (CORBA::SystemException, CF::PropertySet::InvalidConfiguration,
-       CF::PropertySet::PartialConfiguration)
 {
     TRACE_ENTER(PropertySet_impl);
     boost::mutex::scoped_lock lock(propertySetAccess);
@@ -300,7 +296,6 @@ throw (CORBA::SystemException, CF::PropertySet::InvalidConfiguration,
 
 void
 PropertySet_impl::query (CF::Properties& configProperties)
-throw (CORBA::SystemException, CF::UnknownProperties)
 {
     TRACE_ENTER(PropertySet_impl);
     boost::mutex::scoped_lock lock(propertySetAccess);
@@ -370,7 +365,6 @@ throw (CORBA::SystemException, CF::UnknownProperties)
 }
 
 char *PropertySet_impl::registerPropertyListener( CORBA::Object_ptr listener, const CF::StringSequence &prop_ids, const CORBA::Float interval) 
-  throw(CF::UnknownProperties, CF::InvalidObjectReference)
 {
 
   RH_TRACE(_propertysetLog, "Start RegisterListener");
@@ -490,7 +484,6 @@ char *PropertySet_impl::registerPropertyListener( CORBA::Object_ptr listener, co
 }
 
 void PropertySet_impl::unregisterPropertyListener( const char *reg_id )   
-      throw(CF::InvalidIdentifier)
 {
   {
     SCOPED_LOCK(propertySetAccess);

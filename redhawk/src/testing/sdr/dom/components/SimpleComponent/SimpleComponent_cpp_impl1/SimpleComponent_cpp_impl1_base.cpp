@@ -57,13 +57,13 @@ SimpleComponent_cpp_impl1_base::~SimpleComponent_cpp_impl1_base(void)
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void SimpleComponent_cpp_impl1_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void SimpleComponent_cpp_impl1_base::start()
 {
     Component::start();
     ThreadedComponent::startThread();
 }
 
-void SimpleComponent_cpp_impl1_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void SimpleComponent_cpp_impl1_base::stop()
 {
     Component::stop();
     if (!ThreadedComponent::stopThread()) {
@@ -71,7 +71,7 @@ void SimpleComponent_cpp_impl1_base::stop() throw (CORBA::SystemException, CF::R
     }
 }
 
-void SimpleComponent_cpp_impl1_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void SimpleComponent_cpp_impl1_base::releaseObject()
 {
     // This function clears the component running condition so main shuts down everything
     try {
@@ -83,7 +83,7 @@ void SimpleComponent_cpp_impl1_base::releaseObject() throw (CORBA::SystemExcepti
     Component::releaseObject();
 }
 
-void SimpleComponent_cpp_impl1_base::configure(const CF::Properties& props) throw (CORBA::SystemException, CF::PropertySet::InvalidConfiguration, CF::PropertySet::PartialConfiguration)
+void SimpleComponent_cpp_impl1_base::configure(const CF::Properties& props)
 {
     PropertySet_impl::configure(props);
 }

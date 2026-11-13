@@ -22,7 +22,7 @@ from redhawk.codegen.lang.idl import IDLInterface
 from redhawk.codegen.lang import java
 from redhawk.codegen.jinja.ports import PortFactory
 
-from generator import JavaPortGenerator
+from .generator import JavaPortGenerator
 
 class BulkioPortFactory(PortFactory):
     NAMESPACE = 'BULKIO'

@@ -171,8 +171,8 @@ namespace frontend {
 
             // Device specific allocation handling
             virtual CF::Device::UsageType updateUsageState();
-            virtual CORBA::Boolean allocateCapacity(const CF::Properties & capacities) throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState);
-            virtual void deallocateCapacity(const CF::Properties & capacities)throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState);
+            virtual CORBA::Boolean allocateCapacity(const CF::Properties & capacities);
+            virtual void deallocateCapacity(const CF::Properties & capacities);
 
         protected:
             typedef std::map<std::string, size_t> string_number_mapping;
@@ -303,7 +303,7 @@ namespace frontend {
             virtual void construct();
 
 	protected:
-            virtual void _deallocateCapacity(const CF::Properties & capacities)throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState);
+            virtual void _deallocateCapacity(const CF::Properties & capacities);
             virtual bool _removeTunerMapping(size_t tuner_id, std::string allocation_id);
             virtual bool _removeTunerMapping(size_t tuner_id);            
     };

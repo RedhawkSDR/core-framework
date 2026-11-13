@@ -88,13 +88,11 @@ void File_impl::setIOR( const std::string &ior)
 }
 
 char* File_impl::fileName ()
-    throw (CORBA::SystemException)
 {
     return CORBA::string_dup(fName.c_str());
 }
 
 void File_impl::read (CF::OctetSequence_out data, CORBA::ULong length)
-    throw (CORBA::SystemException, CF::File::IOException)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
 
@@ -130,7 +128,6 @@ void File_impl::read (CF::OctetSequence_out data, CORBA::ULong length)
 
 
 void File_impl::write (const CF::OctetSequence& data)
-    throw (CORBA::SystemException, CF::File::IOException)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
 
@@ -148,7 +145,6 @@ void File_impl::write (const CF::OctetSequence& data)
 
 
 CORBA::ULong File_impl::sizeOf ()
-    throw (CORBA::SystemException, CF::FileException)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
 
@@ -158,7 +154,6 @@ CORBA::ULong File_impl::sizeOf ()
 }
 
 void File_impl::close ()
-    throw (CORBA::SystemException, CF::FileException)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
 
@@ -202,7 +197,6 @@ void File_impl::close ()
 
 
 CORBA::ULong File_impl::filePointer ()
-    throw (CORBA::SystemException)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
 
@@ -212,7 +206,6 @@ CORBA::ULong File_impl::filePointer ()
 };
 
 void File_impl::setFilePointer (CORBA::ULong _filePointer)
-    throw (CORBA::SystemException, CF::File::InvalidFilePointer, CF::FileException)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
 
@@ -227,7 +220,6 @@ void File_impl::setFilePointer (CORBA::ULong _filePointer)
 }
 
 CORBA::ULong File_impl::getSize ()
-    throw (CF::FileException)
 {
     struct stat filestat;
     if (fstat(fd, &filestat)) {

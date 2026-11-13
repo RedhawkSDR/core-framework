@@ -18,38 +18,52 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 import os
-import imp
+import importlib
 import sys
-import commands
+import subprocess
 
 def loadModule(filename):
     if filename == '':
-        raise RuntimeError, 'Empty filename cannot be loaded'
-    print "Loading module %s" % (filename)
+        raise RuntimeError('Empty filename cannot be loaded')
+    print("Loading module %s" % (filename))
     searchPath, file = os.path.split(filename)
     if not searchPath in sys.path: 
         sys.path.append(searchPath)
         sys.path.append(os.path.normpath(searchPath+"/../"))
     moduleName, ext = os.path.splitext(file)
-    fp, pathName, description = imp.find_module(moduleName, [searchPath,])
+    mod_filename = filename.replace('/','.')
+    mod_filename = mod_filename[:mod_filename.find('.py')]
+    module = importlib.import_module(mod_filename)
+    # fp, pathName, description = imp.find_module(moduleName, [searchPath,])
 
-    try:
-        module = imp.load_module(moduleName, fp, pathName, description)
-    finally:
-        if fp:
-            fp.close()
+    # try:
+    #     module = imp.load_module(moduleName, fp, pathName, description)
+    # finally:
+    #     if fp:
+    #         fp.close()
 
     return module
 
 def getUnitTestFiles(rootpath, testFileGlob="test_*.py"):
     rootpath = os.path.normpath(rootpath) + "/"
-    print "Searching for files in %s with prefix %s" % (rootpath, testFileGlob)
-    test_files = commands.getoutput("find %s -name '%s'" % (rootpath, testFileGlob))
+    print("Searching for files in %s with prefix %s" % (rootpath, testFileGlob))
+    test_files = subprocess.getoutput("find %s -name '%s'" % (rootpath, testFileGlob))
     files = test_files.split('\n')
     if files == ['']:
         files = []
     files.sort()
     return files
+
+def haveAffinitySupport(filename):
+    fp=open(filename,'r')
+    makefile_lines = fp.readlines()
+    fp.close()
+    affinity_support = True
+    for line in makefile_lines:
+        if 'OSSIE_AFFINITY' in line:
+            if line.split('=')[1][:3] == ' no':
+                affinity_support = False
+    return affinity_support
 
 def haveJavaSupport(filename):
     fp=open(filename,'r')

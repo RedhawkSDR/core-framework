@@ -53,14 +53,14 @@ class Traits(object):
         Floating point types (float, double) return a 1-D array of native
         complex values.
         """
-        return self.toArray(data).reshape(len(data)/2, 2)
+        return self.toArray(data).reshape(len(data)//2, 2)
 
 class CharTraits(Traits):
     """
     Traits class for types that serialize as string data in CORBA.
     """
     def toArray(self, data):
-        return numpy.fromstring(data, dtype=self.NativeType)
+        return numpy.frombuffer(data, dtype=self.NativeType).copy()
 
     # Clone the parent toArray docstring
     toArray.__doc__ = Traits.toArray.__doc__

@@ -20,7 +20,7 @@
 #% set className = component.baseclass.name
 #% set superclass = component.superclasses[0].name
 #% set artifactType = component.artifacttype
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # AUTO-GENERATED CODE.  DO NOT MODIFY!
 #
@@ -49,7 +49,7 @@ from ossie.properties import simpleseq_property
 from ossie.properties import structseq_property
 #{% endif %}
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 #{% for portgen in component.portgenerators %}
 #{%   if loop.first %}
 from ossie.resource import usesport, providesport, PortCallError
@@ -68,6 +68,14 @@ from frontend import FRONTEND
 #{% block baseadditionalimports %}
 #{# Allow additional child class imports #}
 #{% endblock %}
+#{% if component.isChild or component.isParent %}
+from ossie.dynamiccomponent import DynamicComponent
+#{% endif %}
+#{% if component.children %}
+#{%   for childname, childcomponent in component.children.items() %}
+import ${childname}
+#{%   endfor %}
+#{% endif %}
 
 #{% import "base/properties.py" as properties with context %}
 #{% for prop in component.properties if prop is enumerated %}
@@ -77,7 +85,11 @@ class enums:
     ${properties.enumvalues(prop)|indent(4)}
 
 #{% endfor %}
-class ${className}(${component.poaclass}, ${component.superclasses|join(', ', attribute='name')}, ThreadedComponent):
+#% set baseClassComponent = "ThreadedComponent"
+#{% if component.isChild or component.isParent %}
+#%    set baseClassComponent = "ThreadedComponent, DynamicComponent"
+#{% endif %}
+class ${className}(${component.poaclass}, ${component.superclasses|join(', ', attribute='name')}, ${baseClassComponent}):
         # These values can be altered in the __init__ of your derived class
 
         PAUSE = 0.0125 # The amount of time to sleep if process return NOOP
@@ -96,6 +108,9 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
             Component.__init__(self, identifier, execparams, loggerName=loggerName)
 #{% endif %}
             ThreadedComponent.__init__(self)
+#{% if component.isChild or component.isParent %}
+            DynamicComponent.__init__(self)
+#{% endif %}
 
 #{% if 'FrontendTuner' in component.implements %}
             self.listeners={}
@@ -127,6 +142,7 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
 
 #{% if component.hasmultioutport %}
         def updated_connectionTable(self, id, oldval, newval):
+            pass
 #{% for port in component.ports if port.multiout %}
             self.${port.pyname}.updateConnectionFilter(newval)
 #{% endfor %}
@@ -135,9 +151,11 @@ class ${className}(${component.poaclass}, ${component.superclasses|join(', ', at
         def releaseObject(self):
             try:
                 self.stop()
-            except Exception:
+            except Exception as e:
                 self._baseLog.exception("Error stopping")
+#{% if not component.isChild %}
             ${superclass}.releaseObject(self)
+#{% endif %}
 
         ######################################################################
         # PORTS

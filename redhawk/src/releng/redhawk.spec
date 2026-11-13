@@ -23,12 +23,13 @@
 %{!?_ossiehome:  %global _ossiehome  /usr/local/redhawk/core}
 %{!?_sdrroot:    %global _sdrroot    /var/redhawk/sdr}
 %global _prefix %{_ossiehome}
+%global __python %{__python3}building rpms
 Prefix:         %{_ossiehome}
 Prefix:         %{_sdrroot}
 Prefix:         %{_sysconfdir}
 
 Name:           redhawk
-Version:        2.2.10
+Version:        4.0.4
 Release:        1%{?dist}
 Summary:        REDHAWK is a Software Defined Radio framework
 
@@ -40,20 +41,18 @@ Vendor:         REDHAWK
 
 %global __arch_install_post %{nil}
 
-Requires:       util-linux-ng
-Requires:       java >= 1:1.8.0
+Requires:       util-linux
+#Requires:       java >= 1:1.8.0
 
-Requires:       gstreamer-python
 %if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
-Requires:       gstreamer1-plugins-base
-Requires:       python-matplotlib-qt4
+Requires:       python3-matplotlib
 Requires:       numactl-libs
 %else
 Requires:       gstreamer-plugins-base
 Requires:       python-matplotlib
 %endif
 
-Requires:       python
+Requires:       python3
 %if 0%{?fedora} == 16 || 0%{?rhel} == 6
 Requires:       python-lxml
 Requires:       python-omniORB >= 3.0
@@ -61,22 +60,27 @@ Requires:       omniORB-devel >= 4.1.0
 Requires:       bash-completion
 %endif
 %if 0%{?rhel} >= 7 || 0%{?fedora} >= 17
-Requires:       python-omniORB > 4.2.2
+Requires:       python3-omniORB > 4.2.2
 Requires:       omniORB-devel > 4.2.2
 %endif
-Requires:       numpy
+Requires:       python3-numpy
 Requires:       binutils
 Requires:       numactl
 Requires:       sqlite
+# Pinned to the log4cxx RPM built by the core-framework pipeline (ABI soname
+# liblog4cxx.so.11). The auto-generated soname dependency also enforces this.
+Requires:       log4cxx = 0.11.0
 
+BuildRequires:  log4cxx-devel = 0.11.0
 BuildRequires:  libuuid-devel
-BuildRequires:  boost-devel >= 1.41
+BuildRequires:  libcurl-devel
+BuildRequires:  jsoncpp-devel
+BuildRequires:  boost-devel >= 1.75
 BuildRequires:  autoconf automake libtool
 BuildRequires:  expat-devel
 BuildRequires:  java-1.8.0-openjdk-devel
 BuildRequires:  python-setuptools
-BuildRequires:  python-devel >= 2.4
-BuildRequires:  log4cxx-devel >= 0.10
+BuildRequires:  python-devel >= 3.9
 %if 0%{?fedora} == 16 || 0%{?rhel} == 6
 BuildRequires:  omniORB-devel >= 4.1.0
 BuildRequires:  omniORBpy-devel >= 3.0
@@ -85,7 +89,7 @@ BuildRequires:  omniORBpy-devel >= 3.0
 BuildRequires:  omniORB-devel > 4.2.2
 BuildRequires:  omniORBpy-devel > 4.2.2
 %endif
-BuildRequires:  libomniEvents2-devel
+#BuildRequires:  libomniEvents2-devel
 BuildRequires:  xsd >= 3.3.0
 BuildRequires:  cppunit-devel
 BuildRequires:  numactl-devel
@@ -100,7 +104,7 @@ REDHAWK is a Software Defined Radio framework.
 Summary:        PyQt Tools
 Group:          Applications/Engineering
 Requires:       %{name} = %{version}-%{release}
-Requires:       PyQt4
+Requires:       python3-qt5
 
 %description qt-tools
 PyQt-based applications (qtbrowse and rhlauncher)
@@ -142,7 +146,6 @@ Requires:       redhawk = %{version}-%{release}
 Requires:       libuuid-devel
 Requires:       boost-devel >= 1.41
 Requires:       autoconf automake libtool
-Requires:       log4cxx-devel >= 0.10
 Requires:       numactl-devel
 
 # omniORB / omniORBpy
@@ -151,15 +154,14 @@ Requires:       numactl-devel
 Requires:       omniORB-devel >= 4.1.0
 Requires:       omniORBpy-devel >= 3.0
 %endif
-%if 0%{?fedora} == 17 || 0%{?rhel} == 7
+%if 0%{?fedora} >= 17 || 0%{?rhel} >= 7
 Requires:       omniORB-devel > 4.2.2
 Requires:       omniORBpy-devel > 4.2.2
 %endif
-Requires:       omniORB-doc
 # Languages
 Requires:       gcc-c++
-Requires:       python-devel >= 2.4
-Requires:       java-1.8.0-openjdk-devel
+Requires:       python3-devel >= 3.9
+Requires:       java-21-openjdk-devel
 
 %description devel
 This package ensures that all requirements for REDHAWK development are installed. It also provides a useful development utilities.
@@ -189,7 +191,7 @@ cd src
 make install DESTDIR=$RPM_BUILD_ROOT
 
 # add symlink to reload4j-<version>.jar
-ln -sf %{_prefix}/lib/reload4j-1.2.19.jar    %{buildroot}/usr/local/redhawk/core/lib/reload4j.jar
+#ln -sf %{_prefix}/lib/reload4j-1.2.19.jar    %{buildroot}/usr/local/redhawk/core/lib/reload4j.jar
 
 %clean
 rm -rf --preserve-root $RPM_BUILD_ROOT
@@ -226,18 +228,18 @@ fi
 %ifarch x86_64
 %dir %{_prefix}/lib64
 %endif
-%{_prefix}/lib/CFInterfaces.jar
-%{_prefix}/lib/apache-commons-lang-2.4.jar
-%{_prefix}/lib/reload4j-1.2.19.jar
-%{_prefix}/lib/reload4j.jar
-%{_prefix}/lib/ossie.jar
+# %{_prefix}/lib/CFInterfaces.jar
+# %{_prefix}/lib/apache-commons-lang-2.4.jar
+# %{_prefix}/lib/reload4j-1.2.19.jar
+# %{_prefix}/lib/reload4j.jar
+# %{_prefix}/lib/ossie.jar
 %{_prefix}/lib/python
 %exclude %{_prefix}/lib/python/ossie/apps/qtbrowse
 %exclude %{_prefix}/lib/python/ossie/apps/rhlauncher
-%{_libdir}/libomnijni.so.*
-%{_libdir}/libomnijni.so
+# %{_libdir}/libomnijni.so.*
+# %{_libdir}/libomnijni.so
 %{_libdir}/libossiecf.so.*
-%{_libdir}/libossiecfjni.so.*
+# %{_libdir}/libossiecfjni.so.*
 %{_libdir}/libossieidl.so.*
 %{_libdir}/libossieparser.so.*
 %{_libdir}/libossielogcfg.so.*
@@ -295,11 +297,11 @@ fi
 %{_bindir}/prf2py.py
 %{_bindir}/py2prf
 %{_includedir}/ossie
-%{_libdir}/libomnijni.*a
+# %{_libdir}/libomnijni.*a
 %{_libdir}/libossiecf.*a
 %{_libdir}/libossiecf.so
-%{_libdir}/libossiecfjni.*a
-%{_libdir}/libossiecfjni.so
+# %{_libdir}/libossiecfjni.*a
+# %{_libdir}/libossiecfjni.so
 %{_libdir}/libossieidl.so
 %{_libdir}/libossieidl.*a
 %{_libdir}/libossieparser.*a
@@ -311,6 +313,15 @@ fi
 
 %post
 /sbin/ldconfig
+# Create JacORB and reload4j symlinks. JacORB JARs live outside the RPM
+# at the standard install location. The Makefile install-data-local rules
+# use absolute paths incompatible with DESTDIR during RPM packaging.
+if [ -d /usr/share/java/jacorb/lib ]; then
+  ln -sf /usr/share/java/jacorb/lib/jacorb-3.9.jar /usr/local/redhawk/core/lib/jacorb-3.9.jar 2>/dev/null || true
+  ln -sf /usr/share/java/jacorb/lib/jacorb-omgapi-3.9.jar /usr/local/redhawk/core/lib/jacorb-omgapi-3.9.jar 2>/dev/null || true
+  ln -sf /usr/share/java/jacorb/lib/jacorb-services-3.9.jar /usr/local/redhawk/core/lib/jacorb-services-3.9.jar 2>/dev/null || true
+fi
+ln -sf /usr/local/redhawk/core/lib/reload4j-1.2.19.jar /usr/local/redhawk/core/lib/reload4j.jar 2>/dev/null || true
 
 
 %postun

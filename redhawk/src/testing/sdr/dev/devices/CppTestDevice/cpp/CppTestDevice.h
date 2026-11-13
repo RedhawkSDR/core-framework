@@ -35,7 +35,7 @@ class CppTestDevice_i : public CppTestDevice_base
         ~CppTestDevice_i();
         int serviceFunction();
 
-        void initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException);
+        void initialize();
 
     private:
         bool allocate_memory(const memory_allocation_struct& capacity);

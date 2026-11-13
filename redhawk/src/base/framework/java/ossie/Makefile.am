@@ -124,6 +124,7 @@ ossie_jar_SOURCE = src/org/ossie/component/AllocCapacity.java \
 		   src/org/ossie/events/MessageListener.java \
 		   src/org/ossie/events/Publisher.java \
 		   src/org/ossie/events/Subscriber.java \
+	           src/org/ossie/buffer/bitbuffer.java \
 		   src/org/ossie/corba/utils.java \
 		   src/org/ossie/properties/AbstractSequenceProperty.java \
 		   src/org/ossie/properties/AbstractSimpleProperty.java \
@@ -191,11 +192,11 @@ ossie_legacy_jar_SOURCE = src/org/ossie/BooleanSimplePropertyContainer.java \
 		src/org/ossie/SimplePropertyContainer.java \
 		src/org/ossie/StringSimplePropertyContainer.java
 
-ossie_legacy_jar_CLASSPATH = ../CFInterfaces.jar
-ossie_legacy_jar_JAVACFLAGS = -g -Xlint:-deprecation
+ossie_legacy_jar_CLASSPATH = $(OSSIE_CLASSPATH)
+ossie_legacy_jar_JAVACFLAGS = -g -Xlint:deprecation
 
 # Additional Java compiler flags
-ossie_jar_CLASSPATH = ../apache-commons-lang-2.4.jar:../CFInterfaces.jar:../reload4j.jar
+ossie_jar_CLASSPATH = $(OSSIE_CLASSPATH)
 ossie_jar_JAVACFLAGS = -g -Xlint:deprecation -Xlint:unchecked
 ossie_jar_JARADD = -C src . ossie-legacy.jar
 

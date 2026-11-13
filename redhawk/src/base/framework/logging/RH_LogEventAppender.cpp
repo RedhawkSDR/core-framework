@@ -212,20 +212,22 @@ void RH_LogEventAppender::activateOptions(Pool& p) {
 
 	 
 void RH_LogEventAppender::append(const spi::LoggingEventPtr& event, Pool& p){
-  if ( this->layout == NULL ) {
-    LOG4CXX_ENCODE_CHAR(nameStr, name);
+  // if ( this->layout == NULL ) {
+  if ( this->getLayout() == NULL ) {
+    // LOG4CXX_ENCODE_CHAR(nameStr, name);
+    LOG4CXX_ENCODE_CHAR(nameStr, "noname");
     std::string msg("No Layout set for the appender named [ ");
     msg.append(nameStr);
     msg.append(" ].");
 	 
     LOG4CXX_DECODE_CHAR(msgL, msg);
-    errorHandler->error(msgL);
+    this->getErrorHandler()->error(msgL);
     return;
   }
 	 
   log4cxx::LogString fMsg;
 	 
-  this->layout->format(fMsg, event, p);
+  this->getLayout()->format(fMsg, event, p);
 	 
   LOG4CXX_ENCODE_CHAR(fMsgStr, fMsg);
 
@@ -270,9 +272,9 @@ void RH_LogEventAppender::append(const spi::LoggingEventPtr& event, Pool& p){
 void RH_LogEventAppender::close()
 {
   _LL_DEBUG( "RH_LogEventAppender::close START");
-  if ( closed ) return;
+  if ( true ) return;
   _event_channel.reset();
-  closed=true;
+  //closed=true;
   _LL_DEBUG( "RH_LogEventAppender::close END");
 }
 

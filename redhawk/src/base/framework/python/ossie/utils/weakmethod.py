@@ -22,4 +22,4 @@ import warnings
 warnings.filterwarnings('once',category=DeprecationWarning)
 warnings.warn('%s has been replaced by ossie.utils.weakobj module' % __name__, DeprecationWarning)
 
-from weakobj import WeakBoundMethod
+from .weakobj import WeakBoundMethod

@@ -23,13 +23,11 @@
 
 void
 LifeCycle_impl::initialize ()
-throw (CORBA::SystemException, CF::LifeCycle::InitializeError)
 {
 }
 
 
 void
 LifeCycle_impl::releaseObject ()
-throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
 {
 }

@@ -329,7 +329,7 @@ namespace bulkio {
     {
       bool flushToReport = false;
       SCOPED_LOCK lock(dataBufferLock);
-      LOG_DEBUG(_portLog, "bulkio::InPort port blocking:" << blocking);
+      LOG_TRACE(_portLog, "bulkio::InPort port blocking:" << blocking);
       if (blocking) {
         while (packetQueue.size() >= maxQueue) {
           queueAvailable.wait(lock);
@@ -476,9 +476,15 @@ namespace bulkio {
   typename InPort<PortType>::Packet* InPort<PortType>::peekPacket(float timeout,
                                                                   boost::unique_lock<boost::mutex>& lock)
   {
-    uint64_t secs = (unsigned long)(trunc(timeout));
-    uint64_t msecs = (unsigned long)((timeout - secs) * 1e6);
-    boost::system_time to_time  = boost::get_system_time() + boost::posix_time::seconds(secs) + boost::posix_time::microseconds(msecs);
+    uint64_t secs = 0;
+    uint64_t msecs = 0;
+    boost::system_time to_time;
+    if (timeout >=0) {
+      secs = (unsigned long)(trunc(timeout));
+      msecs = (unsigned long)((timeout - secs) * 1e6);
+      to_time  = boost::get_system_time() + boost::posix_time::seconds(secs) + boost::posix_time::microseconds(msecs);
+    }
+
     while (!breakBlock && packetQueue.empty()) {
       if (timeout == 0) {
         break;
@@ -632,9 +638,14 @@ namespace bulkio {
     {
       SCOPED_LOCK lock(dataBufferLock);
       packet = fetchPacket(streamID);
-      uint64_t secs = (unsigned long)(trunc(timeout));
-      uint64_t msecs = (unsigned long)((timeout - secs) * 1e6);
-      boost::system_time to_time  = boost::get_system_time() + boost::posix_time::seconds(secs) + boost::posix_time::microseconds(msecs);
+      uint64_t secs = 0;
+      uint64_t msecs = 0;
+      boost::system_time to_time;
+      if (timeout >=0) {
+        secs = (unsigned long)(trunc(timeout));
+        msecs = (unsigned long)((timeout - secs) * 1e6);
+        to_time  = boost::get_system_time() + boost::posix_time::seconds(secs) + boost::posix_time::microseconds(msecs);
+      }
       while (!packet) {
         if (timeout == 0.0) {
           TRACE_EXIT(_portLog, "InPort::nextPacket");

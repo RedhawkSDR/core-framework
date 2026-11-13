@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-from template import *
-from generator import *
+from .template import *
+from .generator import *
 
 __all__ = ('JavaTemplate', 'JavaCodeGenerator')

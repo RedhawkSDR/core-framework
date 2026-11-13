@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -29,7 +29,7 @@ from ossie.utils import uuid
 from ossie.resource import Resource
 from ossie.threadedcomponent import *
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 
 class component_stub_base(CF__POA.Resource, Resource, ThreadedComponent):
         # These values can be altered in the __init__ of your derived class

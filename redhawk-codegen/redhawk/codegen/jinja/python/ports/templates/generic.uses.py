@@ -26,7 +26,7 @@ class ${className}(${component.baseclass.name}.${portgen.templateClass()}):
         self.port_lock = threading.Lock()
 
     def getConnectionIds(self):
-        return self.outConnections.keys()
+        return list(self.outConnections.keys())
 
     def _evaluateRequestBasedOnConnections(self, __connection_id__, returnValue, inOut, out):
         if not __connection_id__ and len(self.outConnections) > 1:
@@ -41,7 +41,7 @@ class ${className}(${component.baseclass.name}.${portgen.templateClass()}):
                     raise PortCallError("The requested connection id ("+__connection_id__+") does not exist.", self.getConnectionIds())
         if __connection_id__ and len(self.outConnections) > 0:
             foundConnection = False
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if __connection_id__ == connId:
                     foundConnection = True
                     break
@@ -66,7 +66,7 @@ class ${className}(${component.baseclass.name}.${portgen.templateClass()}):
     def _get_connections(self):
         self.port_lock.acquire()
         try:
-            return [ExtendedCF.UsesConnection(name, port) for name, port in self.outConnections.iteritems()]
+            return [ExtendedCF.UsesConnection(name, port) for name, port in list(self.outConnections.items())]
         finally:
             self.port_lock.release()
 #{% for operation in portgen.operations() %}
@@ -125,13 +125,13 @@ class ${className}(${component.baseclass.name}.${portgen.templateClass()}):
 
         try:
             self._evaluateRequestBasedOnConnections(__connection_id__, ${returnstate}, ${_hasinout}, ${_hasout})
-            for connId, port in self.outConnections.items():
+            for connId, port in list(self.outConnections.items()):
                 if (__connection_id__ and __connection_id__ != connId):
                     continue
                 if port != None:
                     try:
                         ${"retVal = " if operation.returns}port.${operation.name}(${operation.args|join(', ')})
-                    except Exception:
+                    except Exception as e:
                         self.parent._baseLog.exception("The call to ${operation.name} failed on port %s connection %s instance %s", self.name, connId, port)
                         raise
         finally:

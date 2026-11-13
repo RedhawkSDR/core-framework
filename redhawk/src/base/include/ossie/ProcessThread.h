@@ -21,6 +21,8 @@
 #ifndef OSSIE_PROCESSTHREAD_H
 #define OSSIE_PROCESSTHREAD_H
 
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
+
 #include <time.h>
 #include <boost/thread.hpp>
 

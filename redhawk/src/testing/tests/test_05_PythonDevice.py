@@ -22,7 +22,7 @@ import unittest, os
 from _unitTestHelpers import scatest
 from _unitTestHelpers import buildconfig
 from ossie.cf import CF
-from omniORB import any
+from omniORB import any, CORBA
 from ossie.utils import sb
 
 class PythonDeviceTest(scatest.CorbaTestCase):
@@ -31,7 +31,7 @@ class PythonDeviceTest(scatest.CorbaTestCase):
         dev = sb.launch('sdr/dev/devices/alloc_test/alloc_test.spd.xml')
         self.assertNotEqual(dev, None)
         alloc = dev.allocateCapacity({'callback_test':5})
-        self.assertEquals(alloc, True)
-        self.assertEquals(dev.callback_value, 5)
+        self.assertEqual(alloc, True)
+        self.assertEqual(dev.callback_value, 5)
         dev.deallocateCapacity({'callback_test':7})
-        self.assertEquals(dev.callback_value, 7)
+        self.assertEqual(dev.callback_value, 7)

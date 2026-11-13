@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -50,7 +50,7 @@ class CommandWrapper_i(CF__POA.Resource, Resource):
         loggerName = "CommandWrapper"
         Resource.__init__(self, identifier, execparams, loggerName=loggerName)
         self._pid = None
-        self.execparams = execparams.items()
+        self.execparams = list(execparams.items())
 
     #####################################
     # Implement the Resource interface

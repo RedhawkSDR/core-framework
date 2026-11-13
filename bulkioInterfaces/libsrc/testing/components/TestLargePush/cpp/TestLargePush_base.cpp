@@ -90,11 +90,11 @@ void TestLargePush_base::construct()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void TestLargePush_base::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException)
+void TestLargePush_base::initialize() 
 {
 }
 
-void TestLargePush_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void TestLargePush_base::start() 
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
     if (serviceThread == 0) {
@@ -107,7 +107,7 @@ void TestLargePush_base::start() throw (CORBA::SystemException, CF::Resource::St
     }
 }
 
-void TestLargePush_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void TestLargePush_base::stop() 
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
     // release the child thread (if it exists)
@@ -123,7 +123,7 @@ void TestLargePush_base::stop() throw (CORBA::SystemException, CF::Resource::Sto
     }
 }
 
-CORBA::Object_ptr TestLargePush_base::getPort(const char* _id) throw (CORBA::SystemException, CF::PortSupplier::UnknownPort)
+CORBA::Object_ptr TestLargePush_base::getPort(const char* _id) 
 {
 
     std::map<std::string, Port_Provides_base_impl *>::iterator p_in = inPorts.find(std::string(_id));
@@ -138,7 +138,7 @@ CORBA::Object_ptr TestLargePush_base::getPort(const char* _id) throw (CORBA::Sys
     throw (CF::PortSupplier::UnknownPort());
 }
 
-void TestLargePush_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void TestLargePush_base::releaseObject() 
 {
     // This function clears the component running condition so main shuts down everything
     try {

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -139,20 +139,14 @@ main = TestProgram
 if __name__ == '__main__':
     import os
     import glob
-    import imp
+    import importlib
 
     # Find all Python files in the current directory and import them, adding
     # their tests to the overall test suite.
     modules = []
     for filename in glob.glob('*.py'):
         modname, ext = os.path.splitext(filename)
-        fd = None
-        try:
-            fd, fn, desc = imp.find_module(modname)
-            mod = imp.load_module(modname, fd, fn, desc)
-            modules.append(mod)
-        finally:
-            if fd:
-                fd.close()
+        mod = importlib.import_module(modname)
+        modules.append(mod)
 
     main(modules)

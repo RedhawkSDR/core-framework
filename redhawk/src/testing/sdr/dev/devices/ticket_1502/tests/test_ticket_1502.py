@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -37,9 +37,9 @@ class DeviceTests(ossie.utils.testing.ScaComponentTestCase):
         # Verify the basic state of the device
         self.assertNotEqual(self.comp, None)
         self.assertEqual(self.comp.ref._non_existent(), False)
-	
+        
         self.assertEqual(self.comp.ref._is_a("IDL:CF/Device:1.0"), True)
-	
+        
         
         #######################################################################
         # Validate that query returns all expected parameters
@@ -51,7 +51,7 @@ class DeviceTests(ossie.utils.testing.ScaComponentTestCase):
         props = dict((x.id, any.from_any(x.value)) for x in props)
         # Query may return more than expected, but not less
         for expectedProp in expectedProps:
-            self.assertEquals(props.has_key(expectedProp.id), True)
+            self.assertEquals(expectedProp.id in props, True)
         
         #######################################################################
         # Verify that all expected ports are available

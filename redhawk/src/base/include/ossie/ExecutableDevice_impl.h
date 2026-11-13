@@ -46,36 +46,20 @@ public:
     ~ExecutableDevice_impl () {
     };
     CF::ExecutableDevice::ProcessID_Type execute (const char* name, const CF::Properties& options,
-                                                  const CF::Properties& parameters) throw (CF::ExecutableDevice::ExecuteFail,
-                                                          CF::InvalidFileName, CF::ExecutableDevice::InvalidOptions,
-                                                          CF::ExecutableDevice::InvalidParameters,
-                                                          CF::ExecutableDevice::InvalidFunction, CF::Device::InvalidState,
-                                                          CORBA::SystemException);
-    void configure (const CF::Properties& configProperties)
-    throw (CF::PropertySet::PartialConfiguration,
-           CF::PropertySet::InvalidConfiguration, CORBA::SystemException);
+                                                  const CF::Properties& parameters);
+    void configure (const CF::Properties& configProperties);
 
     ExecutableDevice_impl();
     ExecutableDevice_impl(ExecutableDevice_impl&);
     // Execute a Component with the associated soft packages as modifiers for its environment
     CF::ExecutableDevice::ProcessID_Type executeLinked (const char* name, const CF::Properties& options,
-                                                  const CF::Properties& parameters, const CF::StringSequence& deps) throw (CF::ExecutableDevice::ExecuteFail,
-                                                          CF::InvalidFileName, CF::ExecutableDevice::InvalidOptions,
-                                                          CF::ExecutableDevice::InvalidParameters,
-                                                          CF::ExecutableDevice::InvalidFunction, CF::Device::InvalidState,
-                                                          CORBA::SystemException);
+                                                  const CF::Properties& parameters, const CF::StringSequence& deps);
     // Perform the actual Component forking
     CF::ExecutableDevice::ProcessID_Type do_execute (const char* name, const CF::Properties& options,
-                                                  const CF::Properties& parameters, const std::vector<std::string> prepend_args) throw (CF::ExecutableDevice::ExecuteFail,
-                                                          CF::InvalidFileName, CF::ExecutableDevice::InvalidOptions,
-                                                          CF::ExecutableDevice::InvalidParameters,
-                                                          CF::ExecutableDevice::InvalidFunction, CF::Device::InvalidState,
-                                                          CORBA::SystemException);
+                                                  const CF::Properties& parameters, const std::vector<std::string> prepend_args);
 
     // Terminate a process
-    void terminate (CF::ExecutableDevice::ProcessID_Type processId) throw
-    (CF::Device::InvalidState, CF::ExecutableDevice::InvalidProcess,
-     CORBA::SystemException);
+    void terminate (CF::ExecutableDevice::ProcessID_Type processId);
 
     void setLogger(rh_logger::LoggerPtr logptr);
 

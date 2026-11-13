@@ -35,7 +35,7 @@ class EnumTest_i : public EnumTest_base
 
         int serviceFunction();
 
-        void runTest(CORBA::ULong testid, CF::Properties& testValues) throw (CF::UnknownProperties, CF::TestableObject::UnknownTest, CORBA::SystemException);
+        void runTest(CORBA::ULong testid, CF::Properties& testValues);
 
     private:
         void runEnumTest(redhawk::PropertyMap& testValues);

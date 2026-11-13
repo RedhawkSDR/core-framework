@@ -28,7 +28,7 @@ def sdrRoot():
     elif os.path.exists('/sdr'):
         sdrroot = '/sdr'
     else:
-        print "Cannot find SDR root directory"
+        print("Cannot find SDR root directory")
         return False
         
     return sdrroot
@@ -41,7 +41,7 @@ def ossieRoot():
     elif os.path.exists('/usr/include/ossie') and os.path.exists('/usr/share/ossie'):
         ossieroot = '/usr'
     else:
-        print "Cannot find OSSIE installation location."
+        print("Cannot find OSSIE installation location.")
         return False
 
     return ossieroot
@@ -53,7 +53,7 @@ def idlRoot():
     if os.path.exists(os.path.join(ossieroot,'share/ossie/idl')):
         idlroot = os.path.join(ossieroot,'share/ossie/idl')
     else:
-        print "Cannot find OSSIE IDL location."
+        print("Cannot find OSSIE IDL location.")
         return False
 
     return idlroot
@@ -65,7 +65,7 @@ def ossieInclude():
     if os.path.exists(os.path.join(ossieroot,'include/ossie')):
         ossieinclude = os.path.join(ossieroot,'include/ossie')
     else:
-        print "Cannot find OSSIE IDL location."
+        print("Cannot find OSSIE IDL location.")
         return False
         
     return ossieinclude
@@ -77,7 +77,7 @@ def ossieShare():
     if os.path.exists(os.path.join(ossieroot,'share/ossie')):
         ossieshare = os.path.join(ossieroot,'share/ossie')
     else:
-        print "Cannot find OSSIE share location."
+        print("Cannot find OSSIE share location.")
         return False
         
     return ossieshare

@@ -17,8 +17,13 @@
  * You should have received a copy of the GNU Lesser General Public License 
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  #*/
+/*{%   if component.isChild %}*/
+#ifndef ${component.name}_PORT_H
+#define ${component.name}_PORT_H
+/*{%   else %}*/
 #ifndef PORT_H
 #define PORT_H
+/*{%   endif %}*/
 
 /*{% filter lines|unique|join('\n') %}*/
 /*{% for portgen in component.portgenerators %}*/
@@ -28,6 +33,9 @@
 /*{% endfor %}*/
 /*{% endfilter %}*/
 
+/*{%   if component.isChild %}*/
+namespace ${component.name}_ns {
+/*{%   endif %}*/
 class ${component.baseclass.name};
 class ${component.userclass.name};
 
@@ -40,4 +48,7 @@ class ${component.userclass.name};
 /*{% include portgen.declaration() %}*/
 
 /*{% endfor %}*/
+/*{%   if component.isChild %}*/
+};
+/*{%   endif %}*/
 #endif // PORT_H

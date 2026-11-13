@@ -25,6 +25,8 @@ import time
 import copy
 import pydoc
 import warnings
+import subprocess
+import json
 
 from omniORB import CORBA
 from omniORB.any import to_any
@@ -32,14 +34,16 @@ from omniORB.any import to_any
 from ossie import parsers
 from ossie.cf import CF
 from ossie.utils.model.connect import ConnectionManager
+from ossie.utils.sandbox import cluster
 from ossie.utils.uuid import uuid4
 
-from base import SdrRoot, Sandbox, SandboxLauncher, SandboxComponent
-from devmgr import DeviceManagerStub
-from naming import ApplicationRegistrarStub
-import launcher
-from debugger import GDB, JDB, PDB, Valgrind, Debugger
-import terminal
+from .base import SdrRoot, Sandbox, SandboxLauncher, SandboxComponent
+from .devmgr import DeviceManagerStub
+from .naming import ApplicationRegistrarStub
+from . import launcher
+from .debugger import GDB, JDB, PDB, Valgrind, Debugger
+from . import terminal
+from .model import SandboxDevice
 
 warnings.filterwarnings('once',category=DeprecationWarning)
 
@@ -76,7 +80,7 @@ class LocalSdrRoot(SdrRoot):
         return os.path.isfile(filename)
 
     def _readFile(self, filename):
-        path = open(self._sdrPath(filename), 'r')
+        path = open(self._sdrPath(filename), 'rb')
         return path.read()
 
     def _getSearchPaths(self, objTypes):
@@ -113,7 +117,7 @@ class LocalSdrRoot(SdrRoot):
 
     def findProfile(self, descriptor, objType=None):
         if not descriptor:
-            raise RuntimeError, 'No component descriptor given'
+            raise RuntimeError('No component descriptor given')
         # Handle user home directory paths
         if descriptor.startswith('~'):
             descriptor = os.path.expanduser(descriptor)
@@ -121,22 +125,25 @@ class LocalSdrRoot(SdrRoot):
 
 
 class LocalLauncher(SandboxLauncher):
-    def __init__(self, execparams, initProps, initialize, configProps, debugger, window, timeout, shared, stdout=None):
+    def __init__(self, execparams, initProps, initialize, configProps, debugger, window, env, timeout, shared, stdout=None, orchestrationType=None):
         self._execparams = execparams
         self._debugger = debugger
         self._window = window
         self._initProps = initProps
         self._initialize = initialize
+        self._env = env
+        self._registrar = None
         self._configProps = configProps
         self._timeout = timeout
         self._shared = shared
         self._stdout = stdout
+        self._orchestrationType = orchestrationType
 
     def _getImplementation(self, spd, identifier):
         for implementation in spd.get_implementation():
             if implementation.get_id() == identifier:
                 return implementation
-        raise KeyError, "Softpkg '%s' has no implementation '%s'" % (spd.get_name(), identifier)
+        raise KeyError("Softpkg '%s' has no implementation '%s'" % (spd.get_name(), identifier))
 
     def _resolveDependencies(self, sdrRoot, device, implementation):
         dep_files = []
@@ -164,6 +171,17 @@ class LocalLauncher(SandboxLauncher):
 
         return dep_files
 
+    def _getEnvironment(self, comp):
+        _env ={}
+        if hasattr(comp,'_getEnvironment'):
+            e =comp._getEnvironment()
+            if e:
+                _env.update(e)
+        e=self._env
+        if e :
+           _env.update(e)
+        return _env
+
     def _cleanHeap(self, pid):
         filename = '/dev/shm/heap-'+str(pid)
         if (os.path.isfile(filename)):
@@ -171,14 +189,20 @@ class LocalLauncher(SandboxLauncher):
 
     def launch(self, comp):
         # Build up the full set of command line arguments
-        execparams = comp._getExecparams()
+        #execparams = comp._getExecparams()
+        #print('execparams (1)', execparams)
+        #execparams.update(self._execparams)
+        #print('execparams (2)', execparams)
+        #execparams.update(self._getRequiredExecparams(comp))
+        #print('execparams (3)', execparams)
+        execparams = self._getRequiredExecparams(comp)
+        execparams.update(comp._getExecparams())
         execparams.update(self._execparams)
-        execparams.update(self._getRequiredExecparams(comp))
 
         # Set up the debugger if requested
         debugger = self._debugger
         try:
-            if isinstance(debugger, basestring):
+            if isinstance(debugger, str):
                 if debugger == 'pdb':
                     debugger = PDB()
                 elif debugger == 'jdb':
@@ -193,8 +217,8 @@ class LocalLauncher(SandboxLauncher):
             elif debugger is None:
                 pass
             else:
-                raise RuntimeError, 'not supported'
-        except Exception, e:
+                raise RuntimeError('not supported')
+        except Exception as e:
             log.warning('Cannot run debugger %s (%s)', debugger, e)
             debugger = None
 
@@ -207,17 +231,19 @@ class LocalLauncher(SandboxLauncher):
                     window = 'xterm'
 
         # Allow symbolic names for windows
-        if isinstance(window, basestring):
+        if isinstance(window, str):
             try:
                 if window == 'xterm':
                     window = terminal.XTerm(comp._instanceName)
                 elif window == 'gnome-terminal':
                     window = terminal.GnomeTerm(comp._instanceName)
                 else:
-                    raise RuntimeError, 'not supported'
-            except Exception, e:
+                    raise RuntimeError('not supported')
+            except Exception as e:
                 log.warning('Cannot run terminal %s (%s)', window, e)
                 debugger = None
+
+        env = self._getEnvironment(comp)
 
         # Find a suitable implementation
         device = launcher.VirtualDevice()
@@ -228,52 +254,86 @@ class LocalLauncher(SandboxLauncher):
             impl = device.matchImplementation(sdrroot, comp._profile, comp._spd)
         log.trace("Using implementation '%s'", impl.get_id())
 
+        container_pid = None
+
         # Resolve all dependency localfiles
         deps = self._resolveDependencies(sdrroot, device, impl)
 
         # Execute the entry point, either on the virtual device or the Sandbox
         # component host
         entry_point = sdrroot.relativePath(comp._profile, impl.get_code().get_entrypoint())
+
         if impl.get_code().get_type() == 'SharedLibrary':
             if self._shared:
                 container = comp._sandbox._getComponentHost(_debugger = debugger)
             else:
-                container = comp._sandbox._launchComponentHost(comp._instanceName, _debugger = debugger)
+                container = comp._sandbox._launchComponentHost(comp._instanceName, _debugger = debugger, env=env )
             container.executeLinked(entry_point, [], execparams, deps)
             process = container._process
-        else:
-            process = device.execute(entry_point, deps, execparams, debugger, window, self._stdout)
-
+            container_pid = container._pid
+        elif impl.get_code().get_type() == 'Executable':
+            process = device.execute(entry_point, deps, execparams, debugger, window, env, self._stdout)
             # Set up a callback to notify when the component exits abnormally.
             name = comp._instanceName
             def terminate_callback(pid, status):
                 self._cleanHeap(pid)
                 if status > 0:
-                    print 'Component %s (pid=%d) exited with status %d' % (name, pid, status)
+                    print('Component %s (pid=%d) exited with status %d' % (name, pid, status))
                 elif status < 0:
-                    print 'Component %s (pid=%d) terminated with signal %d' % (name, pid, -status)
+                    print('Component %s (pid=%d) terminated with signal %d' % (name, pid, -status))
             process.setTerminationCallback(terminate_callback)
+            comp._pid = process.pid()
+        else: # these are just containers
+            component_path = os.path.dirname(comp._profile)
+            _sdrroot_path = os.path.dirname(component_path)
+            entry_point = '$SDRROOT/dom/components'+component_path[len(_sdrroot_path):]+'/'+impl.get_code().get_entrypoint()
+            componenthostid = 'component_host_'+str(uuid4())[:8]
+            if entry_point.endswith('startJava.sh'):
+                entry_point = entry_point.replace("$SDRROOT/", "/var/redhawk/sdr/")
+            process = device.executeContainer(entry_point, deps, execparams, debugger, window, self._stdout, self._orchestrationType, componenthostid)
+            command, arguments, environment, stdout = device.getExecArgs(entry_point, deps, execparams, debugger, window, self._stdout, self._orchestrationType)
+            entryPoint = command.split("::")[0]
+            if entryPoint[-3:] == '.so':
+                class tmp_comphost:
+                    def __init__(self, comp_name):
+                        self._instanceName = comp_name
+                comphost = tmp_comphost(componenthostid)
+                while self.getReference(comphost) == None:
+                    time.sleep(0.5)
+                running_host = self.getReference(comphost)
+
+                entryPoint = entryPoint.replace("$SDRROOT/", "/var/redhawk/sdr/")
+                params = [CF.DataType(k, to_any(str(v))) for k, v in execparams.items()]
+                running_host.executeLinked(entryPoint, [], params, deps)
+
+            name = comp._instanceName
+            process.setTerminationCallback(process.terminate_callback)
 
         # Wait for the component to register with the virtual naming service or
         # DeviceManager.
-        if self._timeout is None:
+        if self._timeout is None and impl.get_code().get_type() not in "Container":
             # Default timeout depends on whether the debugger might increase
             # the startup time
             if debugger and debugger.modifiesCommand():
                 timeout = 60.0
             else:
                 timeout = 10.0
-        else:
+            sleepIncrement = 0.1
+        elif impl.get_code().get_type() not in "Container":
             timeout = self._timeout
-        sleepIncrement = 0.1
+            sleepIncrement = 0.1
+        else:
+            timeout = process.timeout()
+            sleepIncrement = process.sleepIncrement()
+        
         while self.getReference(comp) is None:
             if not process.isAlive():
-                raise RuntimeError, "%s '%s' terminated before registering with virtual environment" % (self._getType(), comp._instanceName)
+                raise RuntimeError("%s '%s' terminated before registering with virtual environment" % (self._getType(), comp._instanceName))
             time.sleep(sleepIncrement)
             timeout -= sleepIncrement
             if timeout < 0:
                 process.terminate()
-                raise RuntimeError, "%s '%s' did not register with virtual environment"  % (self._getType(), comp._instanceName)
+                raise RuntimeError("%s '%s' did not register with virtual environment"  % (self._getType(), comp._instanceName))
 
         # Attach a debugger to the process.
         if debugger and debugger.canAttach():
@@ -290,7 +350,8 @@ class LocalLauncher(SandboxLauncher):
             comp._pid = None
         else:
             comp._process = process
-            comp._pid = process.pid()
+            if comp._pid == 0 or comp._pid == None:
+                comp._pid = container_pid
 
         # Return the now-resolved CORBA reference.
         ref = self.getReference(comp)
@@ -318,7 +379,7 @@ class LocalLauncher(SandboxLauncher):
             try:
                 comp.initializeProperties(initvals)
             except:
-                log.exception('Failure in component property initialization')
+                log.exception('Failure in component property initialization props {}'.format(initvals))
             try:
                 # Actually initialize the component
                 comp.initialize()
@@ -349,25 +410,33 @@ class LocalLauncher(SandboxLauncher):
             comp._process.terminate()
             comp._process = None
 
-
 class LocalComponentLauncher(LocalLauncher):
     def launch(self, *args, **kwargs):
-        self.__registrar = ApplicationRegistrarStub()
+        if not hasattr(self, '_registrar'):
+            self._registrar = None
+        if not self._registrar:
+            self._registrar = ApplicationRegistrarStub()
         log.trace('Activating virtual ApplicationRegistrar')
-        namingContextId = poa.activate_object(self.__registrar)
+        namingContextId = poa.activate_object(self._registrar)
         try:
             return LocalLauncher.launch(self, *args, **kwargs)
         finally:
             log.trace('Deactivating virtual ApplicationRegistrar')
             poa.deactivate_object(namingContextId)
-            del self.__registrar
+            del self._registrar
+
+    def setReferences(self, application=None, domain_mgr=None):
+        if not self._registrar:
+            self._registrar = ApplicationRegistrarStub()
+        self._registrar._app = application
+        self._registrar._dommgr = domain_mgr
 
     def getReference(self, component):
-        return self.__registrar.getObject(component._instanceName)
+        return self._registrar.getObject(component._instanceName)
 
     def _getRequiredExecparams(self, component):
         return {'COMPONENT_IDENTIFIER': component._refid,
-                'NAMING_CONTEXT_IOR': orb.object_to_string(self.__registrar._this()),
+                'NAMING_CONTEXT_IOR': orb.object_to_string(self._registrar._this()),
                 'PROFILE_NAME': component._profile,
                 'NAME_BINDING': component._instanceName}
 
@@ -418,6 +487,14 @@ class LocalServiceLauncher(LocalLauncher):
 class ComponentHost(SandboxComponent):
     def __init__(self, *args, **kwargs):
         SandboxComponent.__init__(self, *args, **kwargs)
+        self._descriptor = None
+        self.__attached_components = {}
+        self._app = None
+        self._dom = None
+
+    def setReferences(self, application=None, domain_mgr=None):
+        self._app = application
+        self._dom = domain_mgr
 
     def _register(self):
         pass
@@ -426,8 +503,8 @@ class ComponentHost(SandboxComponent):
         pass
 
     def executeLinked(self, entryPoint, options, parameters, deps):
-        log.debug('Executing shared library %s %s', entryPoint, ' '.join('%s=%s' % (k,v) for k,v in parameters.iteritems()))
-        params = [CF.DataType(k, to_any(str(v))) for k, v in parameters.iteritems()]
+        log.debug('Executing shared library %s %s', entryPoint, ' '.join('%s=%s' % (k,v) for k,v in parameters.items()))
+        params = [CF.DataType(k, to_any(str(v))) for k, v in parameters.items()]
         self.ref.executeLinked(entryPoint, options, params, deps)
 
 
@@ -435,6 +512,7 @@ class LocalSandbox(Sandbox):
     def __init__(self, sdrroot=None):
         super(LocalSandbox, self).__init__()
         self.__components = {}
+        self.__attached_components = {}
         self.__services = {}
         if not sdrroot:
             sdrroot = os.environ['SDRROOT']
@@ -446,7 +524,7 @@ class LocalSandbox(Sandbox):
             self.__container = self._launchComponentHost(_debugger=_debugger)
         return self.__container
 
-    def _launchComponentHost(self, instanceName=None, _debugger=None):
+    def _launchComponentHost(self, instanceName=None, _debugger=None, env={} ):
         # Directly create the sandbox object instead of going through launch()
         profile = self._sdrroot.domPath('/mgr/rh/ComponentHost/ComponentHost.spd.xml')
         spd, scd, prf = self._sdrroot.readProfile(profile)
@@ -462,7 +540,8 @@ class LocalSandbox(Sandbox):
         execparams = {'RH::DEPLOYMENT_ROOT':'/'}
         if not isinstance(_debugger, Valgrind):
             _debugger = None
-        comp._launcher = LocalComponentLauncher(execparams, {}, True, {}, _debugger, None, None, False)
+        comp._launcher = LocalComponentLauncher(execparams, {}, True, {}, _debugger, None, env, None, False)
+        comp._descriptor = "ComponentHost"
         comp._kick()
         return comp
 
@@ -490,13 +569,13 @@ class LocalSandbox(Sandbox):
     def _checkInstanceId(self, refid, componentType):
         # Ensure refid is unique.
         container = self._getComponentContainer(componentType)
-        for component in container.values():
+        for component in list(container.values()):
             if refid == component._refid:
                 return False
         return True
 
     def _createLauncher(self, comptype, execparams, initProps, initialize, configProps, debugger,
-                        window, timeout, shared, stdout):
+                        window, env, timeout, shared, stdout, orchestrationType=None):
         if comptype == 'resource':
             clazz = LocalComponentLauncher
         elif comptype in ('device', 'loadabledevice', 'executabledevice'):
@@ -505,13 +584,74 @@ class LocalSandbox(Sandbox):
             clazz = LocalServiceLauncher 
         else:
             return None
-        return clazz(execparams, initProps, initialize, configProps, debugger, window, timeout, shared, stdout)
+        retval = clazz(execparams, initProps, initialize, configProps, debugger, window, env, timeout, shared, stdout, orchestrationType)
+        if comptype == 'resource':
+            retval.setReferences(self._app, self._dom)
+        return retval
+
+
+    def attachToResource(self, registered_component ):
+
+        # get profile
+        profile = self._sdrroot.domPath(registered_component.softwareProfile)
+        spd, scd, prf = self._sdrroot.readProfile(profile)
+        name = spd.get_name()
+
+        # Check that we can launch the component.
+        comptype = scd.get_componenttype()
+        if comptype == 'resource':
+            clazz = SandboxComponent
+        elif comptype in ('device', 'loadabledevice', 'executabledevice'):
+            clazz = SandboxDevice
+        elif comptype == 'service':
+            clazz = SandboxService
+        else:
+            raise NotImplementedError("No support for component type '%s'" % comptype)
+
+        refid=registered_component.identifier
+        instanceName=registered_component.identifier
+        try:
+            instanceName=instanceName.split(':')[0]
+        except:
+            pass
+
+        # create sandbox object for resource
+        comp=clazz(self, profile, spd, scd, prf, instanceName, refid, None)
+        comp.ref=registered_component.componentObject
+        comp._buildAPI()
+        comp._populatePorts()
+        # Add the component to the sandbox state.
+        self.__attached_components[comp._instanceName] = comp
+        return comp
+
+    def getAttachedComponents(self):
+        return self.__attached_components.values()
+
+    def _refreshChildDevices(self):
+        for comp in list(self.__components.values()):
+            if hasattr(comp, 'devices'):
+                for dev in comp.devices:
+                    found_device = False
+                    for _tmp_comp_key in self.__components:
+                        if _tmp_comp_key == dev.label:
+                            found_device = True
+                            break
+                    if not found_device:
+                        sdrRoot = self.getSdrRoot()
+                        try:
+                            spd, scd, prf = sdrRoot.readProfile(dev.softwareProfile)
+                            comp = SandboxDevice(self, dev.softwareProfile, spd, scd, prf, dev.label, dev.identifier, None)
+                            comp.ref = dev
+                            self._registerComponent(comp)
+                        except:
+                            pass
 
     def getComponents(self):
-        return self.__components.values()
+        self._refreshChildDevices()
+        return list(list(self.__components.values()) + list(self.__attached_components.values()))
 
     def getServices(self):
-        return self.__services.values()
+        return list(self.__services.values())
 
     def _registerComponent(self, component):
         # Add the component to the sandbox state.
@@ -526,16 +666,30 @@ class LocalSandbox(Sandbox):
         self.__services[service._instanceName] = service
         
     def getComponent(self, name):
-        return self.__components.get(name, None)
+        self._refreshChildDevices()
+        c=self.__components.get(name, None)
+        if not c:
+            c=self.__attached_components.get(name,None)
+        return c
 
     def retrieve(self, name):
-        return self.__components.get(name, None)
+        c=self.__components.get(name, None)
+        if not c:
+            c=self.__attached_components.get(name,None)
+        return c
 
     def getComponentByRefid(self, refid):
-        for component in self.__components.itervalues():
+        c=None
+        for component in list(self.__components.values()):
             if refid == component._refid:
-                return component
-        return None
+                c=component
+                break
+        if not c:
+            for component in self.__attached_components.itervalues():
+                if refid == component._refid:
+                    c=component
+                    break
+        return c
 
     def getService(self, name):
         return self.__services.get(name, None)
@@ -546,11 +700,11 @@ class LocalSandbox(Sandbox):
     def setSdrRoot(self, path):
         # Validate new root.
         if not os.path.isdir(path):
-            raise RuntimeError, 'invalid SDRROOT, directory does not exist'
+            raise RuntimeError('invalid SDRROOT, directory does not exist')
         if not os.path.isdir(os.path.join(path, 'dom')):
-            raise RuntimeError, 'invalid SDRROOT, dom directory does not exist'
+            raise RuntimeError('invalid SDRROOT, dom directory does not exist')
         if not os.path.isdir(os.path.join(path, 'dev')):
-            raise RuntimeError, 'invalid SDRROOT, dev directory does not exist'
+            raise RuntimeError('invalid SDRROOT, dev directory does not exist')
         self._sdrroot = LocalSdrRoot(path)
 
     def shutdown(self):
@@ -558,16 +712,18 @@ class LocalSandbox(Sandbox):
         self.stop()
 
         # Clean up all components
-        for name, component in self.__components.items():
+        for name, component in list(self.__components.items()):
             log.debug("Releasing component '%s'", name)
             try:
                 component.releaseObject()
             except:
                 log.debug("Component '%s' raised an exception while exiting", name)
         self.__components = {}
+        # reset list
+        self.__attached_components={}
 
         # Terminate all services
-        for name, service in self.__services.items():
+        for name, service in list(self.__services.items()):
             log.debug("Terminating service '%s'", name)
             try:
                 service._terminate()
@@ -599,7 +755,7 @@ class LocalSandbox(Sandbox):
             elif objType == "services":
                 pathsToSearch = [os.path.join(self.getSdrRoot().getLocation(), 'dev', 'services')]
             else:
-                raise ValueError, "'%s' is not a valid object type" % objType
+                raise ValueError("'%s' is not a valid object type" % objType)
         else:
             pathsToSearch = [searchPath]
 
@@ -626,7 +782,7 @@ class LocalSandbox(Sandbox):
                         namespace = full_namespace[:full_namespace.find(spd.get_name())]
                         if namespace == '':
                             namespace = pathPrefix
-                        if rsrcDict.has_key(namespace) == False:
+                        if (namespace in rsrcDict) == False:
                             rsrcDict[namespace] = []
                         if withDescription == True:
                             new_item = {}
@@ -642,11 +798,11 @@ class LocalSandbox(Sandbox):
                             rsrcDict[namespace].append(new_item)
                         else:
                             rsrcDict[namespace].append(spd.get_name())
-                    except Exception, e:
-                        print str(e)
-                        print 'Could not parse %s', filename
+                    except Exception as e:
+                        print(str(e))
+                        print('Could not parse %s', filename)
 
-            for key in sorted(rsrcDict.iterkeys()):
+            for key in sorted(rsrcDict.keys()):
                 if key == pathPrefix:
                     output_text += "************************ " + str(key) + " ***************************\n"
                 else:

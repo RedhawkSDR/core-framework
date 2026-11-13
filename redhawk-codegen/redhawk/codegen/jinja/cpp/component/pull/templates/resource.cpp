@@ -34,6 +34,10 @@
 
 #include "${component.userclass.header}"
 
+/*{%   if component.isChild %}*/
+using namespace ${component.name}_ns;
+
+/*{%   endif %}*/
 PREPARE_LOGGING(${className})
 
 /*{% if component is device %}*/
@@ -84,6 +88,11 @@ void ${className}::constructor()
     ***********************************************************************************/
 /*{% endblock %}*/
 }
+
+/*{% if component is device %}*/
+/*{%   block allocateBlock %}*/
+/*{%   endblock %}*/
+/*{% endif %}*/
 
 /*{% if component is device %}*/
 /*{%   block updateUsageState %}*/
@@ -374,7 +383,7 @@ void ${className}::updateUsageState()
 ************************************************************************************************/
 int ${className}::serviceFunction()
 {
-    RH_DEBUG(this->_baseLog, "serviceFunction() example log message");
+    RH_TRACE(this->_baseLog, "serviceFunction() example log message");
     
     return NOOP;
 }
@@ -502,8 +511,21 @@ double ${className}::getTunerOutputSampleRate(const std::string& allocation_id){
     //          allocation_id has no meaning
     throw FRONTEND::NotSupportedException("getTunerOutputSampleRate not supported");
 }
+
+void ${className}::configureTuner(const std::string& allocation_id, const CF::Properties& tunerSettings){
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
+    throw FRONTEND::NotSupportedException("configureTuner not supported");
+}
+
+CF::Properties* ${className}::getTunerSettings(const std::string& allocation_id){
+    // WARNING: this device does not contain tuner allocation/status structures
+    //          allocation_id has no meaning
+    throw FRONTEND::NotSupportedException("getTunerSettings not supported");
+}
 /*{% endif %}*/
 /*{% if 'ScanningTuner' in component.implements %}*/
+
 frontend::ScanStatus ${className}::getScanStatus(const std::string& allocation_id) {
     // WARNING: this device does not contain tuner allocation/status structures
     //          allocation_id has no meaning
@@ -520,6 +542,32 @@ void ${className}::setScanStrategy(const std::string& allocation_id, const front
     // WARNING: this device does not contain tuner allocation/status structures
     //          allocation_id has no meaning
     throw FRONTEND::NotSupportedException("setScanStrategy not supported");
+}
+/*{% endif %}*/
+/*{% if 'TransmitControl' in component.implements %}*/
+
+void ${className}::reset(const std::string& allocation_id, const std::string& stream_id) {
+    throw FRONTEND::NotSupportedException("reset not supported");
+}
+
+bool ${className}::hold(const std::string& allocation_id, const std::string& stream_id) {
+    throw FRONTEND::NotSupportedException("hold not supported");
+}
+
+std::vector<std::string> ${className}::held(const std::string& allocation_id, const std::string& stream_id) {
+    throw FRONTEND::NotSupportedException("held not supported");
+}
+
+bool ${className}::allow(const std::string& allocation_id, const std::string& stream_id) {
+    throw FRONTEND::NotSupportedException("allow not supported");
+}
+
+void ${className}::setTransmitParemeters(const std::string& allocation_id, const frontend::TransmitParameters& transmit_parameters) {
+    throw FRONTEND::NotSupportedException("setTransmitParemeters not supported");
+}
+
+frontend::TransmitParameters ${className}::getTransmitParemeters(const std::string& allocation_id) {
+    throw FRONTEND::NotSupportedException("getTransmitParemeters not supported");
 }
 /*{% endif %}*/
 /*{% if 'GPS' in component.implements %}*/

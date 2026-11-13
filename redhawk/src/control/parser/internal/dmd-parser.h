@@ -28,7 +28,7 @@
 
 namespace ossie {
     namespace internalparser {
-        std::auto_ptr<ossie::DomainManagerConfiguration::DMD> parseDMD(std::istream& input) throw (ossie::parser_error);
+        std::unique_ptr<ossie::DomainManagerConfiguration::DMD> parseDMD(std::istream& input);
     }
 }
 

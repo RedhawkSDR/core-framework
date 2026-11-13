@@ -20,7 +20,7 @@
 #% set className = component.userclass.name
 #% set baseClass = component.progclass.name
 #% set artifactType = component.artifacttype
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 #% block license
 #% endblock
@@ -35,7 +35,11 @@ from ossie.resource import Resource, start_component
 #{% endif %}
 import logging
 
+#{% if component.isChild %}
+from .${baseClass} import *
+#{% else %}
 from ${baseClass} import *
+#{% endif %}
 
 class ${className}(${baseClass}):
 #{% if component.description %}

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -32,7 +32,7 @@ class property_init_i(property_init_base):
     """<DESCRIPTION GOES HERE>"""
     def __init__(self, identifier, execparams):
         property_init_base.__init__(self, identifier, execparams)
-        self.cmdline_args = execparams.keys()
+        self.cmdline_args = list(execparams.keys())
     
     def constructor(self):
         """

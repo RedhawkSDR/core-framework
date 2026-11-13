@@ -36,18 +36,18 @@ const ComponentInstantiation* SoftwareAssembly::HostCollocation::getInstantiatio
     return 0;
 }
 
-SoftwareAssembly::SoftwareAssembly() :
-    _sad(0)
+SoftwareAssembly::SoftwareAssembly()
 {
+    _sad = 0;
 }
 
-SoftwareAssembly::SoftwareAssembly(std::istream& input) throw (ossie::parser_error) :
-    _sad(0)
+SoftwareAssembly::SoftwareAssembly(std::istream& input)
 {
+    _sad = 0;
     this->load(input);
 }
 
-void SoftwareAssembly::load(std::istream& input) throw (ossie::parser_error) 
+void SoftwareAssembly::load(std::istream& input)
 {
     _sad = ossie::internalparser::parseSAD(input);
 
@@ -109,6 +109,11 @@ const std::string& SoftwareAssembly::getID() const {
 const std::string& SoftwareAssembly::getName() const {
     assert(_sad.get() != 0);
     return _sad->name;
+}
+
+const std::string& SoftwareAssembly::getVersion() const {
+    assert(_sad.get() != 0);
+    return _sad->version;
 }
 
 const std::vector<ComponentFile>& SoftwareAssembly::getComponentFiles() const {

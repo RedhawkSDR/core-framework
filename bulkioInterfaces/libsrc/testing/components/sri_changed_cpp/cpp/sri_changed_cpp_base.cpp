@@ -49,13 +49,13 @@ sri_changed_cpp_base::~sri_changed_cpp_base()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void sri_changed_cpp_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void sri_changed_cpp_base::start() 
 {
     Resource_impl::start();
     ThreadedComponent::startThread();
 }
 
-void sri_changed_cpp_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void sri_changed_cpp_base::stop() 
 {
     Resource_impl::stop();
     if (!ThreadedComponent::stopThread()) {
@@ -63,7 +63,7 @@ void sri_changed_cpp_base::stop() throw (CORBA::SystemException, CF::Resource::S
     }
 }
 
-void sri_changed_cpp_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void sri_changed_cpp_base::releaseObject() 
 {
     // This function clears the component running condition so main shuts down everything
     try {

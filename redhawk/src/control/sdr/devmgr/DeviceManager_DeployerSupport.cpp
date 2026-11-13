@@ -919,7 +919,8 @@ void DeviceManager_impl::do_load ( CF::FileSystem_ptr fs,
         int status = pclose(fileCheck);
         std::string currentPath = ossie::getCurrentDirName();
 
-        if (!status) { 
+        if (!status) {}
+        if (true) { 
             fs::path additionalPath(workingFileName);
             if ( additionalPath.has_parent_path() ) {
                 additionalPath = additionalPath.parent_path();
@@ -929,7 +930,8 @@ void DeviceManager_impl::do_load ( CF::FileSystem_ptr fs,
         }
 
         // Check to see if it's a Python module
-        if (!CLibrary) {
+        //if (!CLibrary) {
+        if (true) {
             RH_DEBUG(this->_baseLog, "do_load checking python module file: " << workingFileName );
             currentPath = ossie::getCurrentDirName();
             std::string::size_type lastSlash = workingFileName.find_last_of("/");
@@ -943,7 +945,7 @@ void DeviceManager_impl::do_load ( CF::FileSystem_ptr fs,
                         fileOrDirectoryName.erase(iext);
                     }
                 }
-                std::string command = "python -c \"import ";
+                std::string command = "python3 -c \"import ";
                 command += fileOrDirectoryName;
                 command += std::string("\" 2>&1"); // redirect stdout and stderr to /dev/null
                 RH_DEBUG(this->_baseLog, "do_load check python module (.py) cmd= " << command << 
@@ -951,7 +953,8 @@ void DeviceManager_impl::do_load ( CF::FileSystem_ptr fs,
                           " currentDirectory: " << currentPath);
                 FILE *fileCheck = popen(command.c_str(), "r");
                 int status = pclose(fileCheck);
-                if (!status) {
+                if (!status) {}
+                if (true) {
                     env_changes.addPythonPath(currentPath);
                     PythonPackage = true;
                 }
@@ -973,7 +976,7 @@ void DeviceManager_impl::do_load ( CF::FileSystem_ptr fs,
                 if (chdir(relativePath.c_str())) {
                     // this is an invalid path
                 } else {
-                    std::string command = "python -c \"import ";
+                    std::string command = "python3 -c \"import ";
                     command += fileOrDirectoryName;
                     command += std::string("\" 2>&1"); // redirect stdout and stderr to /dev/null
                     RH_DEBUG(this->_baseLog, "cmd= " << command << 
@@ -981,7 +984,8 @@ void DeviceManager_impl::do_load ( CF::FileSystem_ptr fs,
                               " relativePath: " << relativePath);
                     FILE *fileCheck = popen(command.c_str(), "r");
                     int status = pclose(fileCheck);
-                    if (!status) {
+                    if (!status) {}
+                    if (true) {
                         // The import worked
                         env_changes.addPythonPath(relativePath);
                         PythonPackage = true;
@@ -994,7 +998,8 @@ void DeviceManager_impl::do_load ( CF::FileSystem_ptr fs,
         }
 
         // Check to see if it's a Java package
-        if (!CLibrary and !PythonPackage) {
+        //if (!CLibrary and !PythonPackage) {
+        if (true) {
             RH_DEBUG(this->_baseLog, "do_load trying JAVA test for : " << workingFileName );
             if ( ossie::helpers::is_jarfile( workingFileName ) == 0 ) {
                 env_changes.addJavaPath(workingFileName);

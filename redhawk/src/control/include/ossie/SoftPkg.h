@@ -191,10 +191,10 @@ namespace ossie {
     class SoftPkg {
         public:
             SoftPkg();
-            SoftPkg(std::istream& input, const std::string& _spdFile) throw (ossie::parser_error);
+            SoftPkg(std::istream& input, const std::string& _spdFile);
 
         public:
-            void load(std::istream& input, const std::string& _spdFile) throw (ossie::parser_error);
+            void load(std::istream& input, const std::string& _spdFile);
 
             const std::string& getSoftPkgID() const {
                 assert(_spd.get() != 0);
@@ -301,7 +301,7 @@ namespace ossie {
             void loadDescriptor(std::istream& file);
 
         protected:
-            std::auto_ptr<SPD> _spd;
+            std::unique_ptr<SPD> _spd;
             boost::shared_ptr<Properties> _properties;
             boost::shared_ptr<ComponentDescriptor> _descriptor;
             std::string _spdFile;

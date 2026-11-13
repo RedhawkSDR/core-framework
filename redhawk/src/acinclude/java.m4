@@ -51,11 +51,24 @@ AC_DEFUN([RH_JAVA_HOME],
   fi
 ])
 
+AC_DEFUN([RH_JACORB_HOME],
+[
+  AC_ARG_VAR([JACORB_HOME], [JacORB location])
+  AC_MSG_CHECKING([for a valid JACORB_HOME])
+  if test -n "$JACORB_HOME" -a -d "$JACORB_HOME" -a -x "$JACORB_HOME/bin/idl"; then
+    AC_MSG_RESULT([$JACORB_HOME])
+  else
+    AC_MSG_RESULT([no])
+    echo "Set the JACORB_HOME environment variable."
+    AS_EXIT(1)
+  fi
+])
+
 dnl RH_PROG_JAVA
 AC_DEFUN([RH_PROG_JAVA],
 [
   AC_REQUIRE([RH_JAVA_HOME])
-  java_test_paths=$JAVA_HOME/jre/sh$PATH_SEPARATOR$JAVA_HOME/bin
+  java_test_paths=$JAVA_HOME/bin
   AC_PATH_PROG([JAVA], [java], [no], [$java_test_paths])
 ])
 
@@ -65,7 +78,7 @@ AC_DEFUN([RH_PROG_JAVAC],
 [
   AC_REQUIRE([RH_JAVA_HOME])
   AC_ARG_VAR([JAVACFLAGS], [Java compiler flags])
-  java_test_paths=$JAVA_HOME/jre/sh$PATH_SEPARATOR$JAVA_HOME/bin
+  java_test_paths=$JAVA_HOME/bin
   AC_PATH_PROG([JAVAC], [javac], [no], [$java_test_paths])
   if test -n "$1" -a "$JAVAC" != "no"; then
     AC_MSG_CHECKING([javac version $1 compliance])
@@ -77,7 +90,7 @@ AC_DEFUN([RH_PROG_JAVAC],
       }
 EOF
 
-    if AC_TRY_COMMAND([$JAVAC -source $1 -target $1 Test.java]); then
+    if AC_TRY_COMMAND([$JAVAC --release $1 Test.java]); then
       AC_MSG_RESULT([yes])
       _RH_SILENT_COMMAND([JAVAC], '@echo "  JAVAC " $[@];')
     else
@@ -106,8 +119,8 @@ dnl RH_PROG_IDLJ
 AC_DEFUN([RH_PROG_IDLJ],
 [
   AC_REQUIRE([RH_JAVA_HOME])
-  java_test_paths=$JAVA_HOME/jre/sh$PATH_SEPARATOR$JAVA_HOME/bin
-  AC_PATH_PROG([IDLJ], [idlj], [no], [$java_test_paths])
+  java_test_paths=$JACORB_HOME/bin
+  AC_PATH_PROG([IDLJ], [idl], [no], [$java_test_paths])
   _RH_SILENT_COMMAND([IDLJ], '@echo "  IDLJ  " $<;')
 ])
 

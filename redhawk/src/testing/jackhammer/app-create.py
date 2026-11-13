@@ -53,16 +53,16 @@ class CreateApp(jackhammer.Jackhammer):
                 self.appFact = appFact
                 return
 
-        raise KeyError, "Couldn't find app factory"
+        raise KeyError("Couldn't find app factory")
 
     def test (self):
         if self.__ignore_app:
             try:
-                print "Creating  app: " + str( self.app_cnt ) 
+                print("Creating  app: " + str( self.app_cnt )) 
                 app = self.appFact.create(self.appFact._get_name(), [], [])
                 time.sleep(self.__delay)
                 app.releaseObject()
-                print "Cleaned up app: " + str( self.app_cnt ) 
+                print("Cleaned up app: " + str( self.app_cnt )) 
                 self.app_cnt += 1
             except:
                 pass

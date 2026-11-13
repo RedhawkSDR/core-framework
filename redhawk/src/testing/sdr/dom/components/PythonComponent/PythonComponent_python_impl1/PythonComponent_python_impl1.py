@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -85,7 +85,7 @@ class PythonComponent_python_impl1_i(PythonComponent_python_impl1_base):
         """
 
         time.sleep(1)
-        print "Processing some data..."
+        print("Processing some data...")
         return NOOP
   
 if __name__ == '__main__':

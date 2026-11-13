@@ -160,6 +160,7 @@ namespace ossie {
             public:
                 std::string id;
                 std::string name;
+                std::string version;
                 std::string assemblycontroller;
                 Partitioning partitioning;
                 std::vector<Connection> connections;
@@ -172,13 +173,15 @@ namespace ossie {
        
         SoftwareAssembly();
 
-        SoftwareAssembly(std::istream& input) throw (ossie::parser_error);
+        SoftwareAssembly(std::istream& input);
 
-        void load(std::istream& input) throw (ossie::parser_error);
+        void load(std::istream& input);
 
         const std::string& getID() const;
 
         const std::string& getName() const;
+
+        const std::string& getVersion() const;
 
         const std::vector<ComponentFile>& getComponentFiles() const;
 
@@ -211,7 +214,7 @@ namespace ossie {
         void validateExternalPorts(std::vector<Port>& ports);
         void validateExternalProperties(std::vector<Property>& properties);
 
-        std::auto_ptr<SAD> _sad;
+        std::unique_ptr<SAD> _sad;
     };
 }
 #endif

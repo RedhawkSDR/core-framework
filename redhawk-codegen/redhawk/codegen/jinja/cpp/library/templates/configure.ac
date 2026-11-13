@@ -39,9 +39,9 @@ RH_SOFTPKG_CXX([{{dep.spd}}]{{',[%s]' % dep.impl if dep.impl}})
 #{% endfor %}
 OSSIE_ENABLE_LOG4CXX
 AX_BOOST_BASE([{{versions.boost}}])
+AX_BOOST_FILESYSTEM
 AX_BOOST_SYSTEM
 AX_BOOST_THREAD
-AX_BOOST_REGEX
 
 AC_CONFIG_FILES([Makefile {{component.pcfile}}])
 AC_OUTPUT

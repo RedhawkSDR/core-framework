@@ -72,7 +72,7 @@ ${className}::~${className}()
 {
 }
 
-void ${className}::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException) 
+void ${className}::initialize()
 {
 /*{% if component.hasHwLoadRequestProp %}*/
     setHwLoadRequestsPtr(&hw_load_requests);

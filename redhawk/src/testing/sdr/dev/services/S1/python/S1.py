@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -57,7 +57,7 @@ class S1(CF__POA.LogLevels):
 
     def terminateService(self):
         self.run=False
-        if self.thread and self.thread.isAlive() : self.thread.join()
+        if self.thread and self.thread.is_alive() : self.thread.join()
         pass
 
 

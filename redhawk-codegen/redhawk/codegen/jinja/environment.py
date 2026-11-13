@@ -24,7 +24,7 @@ class CodegenEnvironment(jinja2.Environment):
     def __init__(self, *args, **kwargs):
         super(CodegenEnvironment,self).__init__(*args, **kwargs)
 
-        import filters
+        from . import filters
         self.filters['lines'] = filters.do_lines
         self.filters['prepend'] = filters.do_prepend
         self.filters['append'] = filters.do_append
@@ -35,7 +35,7 @@ class CodegenEnvironment(jinja2.Environment):
         self.filters['quote'] = filters.do_quote
         self.filters['codealign'] = filters.do_codealign
 
-        import tests
+        from . import tests
         self.tests['sometimes'] = tests.is_sometimes
         self.tests['always'] = tests.is_always
         self.tests['never'] = tests.is_never

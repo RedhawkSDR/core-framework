@@ -26,6 +26,7 @@
 //% set artifactType = component.artifacttype
 package ${component.package};
 
+import java.lang.reflect.InvocationTargetException;
 //% set listImported = false
 /*{% if component.hasmultioutport %}*/
 import java.util.List;
@@ -116,37 +117,41 @@ import frontend.*;
 
 /*{% block classdeclaration %}*/
 /*{% if component.hasfrontendprovides %}*/
-/*{%     set implementedClasses = "" %}*/
+/*{%     set implementedClasses = [] %}*/
 /*{%     for port in component.ports if port is provides %}*/
-/*{%         if port.javatype == "frontend.InAnalogScanningTunerPort" and "AnalogScanningTunerDelegate" not in implementedClasses %}*/
-/*{%             set implementedClasses = implementedClasses + ",AnalogScanningTunerDelegate" %}*/
+/*{%         set delegateClass = '' %}*/
+/*{%         if port.javatype == 'frontend.InAnalogScanningTunerPort' %}*/
+/*{%            set delegateClass = 'AnalogScanningTunerDelegate' %}*/
 /*{%         endif %}*/
-/*{%         if port.javatype == "frontend.InDigitalScanningTunerPort" and "DigitalScanningTunerDelegate" not in implementedClasses %}*/
-/*{%             set implementedClasses = implementedClasses + ",DigitalScanningTunerDelegate" %}*/
+/*{%         if port.javatype == 'frontend.InDigitalScanningTunerPort' %}*/
+/*{%            set delegateClass = 'DigitalScanningTunerDelegate' %}*/
 /*{%         endif %}*/
-/*{%         if port.javatype == "frontend.InAnalogTunerPort" and "AnalogTunerDelegate" not in implementedClasses %}*/
-/*{%             set implementedClasses = implementedClasses + ",AnalogTunerDelegate" %}*/
+/*{%         if port.javatype == 'frontend.InAnalogTunerPort' %}*/
+/*{%            set delegateClass = 'AnalogTunerDelegate' %}*/
 /*{%         endif %}*/
-/*{%         if port.javatype == "frontend.InDigitalTunerPort" and "DigitalTunerDelegate" not in implementedClasses %}*/
-/*{%             set implementedClasses = implementedClasses + ",DigitalTunerDelegate" %}*/
+/*{%         if port.javatype == 'frontend.InDigitalTunerPort' %}*/
+/*{%            set delegateClass = 'DigitalTunerDelegate' %}*/
 /*{%         endif %}*/
-/*{%         if port.javatype == "frontend.InFrontendTunerPort" and "FrontendTunerDelegate" not in implementedClasses %}*/
-/*{%             set implementedClasses = implementedClasses + ",FrontendTunerDelegate" %}*/
+/*{%         if port.javatype == 'frontend.InFrontendTunerPort' %}*/
+/*{%            set delegateClass = 'FrontendTunerDelegate' %}*/
 /*{%         endif %}*/
-/*{%         if port.javatype == "frontend.InGPSPort" and "GPSDelegate" not in implementedClasses %}*/
-/*{%             set implementedClasses = implementedClasses + ",GPSDelegate" %}*/
+/*{%         if port.javatype == 'frontend.InGPSPort' %}*/
+/*{%            set delegateClass = 'GPSDelegate' %}*/
 /*{%         endif %}*/
-/*{%         if port.javatype == "frontend.InNavDataPort" and "NavDataDelegate" not in implementedClasses %}*/
-/*{%             set implementedClasses = implementedClasses + ",NavDataDelegate" %}*/
+/*{%         if port.javatype == 'frontend.InNavDataPort' %}*/
+/*{%            set delegateClass = 'NavDataDelegate' %}*/
 /*{%         endif %}*/
-/*{%         if port.javatype == "frontend.InRFInfoPort" and "RFInfoDelegate" not in implementedClasses %}*/
-/*{%             set implementedClasses = implementedClasses + ",RFInfoDelegate" %}*/
+/*{%         if port.javatype == 'frontend.InRFInfoPort' %}*/
+/*{%            set delegateClass = 'RFInfoDelegate' %}*/
 /*{%         endif %}*/
-/*{%         if port.javatype == "frontend.InRFSourcePort" and "RFSourceDelegate" not in implementedClasses %}*/
-/*{%             set implementedClasses = implementedClasses + ",RFSourceDelegate" %}*/
+/*{%         if port.javatype == 'frontend.InRFSourcePort' %}*/
+/*{%            set delegateClass = 'RFSourceDelegate' %}*/
+/*{%         endif %}*/
+/*{%         if delegateClass != '' and delegateClass not in implementedClasses %}*/
+/*{%             set tmp = implementedClasses.append(delegateClass) %}*/
 /*{%         endif %}*/
 /*{%         if loop.last %}*/
-/*{%             set implementedClasses = implementedClasses[1:] %}*/
+/*{%             set implementedClasses = implementedClasses|join(', ') %}*/
 public abstract class ${classname} extends ${superClass} implements ${implementedClasses}
 {
 /*{%         endif %}*/
@@ -347,6 +352,10 @@ public abstract class ${classname} extends ${superClass}
         } catch (InstantiationException e) {
             e.printStackTrace();
         } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
             e.printStackTrace();
         }
     }

@@ -22,6 +22,8 @@ pkgpath = omnijni
 
 JAVAROOT = @builddir@
 
+AM_JAVACFLAGS = -cp .:$(OSSIE_CLASSPATH)
+
 dist_noinst_JAVA = \
 	$(pkgpath)/AnyUtils.java \
 	$(pkgpath)/CORBAObject.java \

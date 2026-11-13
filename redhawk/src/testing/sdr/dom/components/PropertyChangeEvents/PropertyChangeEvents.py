@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -74,7 +74,7 @@ class PropertyChangeEvents(CF__POA.Resource, Resource):
 
         def __init__(self):
             """Construct an initialized instance of this struct definition"""
-            for attrname, classattr in type(self).__dict__.items():
+            for attrname, classattr in list(type(self).__dict__.items()):
                 if type(classattr) == simple_property:
                     classattr.initialize(self)
 

@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-from generator import BinaryComponentGenerator, loader
+from .generator import BinaryComponentGenerator, loader
 
 def factory(**opts):
     return BinaryComponentGenerator(**opts)

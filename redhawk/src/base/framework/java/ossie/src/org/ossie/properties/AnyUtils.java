@@ -31,7 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.apache.log4j.Logger;
 
-import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.omg.CORBA.Any;
 import org.omg.CORBA.AnySeqHelper;
 import org.omg.CORBA.BAD_OPERATION;
@@ -665,7 +665,7 @@ public final class AnyUtils {
             retVal.insert_double(((Number) value).doubleValue());
             break;
         case TCKind._tk_fixed:
-            retVal.insert_fixed((BigDecimal) value);
+            retVal.insert_fixed((BigDecimal) value, type);
             break;
         case TCKind._tk_float:
             retVal.insert_float(((Number) value).floatValue());

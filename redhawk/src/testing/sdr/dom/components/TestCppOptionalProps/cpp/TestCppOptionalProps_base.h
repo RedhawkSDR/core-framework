@@ -32,16 +32,15 @@ class TestCppOptionalProps_base : public Component, protected ThreadedComponent
         TestCppOptionalProps_base(const char *uuid, const char *label);
         ~TestCppOptionalProps_base();
 
-        void start() throw (CF::Resource::StartError, CORBA::SystemException);
+        void start();
 
-        void stop() throw (CF::Resource::StopError, CORBA::SystemException);
+        void stop();
 
-        void releaseObject() throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
+        void releaseObject();
 
         void loadProperties();
 
-        void runTest (CORBA::ULong TestID, CF::Properties& testValues)
-        	throw (CF::UnknownProperties, CF::TestableObject::UnknownTest, CORBA::SystemException);
+        void runTest (CORBA::ULong TestID, CF::Properties& testValues);
 
     protected:
         // Member variables exposed as properties

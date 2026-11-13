@@ -299,16 +299,16 @@ void DomainManager_impl::restoreEventChannels(const std::string& _db_uri) {
                 try {
                   if ( _eventChannelMgr ) _eventChannelMgr->restore( i->channel, i->name, i->boundName);
                 }
-                catch( CF::EventChannelManager::ChannelAlreadyExists){
+                catch( CF::EventChannelManager::ChannelAlreadyExists &){
                   RH_INFO(this->_baseLog, "EventChannelManager::restore, Channel already exists: " << i->boundName);
                 }
-                catch( CF::EventChannelManager::InvalidChannelName){
+                catch( CF::EventChannelManager::InvalidChannelName &){
                   RH_WARN(this->_baseLog, "EventChannelManager::restore, Invalid Channel Name, " << i->boundName);
                 }
-                catch( CF::EventChannelManager::ServiceUnavailable){
+                catch( CF::EventChannelManager::ServiceUnavailable &){
                   RH_WARN(this->_baseLog, "EventChannelManager::restore, Event Service seems to be down. ");
                 }
-                catch( CF::EventChannelManager::OperationFailed){
+                catch( CF::EventChannelManager::OperationFailed &){
                   RH_WARN(this->_baseLog, "EventChannelManager::restore, Failed to recover Event Channel: " << i->boundName);
                 }
                 catch( ... ){
@@ -498,6 +498,29 @@ void DomainManager_impl::restoreState(const std::string& _db_uri) {
         } CATCH_RH_WARN(this->_baseLog, "Failed to restore application" << i->identifier);
     }
 
+    std::string cass_command = "/usr/local/redhawk/core/bin/cass_query ";
+    cass_command += this->_domainName;
+    std::string kubernetes_applications = this->exec(cass_command.c_str());
+    std::vector<std::string> k_apps;
+    std::stringstream string_str;
+    string_str << kubernetes_applications;
+    for (std::string line; std::getline(string_str, line, '\n');) {
+        k_apps.push_back(line);
+    }
+
+    RH_DEBUG(this->_baseLog, "Recovering container applications");
+    for (unsigned int i=0; i<k_apps.size(); i++) {
+        std::string space_delimiter(" ");
+        size_t space_pos = k_apps[i].find(space_delimiter);
+        if (space_pos != std::string::npos) {
+            std::string IOR = k_apps[i].substr(space_pos+1, k_apps[i].size() - space_pos - 1);
+            CF::Application_ptr tmp_app = ossie::corba::_narrowSafe<CF::Application>(_orbCtx.orb->string_to_object(IOR.c_str()));
+            if (not CORBA::is_nil(tmp_app)) {
+                this->addContainerApplication(tmp_app);
+            }
+        }
+    }
+
     RH_DEBUG(this->_baseLog, "Recovering remote domains");
     // Recover domain manager connections and consume the value so that
     // the persistence store no longer has any domain manager stored
@@ -539,6 +562,25 @@ void DomainManager_impl::restoreState(const std::string& _db_uri) {
     _allocationMgr->restoreRemoteAllocations(_restoredRemoteAllocations);
 
     RH_DEBUG(this->_baseLog, "Done restoring state from URL " << _db_uri);
+}
+
+std::string DomainManager_impl::exec(const char* cmd) {
+    char buffer[128];
+    std::string result = "";
+    FILE* pipe = popen(cmd, "r");
+    if (!pipe) {
+        return result;
+    }
+    try {
+        while (fgets(buffer, sizeof buffer, pipe) != NULL) {
+            result += buffer;
+        }
+    } catch (...) {
+        pclose(pipe);
+        throw;
+    }
+    pclose(pipe);
+    return result;
 }
 
 void DomainManager_impl::cleanupDomainNamingContext (CosNaming::NamingContext_ptr nc)
@@ -745,14 +787,12 @@ uint32_t  DomainManager_impl::getServiceWaitTime() {
 
 char *
 DomainManager_impl::identifier (void)
-throw (CORBA::SystemException)
 {
     return CORBA::string_dup(_identifier.c_str());
 }
 
 char *
 DomainManager_impl::name (void)
-throw (CORBA::SystemException)
 {
     return CORBA::string_dup(this->_domainName.c_str());
 }
@@ -760,21 +800,18 @@ throw (CORBA::SystemException)
 
 char *
 DomainManager_impl::domainManagerProfile (void)
-throw (CORBA::SystemException)
 {
     return CORBA::string_dup(_domainManagerProfile.c_str());
 }
 
 
-CF::AllocationManager_ptr DomainManager_impl::allocationMgr (void) throw (CORBA::
-                                                              SystemException)
+CF::AllocationManager_ptr DomainManager_impl::allocationMgr (void)
 {
     return _allocationMgr->_this();
 }
 
 
-CF::EventChannelManager_ptr DomainManager_impl::eventChannelMgr (void) throw (CORBA::
-                                                              SystemException)
+CF::EventChannelManager_ptr DomainManager_impl::eventChannelMgr (void)
 {
     return _eventChannelMgr->_this();
 }
@@ -796,22 +833,20 @@ namespace {
 }
 
 
-CF::FileManager_ptr DomainManager_impl::fileMgr (void) throw (CORBA::
-SystemException)
+CF::FileManager_ptr DomainManager_impl::fileMgr (void)
 {
     return CF::FileManager::_duplicate(_fileMgr);
 }
 
 
-CF::ConnectionManager_ptr DomainManager_impl::connectionMgr (void) throw (CORBA::SystemException)
+CF::ConnectionManager_ptr DomainManager_impl::connectionMgr (void)
 {
     return _connectionMgr->_this();
 }
 
 
 CF::DomainManager::ApplicationFactorySequence *
-DomainManager_impl::applicationFactories (void) throw (CORBA::
-                                                       SystemException)
+DomainManager_impl::applicationFactories (void)
 {
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
@@ -821,21 +856,37 @@ DomainManager_impl::applicationFactories (void) throw (CORBA::
     return result._retn();
 }
 
+void DomainManager_impl::addContainerApplication(CF::Application_ptr &app) {
+    _containerApps.push_back(CF::Application::_duplicate(app));
+}
 
 CF::DomainManager::ApplicationSequence *
-DomainManager_impl::applications (void) throw (CORBA::SystemException)
+DomainManager_impl::applications (void)
 {
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
     CF::DomainManager::ApplicationSequence_var result = new CF::DomainManager::ApplicationSequence();
     map_to_sequence(result, _applications);
 
+    for (unsigned int i=_containerApps.size(); i!=0; i--) {
+        try {
+            CORBA::Boolean started = _containerApps[i-1]->started();
+            if (started) {}
+        } catch ( ... ) {
+            _containerApps.erase(_containerApps.begin()+(i-1));
+        }
+    }
+
+    for (unsigned int i=0; i!=_containerApps.size(); i++) {
+        ossie::corba::push_back(result, CF::Application::_duplicate(_containerApps[i]));
+    }
+
     return result._retn();
 }
 
 
 CF::DomainManager::DeviceManagerSequence *
-DomainManager_impl::deviceManagers (void) throw (CORBA::SystemException)
+DomainManager_impl::deviceManagers (void)
 {
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
@@ -851,7 +902,7 @@ DomainManager_impl::deviceManagers (void) throw (CORBA::SystemException)
 
 
 CF::DomainManager::DomainManagerSequence *
-DomainManager_impl::remoteDomainManagers (void) throw (CORBA::SystemException)
+DomainManager_impl::remoteDomainManagers (void)
 {
     boost::recursive_mutex::scoped_lock lock(stateAccess);
 
@@ -902,8 +953,6 @@ ossie::DomainManagerList::iterator DomainManager_impl::findDomainManagerById (co
 
 void
 DomainManager_impl::registerRemoteDomainManager (CF::DomainManager_ptr domainMgr)
-throw (CORBA::SystemException, CF::InvalidObjectReference,
-       CF::DomainManager::RegisterError)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
     try {
@@ -942,8 +991,6 @@ throw (CORBA::SystemException, CF::InvalidObjectReference,
 
 void
 DomainManager_impl::unregisterRemoteDomainManager (CF::DomainManager_ptr domainMgr)
-throw (CORBA::SystemException, CF::InvalidObjectReference,
-       CF::DomainManager::UnregisterError)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
     if (CORBA::is_nil(domainMgr)) {
@@ -973,8 +1020,6 @@ throw (CORBA::SystemException, CF::InvalidObjectReference,
 
 void
 DomainManager_impl::registerDeviceManager (CF::DeviceManager_ptr deviceMgr)
-throw (CORBA::SystemException, CF::InvalidObjectReference, CF::InvalidProfile,
-       CF::DomainManager::RegisterError)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
     ossie::corba::overrideBlockingCall(deviceMgr,getManagerWaitTime());
@@ -1160,8 +1205,6 @@ void DomainManager_impl::mountDeviceMgrFileSys (CF::DeviceManager_ptr deviceMgr)
 
 void
 DomainManager_impl::unregisterDeviceManager (CF::DeviceManager_ptr deviceMgr)
-throw (CORBA::SystemException, CF::InvalidObjectReference,
-       CF::DomainManager::UnregisterError)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
 
@@ -1286,9 +1329,6 @@ ossie::DeviceManagerList::iterator DomainManager_impl::removeDeviceManager (ossi
 void
 DomainManager_impl::registerDevice (CF::Device_ptr registeringDevice,
                                     CF::DeviceManager_ptr registeredDeviceMgr)
-throw (CORBA::SystemException, CF::InvalidObjectReference, CF::InvalidProfile,
-       CF::DomainManager::DeviceManagerNotRegistered,
-       CF::DomainManager::RegisterError)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
     ossie::corba::overrideBlockingCall(registeringDevice,getDeviceWaitTime());
@@ -1447,8 +1487,6 @@ DomainManager_impl::storeServiceInDomainMgr (CORBA::Object_ptr registeringServic
 
 void
 DomainManager_impl::unregisterDevice (CF::Device_ptr unregisteringDevice)
-throw (CORBA::SystemException, CF::InvalidObjectReference,
-       CF::DomainManager::UnregisterError)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
 
@@ -1586,11 +1624,6 @@ CF::Application_ptr DomainManager_impl::createApplication(const char* profileFil
 //              --              ApplicationInstallationError
 
 void DomainManager_impl::installApplication (const char* profileFileName)
-throw (CORBA::SystemException, 
-       CF::InvalidProfile, 
-       CF::InvalidFileName,
-       CF::DomainManager::ApplicationInstallationError, 
-       CF::DomainManager::ApplicationAlreadyInstalled)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
     _local_installApplication(profileFileName);
@@ -1673,8 +1706,6 @@ void DomainManager_impl::_local_installApplication (const std::string& profileFi
 
 void
 DomainManager_impl::uninstallApplication (const char* applicationId)
-throw (CORBA::SystemException, CF::DomainManager::InvalidIdentifier,
-       CF::DomainManager::ApplicationUninstallationError)
 {
     RH_INFO(this->_baseLog, "Uninstalling application " << applicationId);
     boost::mutex::scoped_lock lock(interfaceAccess);
@@ -1856,9 +1887,6 @@ DomainManager_impl::registerWithEventChannel (CORBA::
                                               Object_ptr registeringObject,
                                               const char* registeringId,
                                               const char* eventChannelName)
-throw (CORBA::SystemException, CF::InvalidObjectReference,
-       CF::DomainManager::InvalidEventChannelName,
-       CF::DomainManager::AlreadyConnected)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
     _local_registerWithEventChannel(registeringObject, registeringId, eventChannelName);
@@ -1901,8 +1929,6 @@ void DomainManager_impl::_local_registerWithEventChannel (CORBA::Object_ptr regi
 void
 DomainManager_impl::unregisterFromEventChannel (const char* unregisteringId,
                                                 const char* eventChannelName)
-throw (CORBA::SystemException, CF::DomainManager::InvalidEventChannelName,
-       CF::DomainManager::NotConnected)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
     _local_unregisterFromEventChannel(unregisteringId, eventChannelName);
@@ -1928,7 +1954,6 @@ void DomainManager_impl::_local_unregisterFromEventChannel (const std::string& u
 
 
 void DomainManager_impl::registerService (CORBA::Object_ptr registeringService, CF::DeviceManager_ptr registeredDeviceMgr, const char* name)
-    throw (CF::DomainManager::RegisterError, CF::DomainManager::DeviceManagerNotRegistered, CF::InvalidObjectReference, CORBA::SystemException)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
     ossie::corba::overrideBlockingCall(registeringService,getServiceWaitTime());
@@ -2201,7 +2226,6 @@ void DomainManager_impl::restoreEventChannelRegistrations(const std::string& _db
 }
 
 void DomainManager_impl::unregisterService(CORBA::Object_ptr unregisteringService, const char* name)
-    throw (CF::DomainManager::UnregisterError, CF::InvalidObjectReference, CORBA::SystemException)
 {
     boost::mutex::scoped_lock lock(interfaceAccess);
 

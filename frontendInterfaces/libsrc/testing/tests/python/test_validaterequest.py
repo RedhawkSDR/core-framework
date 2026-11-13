@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -33,8 +33,8 @@ from omniORB import any as _any
 from ossie.cf import CF
 
 from redhawk.frontendInterfaces import FRONTEND
-import tuner_device
-import fe_types
+from frontend import tuner_device
+from frontend import fe_types
 
 class ValidateRequestTest(unittest.TestCase):
 

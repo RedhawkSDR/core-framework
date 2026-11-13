@@ -87,7 +87,7 @@ namespace redhawk {
         UsesDeviceFailure(const ApplicationDeployment& application, const std::vector<std::string>& ids);
         UsesDeviceFailure(const ComponentDeployment* component, const std::vector<std::string>& ids);
 
-        virtual ~UsesDeviceFailure() throw()
+        virtual ~UsesDeviceFailure()
         {
         }
 
@@ -116,7 +116,7 @@ namespace redhawk {
         {
         }
 
-        virtual ~ConnectionError() throw()
+        virtual ~ConnectionError()
         {
         }
 
@@ -137,7 +137,7 @@ namespace redhawk {
 
         PlacementFailure(const ossie::SoftwareAssembly::HostCollocation& collocation, const std::string& message);
 
-        virtual ~PlacementFailure() throw ()
+        virtual ~PlacementFailure()
         {
         }
 
@@ -156,7 +156,7 @@ namespace redhawk {
     public:
         ComponentError(const ComponentDeployment* deployment, const std::string& message);
 
-        virtual ~ComponentError() throw ()
+        virtual ~ComponentError()
         {
         }
 
@@ -186,7 +186,7 @@ namespace redhawk {
             return _device;
         }
 
-        virtual ~ExecuteError() throw ()
+        virtual ~ExecuteError()
         {
         }
 
@@ -206,7 +206,7 @@ namespace redhawk {
         {
         }
 
-        virtual ~PropertiesError() throw ()
+        virtual ~PropertiesError()
         {
         }
 
@@ -225,7 +225,7 @@ namespace redhawk {
     public:
         BadExternalPort(const ossie::SoftwareAssembly::Port& port, const std::string& message);
 
-        virtual ~BadExternalPort() throw ()
+        virtual ~BadExternalPort()
         {
         }
 
@@ -254,7 +254,7 @@ namespace redhawk {
         {
         }
 
-        virtual ~ComponentTerminated() throw ()
+        virtual ~ComponentTerminated()
         {
         }
 

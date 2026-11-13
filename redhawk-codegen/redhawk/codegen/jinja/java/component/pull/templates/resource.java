@@ -219,17 +219,14 @@ public class ${classname} extends ${baseclass} {
          For a tuner device, the structure frontend_tuner_status needs to match the number
          of tuners that this device controls and what kind of device it is.
          The options for devices are: TX, RX, RX_DIGITIZER, CHANNELIZER, DDC, RX_DIGITIZER_CHANNELIZER
-     
-         For example, if this device has 5 physical
-         tuners, 3 RX_DIGITIZER and 2 CHANNELIZER, then the code in the construct function 
-         should look like this:
 
-         this.addChannels(3, "RX_DIGITIZER");
-         this.addChannels(2, "CHANNELIZER");
-     
+         An example of setting up this device as an RX_DIGITIZER would look like this:
+
+         this.addChannels(1, "RX_DIGITIZER");
+
          The incoming request for tuning contains a string describing the requested tuner
          type. The string for the request must match the string in the tuner status.
-     
+
         **************************************************************************/
         this.addChannels(1, "RX_DIGITIZER");
 /*{% endif %}*/
@@ -387,15 +384,13 @@ public class ${classname} extends ${baseclass} {
      *
      */
     protected int serviceFunction() {
-        _baseLog.debug("serviceFunction() example log message");
+        _baseLog.trace("serviceFunction() example log message");
 
         return NOOP;
     }
 
     /**
-     * Set additional options for ORB startup. For example:
-     *
-     *   orbProps.put("com.sun.CORBA.giop.ORBFragmentSize", Integer.toString(fragSize));
+     * Set additional options for ORB startup.
      *
      * @param orbProps
      */
@@ -535,6 +530,20 @@ public class ${classname} extends ${baseclass} {
         // WARNING: this device does not contain tuner allocation/status structures
         //          allocation_id has no meaning
         throw new FRONTEND.NotSupportedException("getTunerOutputSampleRate not supported");
+    }
+
+    public void configureTuner(String allocation_id, final CF.DataType[] tunerSettings) throws FrontendException, BadParameterException, NotSupportedException
+    {
+        // WARNING: this device does not contain tuner allocation/status structures
+        //          allocation_id has no meaning
+        throw new FRONTEND.NotSupportedException("configureTuner not supported");
+    }
+
+    public CF.DataType[] getTunerSettings(String allocation_id) throws FrontendException, BadParameterException, NotSupportedException
+    {
+        // WARNING: this device does not contain tuner allocation/status structures
+        //          allocation_id has no meaning
+        throw new FRONTEND.NotSupportedException("getTunerSettings not supported");
     }
 /*{% endif %}*/
 /*{% if 'ScanningTuner' in component.implements %}*/

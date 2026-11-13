@@ -195,7 +195,7 @@ namespace redhawk {
                     return boost::posix_time::pos_infin;
                 } else if (timeout > 0.0) {
                     // Positive: waiter expires timeout seconds from now
-                    return boost::get_system_time() + boost::posix_time::microseconds(timeout*1e6);
+                    return boost::get_system_time() + boost::posix_time::microseconds((long)(timeout*1e6));
                 } else {
                     // Zero: never wait, use invalid time object
                     return boost::posix_time::ptime();

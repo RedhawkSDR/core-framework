@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import ossie.utils.testing
 from ossie.utils import sb
@@ -66,7 +66,7 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         self.assertRaises(FRONTEND.NotSupportedException, tuner_port.getTunerAgcEnable, "hello")
         self.assertRaises(FRONTEND.NotSupportedException, tuner_port.setTunerGain, "hello", 1.0)
         self.assertRaises(FRONTEND.NotSupportedException, tuner_port.getTunerGain, "hello")
-        self.assertRaises(FRONTEND.NotSupportedException, tuner_port.setTunerReferenceSource, "hello", 1L)
+        self.assertRaises(FRONTEND.NotSupportedException, tuner_port.setTunerReferenceSource, "hello", 1)
         self.assertRaises(FRONTEND.NotSupportedException, tuner_port.getTunerReferenceSource, "hello")
         self.assertRaises(FRONTEND.NotSupportedException, tuner_port.setTunerEnable, "hello", True)
         self.assertRaises(FRONTEND.NotSupportedException, tuner_port.getTunerEnable, "hello")
@@ -78,10 +78,10 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         self.assertRaises(FRONTEND.NotSupportedException, tuner_port.setScanStrategy, "hello", _scan_strategy)
 
         # gps
-        _gpsinfo = FRONTEND.GPSInfo('','','',1L,1L,1L,1.0,1.0,1.0,1.0,1,1.0,'',rightnow,[])
-        self.assertEquals(gps_port._get_gps_info().status_message, '')
+        _gpsinfo = FRONTEND.GPSInfo('','','',1,1,1,1.0,1.0,1.0,1.0,1,1.0,'',rightnow,[])
+        self.assertEqual(gps_port._get_gps_info().status_message, '')
         gps_port._set_gps_info(_gpsinfo)
-        self.assertEquals(gps_port._get_gps_time_pos().position.datum, 'DATUM_WGS84')
+        self.assertEqual(gps_port._get_gps_time_pos().position.datum, 'DATUM_WGS84')
         _positioninfo = FRONTEND.PositionInfo(False,'DATUM_WGS84',0.0,0.0,0.0)
         _gpstimepos = FRONTEND.GpsTimePos(_positioninfo, rightnow)
         gps_port._set_gps_time_pos(_gpstimepos)
@@ -94,12 +94,12 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         _navpacket = FRONTEND.NavigationPacket('','',_positioninfo,_cartesianpos,_velocityinfo,_accelerationinfo,_attitudeinfo,rightnow,[])
         navdata_port._set_nav_packet(_navpacket)
         new_navpacket = navdata_port._get_nav_packet()
-        self.assertEquals(new_navpacket.position.datum, 'DATUM_WGS84')
+        self.assertEqual(new_navpacket.position.datum, 'DATUM_WGS84')
 
         # rfinfo
-        self.assertEquals(rfinfo_port._get_rf_flow_id(), '')
+        self.assertEqual(rfinfo_port._get_rf_flow_id(), '')
         rfinfo_port._set_rf_flow_id('hello')
-        self.assertEquals(rfinfo_port._get_rfinfo_pkt().rf_flow_id, '')
+        self.assertEqual(rfinfo_port._get_rfinfo_pkt().rf_flow_id, '')
         _antennainfo=FRONTEND.AntennaInfo('','','','')
         _freqrange=FRONTEND.FreqRange(0,0,[])
         _feedinfo=FRONTEND.FeedInfo('','',_freqrange)
@@ -109,9 +109,9 @@ class DeviceTests(ossie.utils.testing.RHTestCase):
         rfinfo_port._set_rfinfo_pkt(_rfinfopkt)
 
         # rfsource
-        self.assertEquals(len(rfsource_port._get_available_rf_inputs()), 0)
+        self.assertEqual(len(rfsource_port._get_available_rf_inputs()), 0)
         rfsource_port._set_available_rf_inputs([])
-        self.assertEquals(rfsource_port._get_current_rf_input().rf_flow_id, '')
+        self.assertEqual(rfsource_port._get_current_rf_input().rf_flow_id, '')
         rfsource_port._set_current_rf_input(_rfinfopkt)
 
 if __name__ == "__main__":

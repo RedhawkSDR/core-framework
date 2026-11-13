@@ -28,7 +28,7 @@
 
 namespace ossie {
     namespace internalparser {
-        std::auto_ptr<ossie::DeviceManagerConfiguration::DCD> parseDCD(std::istream& input) throw (ossie::parser_error);
+        std::unique_ptr<ossie::DeviceManagerConfiguration::DCD> parseDCD(std::istream& input);
     }
 }
 

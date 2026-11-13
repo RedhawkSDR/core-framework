@@ -197,7 +197,7 @@ CORBA::Any ossie::convertComplexStringToAny(std::string value) {
 
     // if A-jB instead of A+jB, flip the sign of B
     if (sign == '-') {
-        B *= -1;
+        B = B * (-1);
     }
 
     if (value.find('j') == std::string::npos)

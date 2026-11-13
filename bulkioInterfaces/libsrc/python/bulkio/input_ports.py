@@ -24,7 +24,7 @@ import collections
 import copy
 import time
 import struct
-
+import sys as _sys
 from ossie.utils import uuid
 from ossie.cf import CF
 from ossie.utils.notify import notification
@@ -275,7 +275,7 @@ class InPort(object):
         """
         # Prefer a stream that already has buffered data
         with self._streamsMutex:
-            for stream in self._streams.itervalues():
+            for stream in self._streams.values():
                 if stream._hasBufferedData():
                     return stream
 
@@ -311,7 +311,7 @@ class InPort(object):
             List of input streams.
         """
         with self._streamsMutex:
-            return self._streams.values()
+            return list(self._streams.values())
 
     def pushPacket(self, data, T, EOS, streamID):
         self._portLog.trace("pushPacket ENTER")
@@ -342,7 +342,7 @@ class InPort(object):
             if not sri:
                 # Unknown stream ID, register a new default SRI following the
                 # logic in pushSRI
-                self._portLog.warn("received data for stream '%s' with no SRI", streamID)
+                self._portLog.warning("received data for stream '%s' with no SRI", streamID)
                 new_stream = True
                 sri = bulkio.sri.create(streamID)
                 if self.newSriCallback:
@@ -555,7 +555,7 @@ class InPort(object):
                 return None
             return self.queue.popleft()
 
-        for index in xrange(len(self.queue)):
+        for index in range(len(self.queue)):
             if self.queue[index].streamID == streamID:
                 packet = self.queue[index]
                 del self.queue[index]
@@ -564,7 +564,7 @@ class InPort(object):
 
     def _disableBlockingOnEOS(self, streamID):
         with self._sriUpdateLock:
-            for hdr, _ in self.sriDict.itervalues():
+            for hdr, _ in self.sriDict.values():
                 if hdr.blocking:
                     return False
             return True
@@ -633,7 +633,8 @@ class InCharPort(InNumericPort, BULKIO__POA.dataChar):
 
     def _reformat(self, data):
         # Unpack the binary string as a list of signed bytes
-        return list(struct.unpack('%db' % len(data), data))
+        return [ int.from_bytes(d.encode('ISO-8859-1'),_sys.byteorder,signed=True) for d in data ]
+        #return list(data.encode())
 
 class InOctetPort(InNumericPort, BULKIO__POA.dataOctet):
     def __init__(self, name, logger=None, sriCompare=bulkio.sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100):
@@ -641,7 +642,7 @@ class InOctetPort(InNumericPort, BULKIO__POA.dataOctet):
 
     def _reformat(self, data):
         # Unpack the binary string as a list of unsigned bytes
-        return list(struct.unpack('%dB' % len(data), data))
+        return list(data)
 
 class InShortPort(InNumericPort, BULKIO__POA.dataShort):
     def __init__(self, name, logger=None, sriCompare=bulkio.sri.compare, newSriCallback=None, sriChangeCallback=None, maxsize=100):
@@ -793,7 +794,7 @@ class InAttachablePort:
     def _get_state(self):
         self.port_lock.acquire()
         try:
-            numAttachedStreams = len(self._attachedStreams.values())
+            numAttachedStreams = len(list(self._attachedStreams.values()))
         finally:
             self.port_lock.release()
         if numAttachedStreams == 0:
@@ -818,7 +819,7 @@ class InAttachablePort:
     def _get_usageState(self):
         self.port_lock.acquire()
         try:
-            numAttachedStreams = len(self._attachedStreams.values())
+            numAttachedStreams = len(list(self._attachedStreams.values()))
         finally:
             self.port_lock.release()
         if numAttachedStreams == 0:
@@ -830,10 +831,10 @@ class InAttachablePort:
             return self.interface.ACTIVE
 
     def _get_attachedStreams(self):
-        return [x[0] for x in self._attachedStreams.values()]
+        return [x[0] for x in list(self._attachedStreams.values())]
 
     def _get_attachmentIds(self):
-        return self._attachedStreams.keys()
+        return list(self._attachedStreams.keys())
 
     def attach(self, streamDef, userid):
 
@@ -849,7 +850,7 @@ class InAttachablePort:
                     self._portLog.debug("InAttachablePort.attach() - CALLING ATTACH CALLBACK, STREAM/USER"  + str(streamDef) + '/' + str(userid) )
                 if self._attach_cb != None:
                     attachId = self._attach_cb(streamDef, userid)
-            except Exception, e:
+            except Exception as e:
                 if self._portLog:
                     self._portLog.error("InAttachablePort.attach() - ATTACH CALLBACK EXCEPTION : " + str(e) + " STREAM/USER"  + str(streamDef) + '/' + str(userid) )
                 raise self.interface.AttachError(str(e))
@@ -876,7 +877,7 @@ class InAttachablePort:
 
         self.port_lock.acquire()
         try:
-            if not self._attachedStreams.has_key(attachId):
+            if attachId not in self._attachedStreams:
 
                 if self._portLog:
                     self._portLog.debug("InAttachablePort.detach() - DETACH UNKNOWN ID:" + str(attachId) )
@@ -897,7 +898,7 @@ class InAttachablePort:
 
                 if self._detach_cb != None:
                     self._detach_cb(attachId)
-            except Exception, e:
+            except Exception as e:
                 if self._portLog:
                     self._portLog.error("InAttachablePort.detach() - DETACH CALLBACK EXCEPTION: " + str(e) )
                 raise self.interface.DetachError(str(e))

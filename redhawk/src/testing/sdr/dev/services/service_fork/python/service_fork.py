@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # AUTO-GENERATED
 #
@@ -22,7 +22,7 @@ class service_fork(CF__POA.Application):
         self.name = name
         self._baseLog = logging.getLogger(self.name)
         self._log = logging.getLogger(self.name)
-        sp = _utils.Popen(['python', '../../../dev/services/service_fork/python/loop.py'])
+        sp = _utils.Popen(['python3', '../../../dev/services/service_fork/python/loop.py'])
         self._pid = sp.pid
 
     def terminateService(self):

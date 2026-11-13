@@ -310,11 +310,11 @@ Optional</description>
     <kind kindtype="event"/>
     <action type="external"/>
   </simple>
-  <simplesequence id="DCE:65544aad-4c73-451f-93de-d4d76984025a" mode="readwrite" name="mcastnicVLANs" type="long">
+  <!--simplesequence id="DCE:65544aad-4c73-451f-93de-d4d76984025a" mode="readwrite" name="mcastnicVLANs" type="long">
     <description>When queired, returns the list of vlans on this host.  When used as an allocation, defines the list of VLANS the component requires.</description>
     <kind kindtype="allocation"/>
     <action type="external"/>
-  </simplesequence>
+  </simplesequence-->
   <struct id="advanced" mode="readwrite">
     <simple id="maximum_throughput_percentage" type="double">
       <value>80.0</value>
@@ -561,7 +561,7 @@ THRESHOLD_NOT_EXCEEDED:  The measured value no longer exceeds the configured thr
     <struct id="component_monitor::component_monitor" name="component_monitor">
       <simple id="component_monitor::component_monitor::component_id" name="component_id" type="string"/>
       <simple id="component_monitor::component_monitor::waveform_id" name="waveform_id" type="string"/>
-      <simple id="component_monitor::component_monitor::pid" name="pid" type="ushort"/>
+      <simple id="component_monitor::component_monitor::pid" name="pid" type="ulong"/>
       <simple id="component_monitor::component_monitor::cores" name="cores" type="float">
         <units>%</units>
       </simple>

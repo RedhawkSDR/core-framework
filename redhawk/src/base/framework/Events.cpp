@@ -580,7 +580,7 @@ namespace events {
   // Request a Publisher on a specified Event Channel
   //
   PublisherPtr Manager::Publisher( const std::string &channel_name, const std::string &registrationId ) 
-    throw (RegistrationExists, RegistrationFailed) {
+    {
     SCOPED_LOCK(_mgr_lock);
 
     RH_DEBUG(_eventManagerLog,  "Requesting Publisher for Channel:" << channel_name  << " resource:" << _obj_id );
@@ -608,23 +608,23 @@ namespace events {
 
       }
     }
-    catch( CF::EventChannelManager::RegistrationAlreadyExists e) { 
+    catch( CF::EventChannelManager::RegistrationAlreadyExists &e) { 
       RH_ERROR(_eventManagerLog, "Unable to create Publisher for Channel:" << channel_name << ", REASON: Registration already exists.");
       throw RegistrationExists();
     }
-    catch( CF::EventChannelManager::InvalidChannelName e) { 
+    catch( CF::EventChannelManager::InvalidChannelName &e) { 
       RH_ERROR(_eventManagerLog, "Unable to create Publisher for Channel:" << channel_name << ", REASON: Invalid channel name.");
       throw RegistrationFailed();
     }
-    catch( CF::EventChannelManager::OperationFailed e) {  
+    catch( CF::EventChannelManager::OperationFailed &e) {  
       RH_ERROR(_eventManagerLog, "Unable to create Publisher for Channel:" << channel_name << ", REASON: Operation failed.");
       throw RegistrationFailed();
     }
-    catch( CF::EventChannelManager::OperationNotAllowed e) { 
+    catch( CF::EventChannelManager::OperationNotAllowed &e) { 
       RH_ERROR(_eventManagerLog, "Unable to create Publisher for Channel:" << channel_name << ", REASON: Operation failed.");
       throw RegistrationFailed();
     }
-    catch( CF::EventChannelManager::ServiceUnavailable e) { 
+    catch( CF::EventChannelManager::ServiceUnavailable &e) { 
       RH_ERROR(_eventManagerLog, "Unable to create Publisher for Channel:" << channel_name << ", REASON: Service unavailable.");
       throw RegistrationFailed();
     }
@@ -638,7 +638,7 @@ namespace events {
   }
 
   SubscriberPtr  Manager::Subscriber( const std::string &channel_name, const std::string &registrationId )
-    throw (RegistrationExists, RegistrationFailed) {
+    {
 
     SCOPED_LOCK(_mgr_lock);
 
@@ -666,23 +666,23 @@ namespace events {
 
       }
     }
-    catch( CF::EventChannelManager::RegistrationAlreadyExists e ) { 
+    catch( CF::EventChannelManager::RegistrationAlreadyExists &e) { 
       RH_ERROR(_eventManagerLog, "Unable to create Subscriber for Channel:" << channel_name << ", REASON: Registration already exists.");
       throw RegistrationExists();
     }
-    catch( CF::EventChannelManager::InvalidChannelName e) { 
+    catch( CF::EventChannelManager::InvalidChannelName &e) { 
       RH_ERROR(_eventManagerLog, "Unable to create Subscriber for Channel:" << channel_name << ", REASON: Invalid channel name.");
       throw RegistrationFailed();
     }
-    catch( CF::EventChannelManager::OperationFailed e) {  
+    catch( CF::EventChannelManager::OperationFailed &e) {  
       RH_ERROR(_eventManagerLog, "Unable to create Subscriber for Channel:" << channel_name << ", REASON: Operation failed.");
       throw RegistrationFailed();
     }
-    catch( CF::EventChannelManager::OperationNotAllowed e) { 
+    catch( CF::EventChannelManager::OperationNotAllowed &e) { 
       RH_ERROR(_eventManagerLog, "Unable to create Subscriber for Channel:" << channel_name << ", REASON: Operation failed.");
       throw RegistrationFailed();
     }
-    catch( CF::EventChannelManager::ServiceUnavailable e) { 
+    catch( CF::EventChannelManager::ServiceUnavailable &e) { 
       RH_ERROR(_eventManagerLog, "Unable to create Subscriber for Channel:" << channel_name << ", REASON: Service unavailable.");
       throw RegistrationFailed();
     } 

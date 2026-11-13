@@ -122,7 +122,7 @@ class SoftPackage(object):
         Write the hidden .resource.wavedev file.
 
         '''
-        print self.name
+        print(self.name)
         self.createOutputDirIfNeeded()
         outfile=open(self.outputDir+"/"+self.name+"/."+ self.name+".wavedev", 'w')
         outfile.write(self.wavedevContent)
@@ -192,7 +192,7 @@ class SoftPackage(object):
 
         if dep_impls is None:
             # no implementations found print out a warning and continue
-            print warn_msg
+            print(warn_msg)
             for index in range(len(self.spd.implementation)):
                 self.spd.implementation[index].add_dependency( self._make_dep_ref(dep, arch) )
         else:
@@ -201,11 +201,11 @@ class SoftPackage(object):
                 spd_impl = self.spd.implementation[index]
                 impl_ids = self._find_matching_impls( spd_impl, dep_impls )
                 if len(impl_ids) == 0 :
-                    print "Warning: No matching dependency implementations for implementation id: ", spd_impl.get_id(),  " defaulting to ", arch
+                    print("Warning: No matching dependency implementations for implementation id: ", spd_impl.get_id(),  " defaulting to ", arch)
                     spd_impl.add_dependency( self._make_dep_ref(dep,arch) )
                 else:
                     if len(impl_ids) > 1 :
-                        print "Warning: Multiple dependency implementations found, ", impl_ids, ", remove unwanted dependencies from SPD file"
+                        print("Warning: Multiple dependency implementations found, ", impl_ids, ", remove unwanted dependencies from SPD file")
                     for impl_id in impl_ids:
                         spd_impl.add_dependency(self._make_dep_ref(dep, impl_id) )
 
@@ -215,7 +215,7 @@ class SoftPackage(object):
         dependency = spd.dependency(type_="runtime_requirements",
                                     softpkgref=softpkgref)
         return dependency
-
+ 
 
     def _find_matching_impls(self, s_impl, add_deps ):
         # get spd's and deps matching implementation
@@ -223,7 +223,7 @@ class SoftPackage(object):
         spd_oss = [ o.get_name() for o in  s_impl.get_os() ]
         spd_procs = [ p.get_name() for p in  s_impl.get_processor() ]
 
-        for k,dep in add_deps.iteritems():
+        for k,dep in list(add_deps.items()):
             d_oss = [ o.get_name() for o in  dep.get_os() ]
             d_procs = [ p.get_name() for p in  dep.get_processor() ]
 
@@ -249,7 +249,7 @@ class SoftPackage(object):
         if 'SDRROOT' in os.environ:
             sdr_root= os.path.abspath(os.environ['SDRROOT'])
         else:
-            print "Warning: SDRROOT undefined, defaulting to ", sdr_root
+            print("Warning: SDRROOT undefined, defaulting to ", sdr_root)
 
         fname = os.path.join(sdr_root, 'dom', dep_file)
         if dep_file.startswith('/'):
@@ -259,7 +259,7 @@ class SoftPackage(object):
         try:
             parser = spd.parse( fname )
         except:
-            print "Warning: Unable to open dependency file: ", fname
+            print("Warning: Unable to open dependency file: ", fname)
             return None
         for x in parser.get_implementation():
             impls[x.get_id()] = x

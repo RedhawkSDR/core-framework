@@ -73,11 +73,11 @@ namespace spd
     virtual void
     version (const ::std::string&);
 
-    virtual std::auto_ptr<ossie::SPD>
+    virtual std::unique_ptr<ossie::SPD>
     post_softPkg ();
 
     private:
-    std::auto_ptr<ossie::SPD> _spd;
+    std::unique_ptr<ossie::SPD> _spd;
   };
 
   class localFile_pimpl: public virtual localFile_pskel
@@ -134,7 +134,7 @@ namespace spd
     post_author ();
 
     private:
-    std::auto_ptr<ossie::SPD::Author> author;
+    std::unique_ptr<ossie::SPD::Author> author;
   };
 
   class descriptor_pimpl: public virtual descriptor_pskel
@@ -205,7 +205,7 @@ namespace spd
     post_implementation ();
 
     private:
-    std::auto_ptr<ossie::SPD::Implementation> implementation;
+    std::unique_ptr<ossie::SPD::Implementation> implementation;
   };
 
   class code_pimpl: public virtual code_pskel
@@ -233,7 +233,7 @@ namespace spd
     post_code ();
 
     private:
-    std::auto_ptr<ossie::SPD::Code> code;
+    std::unique_ptr<ossie::SPD::Code> code;
   };
 
   class compiler_pimpl: public virtual compiler_pskel
@@ -350,7 +350,7 @@ namespace spd
     post_dependency ();
 
     private:
-    std::auto_ptr<ossie::DependencyRef> _ref;
+    std::unique_ptr<ossie::DependencyRef> _ref;
   };
 
   class runtime_pimpl: public virtual runtime_pskel
@@ -459,7 +459,7 @@ namespace spd
     post_usesDevice ();
 
     private:
-    std::auto_ptr<ossie::UsesDevice> _uses;
+    std::unique_ptr<ossie::UsesDevice> _uses;
   };
 
   class aepcompliance_pimpl: public virtual aepcompliance_pskel,

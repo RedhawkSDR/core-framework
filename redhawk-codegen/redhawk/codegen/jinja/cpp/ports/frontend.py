@@ -25,7 +25,7 @@ from redhawk.codegen.lang import cpp
 from redhawk.codegen.jinja.ports import PortFactory
 from redhawk.codegen.jinja.cpp import CppTemplate
 
-from generator import CppPortGenerator
+from .generator import CppPortGenerator
 
 if not '__package__' in locals():
     # Python 2.4 compatibility
@@ -34,10 +34,12 @@ if not '__package__' in locals():
 _headerMap = {
     'AnalogTuner':     '<frontend/fe_tuner_port_impl.h>',
     'DigitalTuner':    '<frontend/fe_tuner_port_impl.h>',
+    'TransmitControl': '<frontend/fe_tuner_port_impl.h>',
     'FrontendTuner':   '<frontend/fe_tuner_port_impl.h>',
     'GPS':             '<frontend/fe_gps_port_impl.h>',
     'NavData':         '<frontend/fe_navdata_port_impl.h>',
     'RFInfo':          '<frontend/fe_rfinfo_port_impl.h>',
+    'TransmitDeviceStatus':          '<frontend/fe_tuner_port_impl.h>',
     'RFSource':        '<frontend/fe_rfsource_port_impl.h>'
 }
 

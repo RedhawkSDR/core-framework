@@ -25,7 +25,7 @@ namespace urn:mil:jpeojtrs:sca:prf {
     include "../../include/ossie/Properties.h";
     include "../../include/ossie/componentProfile.h";
 
-    properties "std::auto_ptr<ossie::PRF>";
+    properties "std::unique_ptr<ossie::PRF>";
     simple "ossie::SimpleProperty*";
     simpleSequence "ossie::SimpleSequenceProperty*";
     struct "ossie::StructProperty*";

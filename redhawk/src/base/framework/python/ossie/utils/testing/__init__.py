@@ -18,5 +18,5 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-from unit_test_helpers import *
-from rhunittest import *
+from .unit_test_helpers import *
+from .rhunittest import *

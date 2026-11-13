@@ -33,15 +33,12 @@ public:
     virtual ~ApplicationRegistrar_impl();
     CF::Application_ptr app();
     CF::DomainManager_ptr domMgr();
-    void registerComponent(const char * Name, CF::Resource_ptr obj) throw (CF::InvalidObjectReference, CF::DuplicateName, CORBA::SystemException);
+    void registerComponent(const char * Name, CF::Resource_ptr obj);
     
     // CosNaming::NamingContext interface (supported))
-    void bind(const CosNaming::Name &Name, CORBA::Object_ptr obj) throw (CosNaming::NamingContext::NotFound, 
-        CosNaming::NamingContext::CannotProceed, CosNaming::NamingContext::InvalidName, CosNaming::NamingContext::AlreadyBound, CORBA::SystemException);
-    void unbind(const CosNaming::Name &Name) throw (CosNaming::NamingContext::NotFound, 
-        CosNaming::NamingContext::CannotProceed, CosNaming::NamingContext::InvalidName, CORBA::SystemException);
-    void rebind(const CosNaming::Name &Name, CORBA::Object_ptr obj) throw (CosNaming::NamingContext::NotFound, 
-        CosNaming::NamingContext::CannotProceed, CosNaming::NamingContext::InvalidName, CosNaming::NamingContext::AlreadyBound, CORBA::SystemException);
+    void bind(const CosNaming::Name &Name, CORBA::Object_ptr obj);
+    void unbind(const CosNaming::Name &Name);
+    void rebind(const CosNaming::Name &Name, CORBA::Object_ptr obj);
     
     // CosNaming::NamingContext interface (unsupported)
     void bind_context(const CosNaming::Name &Name, CosNaming::NamingContext_ptr obj) {};

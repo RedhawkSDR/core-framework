@@ -100,7 +100,7 @@ ImplementationInfo *ImplementationInfo::BuildImplementationInfo(CF::FileSystem_p
                                                                 const SPD::Implementation& spdImpl,
 								CF::FileSystem_ptr  depFileSys )
 {
-    std::auto_ptr<ImplementationInfo> impl(new ImplementationInfo(spdImpl));
+    std::unique_ptr<ImplementationInfo> impl(new ImplementationInfo(spdImpl));
 
     // Handle allocation property dependencies
     RH_TRACE(ossie::SpdSupport::spdSupportLog, "Loading component implementation softpkg dependencies")
@@ -108,7 +108,7 @@ ImplementationInfo *ImplementationInfo::BuildImplementationInfo(CF::FileSystem_p
     std::vector<ossie::SPD::SoftPkgRef>::const_iterator jj;
     for (jj = softpkgDependencies.begin(); jj != softpkgDependencies.end(); ++jj) {
         RH_TRACE(ossie::SpdSupport::spdSupportLog, "Loading component implementation softpkg dependency '" << *jj);
-        std::auto_ptr<SoftpkgInfo> softpkg(SoftpkgInfo::BuildSoftpkgInfo(depFileSys, jj->localfile.c_str(),depFileSys));
+        std::unique_ptr<SoftpkgInfo> softpkg(SoftpkgInfo::BuildSoftpkgInfo(depFileSys, jj->localfile.c_str(),depFileSys));
         impl->addSoftPkgDependency(softpkg.release());
     }
 
@@ -326,7 +326,7 @@ SoftpkgInfo *SoftpkgInfo::BuildSoftpkgInfo(CF::FileSystem_ptr fileSys, const cha
 {
     RH_TRACE(spdSupportLog, "Building soft package info from file " << spdFileName);
 
-    std::auto_ptr<SoftpkgInfo> softpkg(new SoftpkgInfo(spdFileName));
+    std::unique_ptr<SoftpkgInfo> softpkg(new SoftpkgInfo(spdFileName));
 
     if (!softpkg->parseProfile(fileSys,depFileSys)) {
         return 0;
@@ -422,10 +422,10 @@ ImplementationInfo *SoftpkgInfo::selectedImplementation() const
 
 PREPARE_CF_LOGGING(ProgramProfile);
 
-std::auto_ptr<ProgramProfile> ProgramProfile::LoadProgramProfile(CF::FileSystem_ptr fileSys, 
+std::unique_ptr<ProgramProfile> ProgramProfile::LoadProgramProfile(CF::FileSystem_ptr fileSys, 
 								 const char* spdFileName,
 								 CF::FileSystem_ptr depFileSys ) {
-  std::auto_ptr<ProgramProfile> ret( LoadProfile( fileSys, spdFileName, depFileSys ) );
+  std::unique_ptr<ProgramProfile> ret( LoadProfile( fileSys, spdFileName, depFileSys ) );
     return ret;
 }
 
@@ -435,7 +435,7 @@ ProgramProfile *ProgramProfile::LoadProfile(CF::FileSystem_ptr fileSys,
   
     RH_TRACE(spdSupportLog, "Building component info from file " << spdFileName);
 
-    std::auto_ptr<ProgramProfile> newComponent(new ProgramProfile(spdFileName));
+    std::unique_ptr<ProgramProfile> newComponent(new ProgramProfile(spdFileName));
 
     newComponent->load(fileSys, depFileSys );
 

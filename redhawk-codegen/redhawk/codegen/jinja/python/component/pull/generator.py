@@ -27,7 +27,7 @@ from redhawk.codegen.jinja.ports import PortFactoryList
 from redhawk.codegen.jinja.python.ports.frontend import FrontendProvidesPortFactory
 from redhawk.codegen.jinja.python.ports import PythonPortMapper, PythonPortFactory
 
-from mapping import PullComponentMapper
+from .mapping import PullComponentMapper
 
 if not '__package__' in locals():
     # Python 2.4 compatibility

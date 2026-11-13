@@ -82,8 +82,8 @@ EOF
 . $OSSIEHOME/environment-setup
 
 pushd $codegen
-python setup.py build
-python setup.py install --home=${OSSIEHOME} --old-and-unmanageable
+python3 setup.py build
+python3 setup.py install --home=${OSSIEHOME} --old-and-unmanageable
 popd
 
 pushd $bulkio

@@ -60,7 +60,7 @@ class PropertyChangeListener(CF__POA.PropertyChangeListener):
         if type(_prop_id) != str:
             raise Exception('Invalid property id. It must be a strings')
         if _callback == None:
-            if not self._changeCallbacks.has_key(_prop_id):
+            if _prop_id not in self._changeCallbacks:
                 raise Exception('Invalid key:', _prop_id)
             self._changeCallbacks.pop(_prop_id)
             return
@@ -72,13 +72,13 @@ class PropertyChangeListener(CF__POA.PropertyChangeListener):
         '''
         if _prop_id == []:
             return self._changeCallbacks
-        if self._changeCallbacks.has_key(_prop_id):
+        if _prop_id in self._changeCallbacks:
             return self._changeCallbacks[_prop_id]
         raise Exception('Invalid property id. No callback registered under that id')
         
     def propertyChange(self, _propChEv) :
         if type(self._changeCallbacks) != dict:
-            print 'Invalid change callbacks (must be dictionary with property id as a key and a callback function as a value). Printing received event', _propChEv
+            print('Invalid change callbacks (must be dictionary with property id as a key and a callback function as a value). Printing received event', _propChEv)
 
         _tmp_props = _propChEv.properties
         _triggers = {}
@@ -86,7 +86,7 @@ class PropertyChangeListener(CF__POA.PropertyChangeListener):
         for _prop_key in self._changeCallbacks:
             for _prop_idx in range(len(_tmp_props)):
                 if _tmp_props[_prop_idx].id == _prop_key:
-                    if not _triggers.has_key(self._changeCallbacks[_prop_key]):
+                    if self._changeCallbacks[_prop_key] not in _triggers:
                         _triggers[self._changeCallbacks[_prop_key]] = {}
                     _triggers[self._changeCallbacks[_prop_key]].update(properties.prop_to_dict(_tmp_props[_prop_idx]))
                     _tmp_props.pop(_prop_idx)
@@ -100,10 +100,10 @@ class PropertyChangeListener(CF__POA.PropertyChangeListener):
             if self._defaultCallback:
                 self._defaultCallback(_propChEv.evt_id, _propChEv.reg_id, _propChEv.resource_id, properties.props_to_dict(_tmp_props), _propChEv.timestamp)
                 return
-            print 'Property Change Event:'
-            print ' event id:',_propChEv.evt_id
-            print ' registration id:',_propChEv.reg_id
-            print ' resource id:', _propChEv.resource_id
-            print ' properties:', properties.props_to_dict(_tmp_props)
-            print ' timestamp:', _propChEv.timestamp
+            print('Property Change Event:')
+            print(' event id:',_propChEv.evt_id)
+            print(' registration id:',_propChEv.reg_id)
+            print(' resource id:', _propChEv.resource_id)
+            print(' properties:', properties.props_to_dict(_tmp_props))
+            print(' timestamp:', _propChEv.timestamp)
 

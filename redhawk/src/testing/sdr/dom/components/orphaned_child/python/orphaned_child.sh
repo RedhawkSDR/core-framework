@@ -19,4 +19,4 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 impldir=`dirname $0`
-python ${impldir}/orphaned_child.py $*
+python3 ${impldir}/orphaned_child.py $*

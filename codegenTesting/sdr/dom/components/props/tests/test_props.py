@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -127,7 +127,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         props = dict((x.id, any.from_any(x.value)) for x in props)
         # Query may return more than expected, but not less
         for expectedProp in expectedProps:
-            self.assertEquals(props.has_key(expectedProp.id), True)
+            self.assertEqual(expectedProp.id in props, True)
         
         #######################################################################
         # Verify that all expected ports are available
@@ -167,7 +167,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         
         numTestRuns = 10
         val = 15
-        charval = 'a'
+        charval = 'a'.encode('ISO-8859-1')
         chardata = struct.pack('1c', charval)
 
         flag = True
@@ -183,7 +183,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             self.comp_obj.configure([ossie.cf.CF.DataType(id='shortSimple', value=CORBA.Any(CORBA.TC_short, val))])
             self.comp_obj.configure([ossie.cf.CF.DataType(id='floatSimple', value=CORBA.Any(CORBA.TC_float, val))])
             self.comp_obj.configure([ossie.cf.CF.DataType(id='octetSimple', value=CORBA.Any(CORBA.TC_octet, val))])
-            self.comp_obj.configure([ossie.cf.CF.DataType(id='charSimple', value=CORBA.Any(CORBA.TC_char, chardata))])
+            self.comp_obj.configure([ossie.cf.CF.DataType(id='charSimple', value=CORBA.Any(CORBA.TC_char, chardata.decode('ISO-8859-1')))])
             self.comp_obj.configure([ossie.cf.CF.DataType(id='ushortSimple', value=CORBA.Any(CORBA.TC_ushort, val))])
             self.comp_obj.configure([ossie.cf.CF.DataType(id='doubleSimple', value=CORBA.Any(CORBA.TC_double, val))])
             self.comp_obj.configure([ossie.cf.CF.DataType(id='longSimple', value=CORBA.Any(CORBA.TC_long, val))])
@@ -209,21 +209,21 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             simple_dict = properties.props_to_dict(simple_list)
 
             #the onconfigure for the stringSimple is supposed to double the phrase
-            self.assertEquals(simple_dict['stringSimple'], phrase*2, msg=str(simple_dict['stringSimple']) + ' != ' + str(phrase*2) + '  for stringSimple')
+            self.assertEqual(simple_dict['stringSimple'], phrase*2, msg=str(simple_dict['stringSimple']) + ' != ' + str(phrase*2) + '  for stringSimple')
             simple_dict.pop('stringSimple')
             
             #the onconfigure for the boolSimple is supposed to flip the flag
-            self.assertEquals(simple_dict['boolSimple'], not flag, msg=str(simple_dict['boolSimple']) + ' != ' + str(not flag) + '  for boolSimple')
+            self.assertEqual(simple_dict['boolSimple'], not flag, msg=str(simple_dict['boolSimple']) + ' != ' + str(not flag) + '  for boolSimple')
             simple_dict.pop('boolSimple')
             self.comp_obj.configure([ossie.cf.CF.DataType(id='boolSimple', value=CORBA.Any(CORBA.TC_boolean, flag))])
             
             #the onconfigure for the charSimple is supposed raise the case
-            self.assertEquals(simple_dict['charSimple'], charval.upper(), msg=str(simple_dict['charSimple']) + ' != ' + str(charval.upper()) + '  for charSimple')
+            self.assertEqual(simple_dict['charSimple'], charval.upper().decode('ISO-8859-1'), msg=str(simple_dict['charSimple']) + ' != ' + str(charval.upper()) + '  for charSimple')
             simple_dict.pop('charSimple')
             
             #the rest of the onconfigures are supposed to double the value
             for x in simple_dict:
-                self.assertEquals(simple_dict[x], val*2, msg=str(simple_dict[x]) + ' != ' + str(val*2) + '  for ' + x)
+                self.assertEqual(simple_dict[x], val*2, msg=str(simple_dict[x]) + ' != ' + str(val*2) + '  for ' + x)
             val = val+1
     
     
@@ -322,25 +322,25 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             simple_dict = properties.props_to_dict(simple_list)
             
             #the onconfigure for the stringSeq is supposed to reverse the order of the phrases
-            self.assertEquals(simple_dict['stringSeq'], phrases_r, msg=str(simple_dict['stringSeq']) + ' != ' + str(phrases_r) + '  for stringSeq')
+            self.assertEqual(simple_dict['stringSeq'], phrases_r, msg=str(simple_dict['stringSeq']) + ' != ' + str(phrases_r) + '  for stringSeq')
             simple_dict.pop('stringSeq')
             
             #the onconfigure for the boolSeq is supposed to reverse the order of the flags
-            self.assertEquals(simple_dict['boolSeq'], flags_r, msg=str(simple_dict['boolSeq']) + ' != ' + str(flags_r) + '  for boolSeq')
+            self.assertEqual(simple_dict['boolSeq'], flags_r, msg=str(simple_dict['boolSeq']) + ' != ' + str(flags_r) + '  for boolSeq')
             simple_dict.pop('boolSeq')
             
             #the onconfigure for the charSeq is supposed to reverse the order of the phrase
-            self.assertEquals([x for x in simple_dict['charSeq']], phrase_r, msg=str(simple_dict['charSeq']) + ' != ' + str(phrase_r) + '  for charSeq')
+            self.assertEqual([x for x in simple_dict['charSeq']], phrase_r, msg=str(simple_dict['charSeq']) + ' != ' + str(phrase_r) + '  for charSeq')
             simple_dict.pop('charSeq')
            
             #the onconfigure for the octetSeq is supposed to reverse the order of the phrase
-            self.assertEquals([x for x in struct.unpack('5b', simple_dict['octetSeq'])], values_r, 
+            self.assertEqual([x for x in struct.unpack('5b', simple_dict['octetSeq'])], values_r, 
                               msg=str(struct.unpack('5b', simple_dict['octetSeq'])) + ' != ' + str(values_r) + '  for octetSeq')
             simple_dict.pop('octetSeq')
             
             #the rest of the onconfigures are supposed to reverse the values in the list
             for x in simple_dict:
-                self.assertEquals(simple_dict[x], values_r, msg=str(simple_dict[x]) + ' != ' + str(values_r) + '  for ' + x)
+                self.assertEqual(simple_dict[x], values_r, msg=str(simple_dict[x]) + ' != ' + str(values_r) + '  for ' + x)
     
     
     def testConfigureQueryStructs(self):
@@ -393,7 +393,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
                 boolCheck = x
                 break
 
-        self.assertEquals(x.value.value(), not flag, msg=str(x.value.value()) + ' != ' + str(not flag) + '  for structBoolSimple')       
+        self.assertEqual(x.value.value(), not flag, msg=str(x.value.value()) + ' != ' + str(not flag) + '  for structBoolSimple')       
         ret[0].value.value().remove(x)
                 
         for y in ret[0].value.value():
@@ -401,7 +401,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
                 boolCheck = y
                 break
                 
-        self.assertEquals(y.value.value(), phrase*2, msg=str(y.value.value()) + ' != ' + str(phrase*2) + '  for structStringSimple')
+        self.assertEqual(y.value.value(), phrase*2, msg=str(y.value.value()) + ' != ' + str(phrase*2) + '  for structStringSimple')
         ret[0].value.value().remove(y)
         
         for xx in ret[0].value.value():
@@ -409,11 +409,11 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
                 boolCheck = xx
                 break
                 
-        self.assertEquals(xx.value.value(), charval.upper(), msg=str(xx.value.value()) + ' != ' + charval.upper() + '  for structCharSimple')
+        self.assertEqual(xx.value.value(), charval.upper(), msg=str(xx.value.value()) + ' != ' + charval.upper() + '  for structCharSimple')
         ret[0].value.value().remove(xx)
         
         for z in ret[0].value.value():
-            self.assertEquals(z.value.value(), val*2, msg=str(z.value.value()) + ' != ' + str(val*2) + '  for ' + str(z.id))
+            self.assertEqual(z.value.value(), val*2, msg=str(z.value.value()) + ' != ' + str(val*2) + '  for ' + str(z.id))
 
     def testConfigureQueryStructSeqs(self):
         #######################################################################
@@ -450,11 +450,11 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         for struct in ret[0].value.value():
             for simple in struct.value():
                 if simple.id == 'structSeqStringSimple':
-                    self.assertEquals(simple.value.value(), phrase * 2, msg=str(simple.value.value()) + ' != ' + str(phrase*2) + '  for structSeqStringSimple')
+                    self.assertEqual(simple.value.value(), phrase * 2, msg=str(simple.value.value()) + ' != ' + str(phrase*2) + '  for structSeqStringSimple')
                 elif simple.id == 'structSeqBoolSimple':
-                    self.assertEquals(simple.value.value(), not flag, msg=str(simple.value.value()) + ' != ' + str(not flag) + '  for structSeqBoolSimple')
+                    self.assertEqual(simple.value.value(), not flag, msg=str(simple.value.value()) + ' != ' + str(not flag) + '  for structSeqBoolSimple')
                 else:
-                    self.assertEquals(simple.value.value(), val * 2, msg=str(simple.value.value()) + ' != ' + str(val*2) + '  for ' + str(simple.id))
+                    self.assertEqual(simple.value.value(), val * 2, msg=str(simple.value.value()) + ' != ' + str(val*2) + '  for ' + str(simple.id))
        
     def testAccessRules(self):   
         #######################################################################
@@ -492,13 +492,13 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         confval = 100
         self.comp_obj.configure([ossie.cf.CF.DataType(id='simpleConfNExec', value=CORBA.Any(CORBA.TC_short, confval))])
         curval = self.comp_obj.query([ossie.cf.CF.DataType(id='simpleConfNExec', value=any.to_any(None))])[0].value.value()
-        self.assertEquals(confval, curval)
+        self.assertEqual(confval, curval)
         
         #try to configure and query and the kitchen sink, should work fine
         confval = 'blah'
         self.comp_obj.configure([ossie.cf.CF.DataType(id='simpleKitchenSink', value=CORBA.Any(CORBA.TC_string, confval))])
         curval = self.comp_obj.query([ossie.cf.CF.DataType(id='simpleKitchenSink', value=any.to_any(None))])[0].value.value()
-        self.assertEquals(confval, curval)
+        self.assertEqual(confval, curval)
         
         
 #    def testRange(self):
@@ -518,7 +518,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
 #        confval = 25
 #        self.comp_obj.configure([ossie.cf.CF.DataType(id='simpleRange', value=CORBA.Any(CORBA.TC_short, confval))])
 #        curval = self.comp_obj.query([ossie.cf.CF.DataType(id='simpleRange', value=any.to_any(None))])[0].value.value()
-#        self.assertEquals(confval, curval)
+#        self.assertEqual(confval, curval)
 #
 #        ####MAKE SURE A NUMBER OUT OF RANGE FAILS
 #        #range is -50 to 50
@@ -545,7 +545,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
 #        confphrase = 'good'
 #        self.comp_obj.configure([ossie.cf.CF.DataType(id='simpleEnum', value=CORBA.Any(CORBA.TC_string, confphrase))])
 #        curval = self.comp_obj.query([ossie.cf.CF.DataType(id='simpleEnum', value=any.to_any(None))])[0].value.value()
-#        self.assertEquals(confphrase, curval)
+#        self.assertEqual(confphrase, curval)
 #        
 #        ###MAKE SURE AN INVLAID OPTION FAILS
 #        #options are 'good', 'bad', 'fair'
@@ -558,7 +558,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
 #            pass
 ##        else:
 ##            curval = self.comp_obj.query([ossie.cf.CF.DataType(id='simpleEnum', value=any.to_any(None))])[0].value.value()
-##            self.assertNotEquals(confphrase, curval)
+##            self.assertNotEqual(confphrase, curval)
 ##++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ##++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #
@@ -580,7 +580,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
 #        
 #        #the value of the execparam should be 10 in the prf
 #        curval = self.comp_obj.query([ossie.cf.CF.DataType(id='simpleExec', value=any.to_any(None))])[0].value.value()
-#        self.assertEquals(curval, 10)
+#        self.assertEqual(curval, 10)
     
 if __name__ == "__main__":
     ossie.utils.testing.main("../props.spd.xml") # By default tests all implementations

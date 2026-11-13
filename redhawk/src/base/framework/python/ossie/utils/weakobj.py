@@ -26,7 +26,7 @@ import weakref
 import inspect
 import types
 
-from notify import bound_notification
+from .notify import bound_notification
 
 def getref(obj):
     """
@@ -72,9 +72,10 @@ def addListener(target, listener, *args):
     target.addListener(boundmethod(listener, callback=target.removeListener), *args)
 
 def _ismethod(func):
-    for name in ('im_self', 'im_class', 'im_func'):
-        if not hasattr(func, name):
-            return False
+    if not hasattr(func, '__self__'):
+        return False
+    if not hasattr(func,'__func__'):
+        return False    
     return True
 
 def _make_callback(obj, callback):
@@ -102,7 +103,7 @@ class WeakObject(object):
     def __getref__(self):
         ref = self.__ref__()
         if ref is None:
-            raise weakref.ReferenceError('weakly-referenced object no longer exists')
+            raise ReferenceError('weakly-referenced object no longer exists')
         return ref
 
     def __getattribute__(self, name):
@@ -136,28 +137,28 @@ class _WeakBoundCallable(object):
     Base class for weakly-bound callable objects (methods and notifications).
     """
     def __init__(self, func, callback):
-        self.im_self = weakref.ref(func.im_self, _make_callback(self, callback))
+        self._class_name = func.__self__.__class__.__name__
+        self.__self__ = weakref.ref(func.__self__, _make_callback(self, callback))
 
     def __call__(self, *args, **kwargs):
         func = getref(self)
         return func(*args, **kwargs)
 
     def __getref__(self):
-        ref = self.im_self()
+        ref = self.__self__()
         if ref is None:
-            raise weakref.ReferenceError('weakly-referenced object no longer exists')
-        return self.__functype__(self.im_func, ref, self.im_class)
+            raise ReferenceError('weakly-referenced object no longer exists')
+        return self.__functype__(self.__func__, ref)
 
     def __eq__(self, other):
         if not isinstance(other, type(self)):
             return False
-        return (self.im_func == other.im_func) and \
-            (self.im_self == other.im_self) and \
-            (self.im_class == other.im_class)
+        return (self.__func__ == other.__func__) and \
+            (self.__self__ == other.__self__)
 
     def __repr__(self):
-        name = self.im_class.__name__ + '.' + self.im_func.__name__
-        return '<weak bound %s %s of %s>' % (self.__funckind__, name, self.im_self)
+        name = self._class_name + '.' + self.__func__.__name__
+        return '<weak bound %s %s of %s>' % (self.__funckind__, name, self.__self__)
 
 class WeakBoundMethod(_WeakBoundCallable):
     """
@@ -174,8 +175,7 @@ class WeakBoundMethod(_WeakBoundCallable):
         if not _ismethod(func):
             raise TypeError("can not create weakly-bound method from '%s' object" % (type(func).__name__,))
         _WeakBoundCallable.__init__(self, func, callback)
-        self.im_func = func.im_func
-        self.im_class = func.im_class
+        self.__func__ = func.__func__
 
 class WeakNotification(_WeakBoundCallable, bound_notification):
     """
@@ -187,7 +187,7 @@ class WeakNotification(_WeakBoundCallable, bound_notification):
     def __init__(self, func, callback=None):
         if not isinstance(func, bound_notification):
             raise TypeError("can not create weakly-bound notification from '%s' object" % (type(func).__name__,))
-        bound_notification.__init__(self, func.im_func, None, func.im_class)
+        bound_notification.__init__(self, func.__func__, None, func.__self__.__class__)
         _WeakBoundCallable.__init__(self, func, callback)
 
     @property
@@ -196,14 +196,15 @@ class WeakNotification(_WeakBoundCallable, bound_notification):
 
 WeakTypes = (WeakObject, WeakBoundMethod, WeakNotification)
 
+
 # Provide meaningful help for weak objects by forwarding help requested to the
 # referenced object, instead of the default behavior of showing help for the
 # weak object.
-import site
-import __builtin__
-class _WeakObjectHelper(site._Helper):
+import _sitebuiltins
+import builtins
+class _WeakObjectHelper(_sitebuiltins._Helper):
     def __call__(self, request, *args, **kwargs):
         if isinstance(request, WeakTypes):
             request = getref(request)
         return super(_WeakObjectHelper,self).__call__(request, *args, **kwargs)
-__builtin__.help = _WeakObjectHelper()
+builtins.help = _WeakObjectHelper()

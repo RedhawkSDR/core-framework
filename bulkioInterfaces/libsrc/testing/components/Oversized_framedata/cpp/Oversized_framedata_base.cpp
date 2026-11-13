@@ -49,13 +49,13 @@ Oversized_framedata_base::~Oversized_framedata_base()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void Oversized_framedata_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void Oversized_framedata_base::start() 
 {
     Resource_impl::start();
     ThreadedComponent::startThread();
 }
 
-void Oversized_framedata_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void Oversized_framedata_base::stop() 
 {
     Resource_impl::stop();
     if (!ThreadedComponent::stopThread()) {
@@ -63,7 +63,7 @@ void Oversized_framedata_base::stop() throw (CORBA::SystemException, CF::Resourc
     }
 }
 
-void Oversized_framedata_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void Oversized_framedata_base::releaseObject() 
 {
     // This function clears the component running condition so main shuts down everything
     try {

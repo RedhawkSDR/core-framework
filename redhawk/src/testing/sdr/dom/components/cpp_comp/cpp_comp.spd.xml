@@ -42,7 +42,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
     <os name="Linux"/>
     <processor name="x86"/>
     <processor name="x86_64"/>
-    <dependency type="allocation">
+    <!--dependency type="allocation">
       <structref refid="nic_allocation">
         <simpleref refid="nic_allocation::identifier" value="foo"/>
         <simpleref refid="nic_allocation::data_rate" value="10"/>
@@ -51,6 +51,6 @@ with this program.  If not, see http://www.gnu.org/licenses/.
         <simpleref refid="nic_allocation::ip_addressable" value=""/>
         <simpleref refid="nic_allocation::interface" value=""/>
       </structref>
-    </dependency>
+    </dependency-->
   </implementation>
 </softpkg>

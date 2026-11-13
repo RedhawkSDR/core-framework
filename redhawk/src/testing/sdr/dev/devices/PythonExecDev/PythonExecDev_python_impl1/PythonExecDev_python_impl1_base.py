@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -29,7 +29,7 @@ from ossie.utils import uuid
 from ossie.device import ExecutableDevice 
 
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 
 NOOP = -1
 NORMAL = 0
@@ -87,14 +87,14 @@ class PythonExecDev_python_impl1_base(CF__POA.ExecutableDevice, ExecutableDevice
             if process_thread != None:
                 process_thread.stop()
                 process_thread.join(self.TIMEOUT)
-                if process_thread.isAlive():
+                if process_thread.is_alive():
                     raise CF.Resource.StopError(CF.CF_NOTSET, "Processing thread did not die")
             ExecutableDevice.stop(self)
 
         def releaseObject(self):
             try:
                 self.stop()
-            except Exception, e:
+            except Exception as e:
                 self._log.exception("Error stopping: ", e)
             ExecutableDevice.releaseObject(self)
 

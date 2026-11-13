@@ -33,14 +33,17 @@ class optional_property
         template< typename charT, typename Traits, typename U>
         friend std::basic_ostream<charT, Traits>& operator<<(std::basic_ostream<charT, Traits> &out, const optional_property<U> ov);
 
-        optional_property() : _p(0) {
+        optional_property() {
+            _p = 0;
         }
 
-        optional_property(const T& v) : _p(0) {
+        optional_property(const T& v) {
+            _p = 0;
             _p.reset(new T(v));
         }
 
-        optional_property(const T* p) : _p(0) {
+        optional_property(const T* p) {
+            _p = 0;
             if (p != 0) {
                 _p.reset(new T(*p));
             }
@@ -60,7 +63,7 @@ class optional_property
             return _p.get();
         }
 
-        T& operator*() const throw (std::runtime_error) {
+        T& operator*() const {
             if (_p.get() == 0) {
                 throw std::runtime_error("Attempted to use unset optional property.");
             }
@@ -90,7 +93,7 @@ class optional_property
         }
 
     private:
-        std::auto_ptr<T> _p;
+        std::unique_ptr<T> _p;
 
 };
 

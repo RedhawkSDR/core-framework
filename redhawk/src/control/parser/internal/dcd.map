@@ -22,7 +22,7 @@ namespace urn:mil:jpeojtrs:sca:dcd {
     include "memory";
     include "map";
     include "../include/ossie/DeviceManagerConfiguration.h";
-    deviceconfiguration "::std::auto_ptr<ossie::DeviceManagerConfiguration::DCD>";
+    deviceconfiguration "::std::unique_ptr<ossie::DeviceManagerConfiguration::DCD>";
     componentfiles "const ::std::vector<ossie::ComponentFile>&"  "const ::std::vector<ossie::ComponentFile>&";
     componentfile "const ::ossie::ComponentFile&" "const ::ossie::ComponentFile&";
     componentplacement "const ::ossie::DevicePlacement&" "const ::ossie::DevicePlacement&";

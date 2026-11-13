@@ -18,8 +18,8 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-from generator import BaseComponentGenerator, loader
-from mapping import BaseComponentMapper
+from .generator import BaseComponentGenerator, loader
+from .mapping import BaseComponentMapper
 
 def factory(**opts):
     return BaseComponentGenerator(**opts)

@@ -24,7 +24,7 @@ from omniORB import URI, any
 from ossie.cf import CF
 import CosNaming
 import threading
-import commands
+import subprocess
 import ossie.properties as properties
 import CosEventComm,CosEventComm__POA
 import CosEventChannelAdmin, CosEventChannelAdmin__POA
@@ -58,25 +58,25 @@ class PropertyChangeEventsTest(scatest.CorbaTestCase):
             return
 
         props = properties.props_to_dict(dataEvent.properties)
-        if props.has_key('myprop'):
+        if 'myprop' in props:
             self.received_myprop = True
             if self.successfullPropChange == None:
                 self.successfullPropChange = True
-        if props.has_key('anotherprop'):
+        if 'anotherprop' in props:
             self.received_anotherprop = True
             if self.successfullPropChange == None:
                 self.successfullPropChange = True
-        if props.has_key('seqprop'):
+        if 'seqprop' in props:
             if props['seqprop'] == [1.0, 2.0, 3.0]:
                 self.received_seqprop = True
                 if self.successfullPropChange == None:
                     self.successfullPropChange = True
-        if props.has_key('some_struct') and props['some_struct'] != None:
+        if 'some_struct' in props and props['some_struct'] != None:
             if props['some_struct'] == {"some_number": 3.0, "some_string": "hello"}:
                 self.received_some_struct = True
                 if self.successfullPropChange == None:
                     self.successfullPropChange = True
-        if props.has_key('structseq_prop'):
+        if 'structseq_prop' in props:
             if len(props['structseq_prop']) == 1:
                 if props['structseq_prop'][0] == {"some_number": 7.0, "some_string": "second message"}:
                     self.received_structseq_prop = True

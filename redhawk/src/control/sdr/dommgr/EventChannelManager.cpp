@@ -111,7 +111,7 @@ void EventChannelManager::terminate ( const bool destroyChannels ) {
       }
       iter->second.channel = ossie::events::EventChannel::_nil();
     }
-    catch(CORBA::OBJECT_NOT_EXIST){
+    catch(CORBA::OBJECT_NOT_EXIST &){
         // only report issue when event service was available
         if ( !CORBA::is_nil(_event_channel_factory) ) {
              RH_WARN(_eventChannelMgrLog, "Remove Channel FAILED, CHANNEL:" << iter->first << " REASON: Object does not exists");
@@ -176,10 +176,6 @@ const ossie::events::EventChannel_ptr EventChannelManager::findChannel( const st
   }
 
   void EventChannelManager::markForRegistrations( const char *channel_name) 
-    throw ( CF::EventChannelManager::ChannelDoesNotExist, 
-	    CF::EventChannelManager::OperationFailed, 
-	    CF::EventChannelManager::OperationNotAllowed,
-	    CF::EventChannelManager::ServiceUnavailable )
   {
      SCOPED_LOCK(_mgrlock);
     // get the event channel factory... throws ServiceUnavailable if factory is not resolved
@@ -199,10 +195,7 @@ const ossie::events::EventChannel_ptr EventChannelManager::findChannel( const st
 
 
   void EventChannelManager::forceRelease( const char *channel_name) 
-    throw ( CF::EventChannelManager::ChannelDoesNotExist, 
-	    CF::EventChannelManager::OperationFailed, 
-	    CF::EventChannelManager::OperationNotAllowed,
-	    CF::EventChannelManager::ServiceUnavailable ) {
+  {
       
     SCOPED_LOCK(_mgrlock);
     // get the event channel factory... throws ServiceUnavailable if factory is not resolved
@@ -232,33 +225,20 @@ const ossie::events::EventChannel_ptr EventChannelManager::findChannel( const st
   }
 
   void EventChannelManager::release( const std::string &channel_name) 
-    throw ( CF::EventChannelManager::ChannelDoesNotExist, 
-            CF::EventChannelManager::RegistrationsExists, 
-	    CF::EventChannelManager::OperationFailed, 
-	    CF::EventChannelManager::OperationNotAllowed,
-	    CF::EventChannelManager::ServiceUnavailable ) {
+  {
      SCOPED_LOCK(_mgrlock);
     _release(channel_name.c_str() );
   }
 
 
   void EventChannelManager::release( const char *channel_name) 
-    throw ( CF::EventChannelManager::ChannelDoesNotExist, 
-            CF::EventChannelManager::RegistrationsExists, 
-	    CF::EventChannelManager::OperationFailed, 
-	    CF::EventChannelManager::OperationNotAllowed,
-	    CF::EventChannelManager::ServiceUnavailable ) {
+  {
     SCOPED_LOCK(_mgrlock);
     _release(channel_name);
   }
 
 
   void EventChannelManager::_release( const std::string &channel_name) 
-    throw ( CF::EventChannelManager::ChannelDoesNotExist, 
-            CF::EventChannelManager::RegistrationsExists, 
-	    CF::EventChannelManager::OperationFailed, 
-	    CF::EventChannelManager::OperationNotAllowed,
-	    CF::EventChannelManager::ServiceUnavailable )
   {
 
     // get the event channel factory... throws ServiceUnavailable if factory is not resolved
@@ -314,11 +294,7 @@ const ossie::events::EventChannel_ptr EventChannelManager::findChannel( const st
   }
 
 
-ossie::events::EventChannel_ptr EventChannelManager::create( const std::string &channel_name) 
-    throw ( CF::EventChannelManager::ChannelAlreadyExists, 
-	    CF::EventChannelManager::OperationFailed, 
-	    CF::EventChannelManager::OperationNotAllowed,
-	    CF::EventChannelManager::ServiceUnavailable )
+  ossie::events::EventChannel_ptr EventChannelManager::create( const std::string &channel_name) 
   {
     SCOPED_LOCK(_mgrlock);
     try{
@@ -332,10 +308,6 @@ ossie::events::EventChannel_ptr EventChannelManager::create( const std::string &
 
 
   ossie::events::EventChannel_ptr EventChannelManager::create( const char *channel_name) 
-    throw ( CF::EventChannelManager::ChannelAlreadyExists, 
-	    CF::EventChannelManager::OperationFailed, 
-	    CF::EventChannelManager::OperationNotAllowed,
-	    CF::EventChannelManager::ServiceUnavailable )
   {
     SCOPED_LOCK(_mgrlock);
     try{
@@ -345,11 +317,7 @@ ossie::events::EventChannel_ptr EventChannelManager::create( const std::string &
     }
   }
 
-ossie::events::EventChannel_ptr EventChannelManager::get( const std::string &channel_name) 
-    throw ( CF::EventChannelManager::ChannelDoesNotExist, 
-	    CF::EventChannelManager::OperationFailed, 
-	    CF::EventChannelManager::OperationNotAllowed,
-	    CF::EventChannelManager::ServiceUnavailable )
+  ossie::events::EventChannel_ptr EventChannelManager::get( const std::string &channel_name) 
   {
     SCOPED_LOCK(_mgrlock);
     try{
@@ -363,10 +331,6 @@ ossie::events::EventChannel_ptr EventChannelManager::get( const std::string &cha
 
 
   ossie::events::EventChannel_ptr EventChannelManager::get( const char *channel_name) 
-    throw ( CF::EventChannelManager::ChannelDoesNotExist, 
-	    CF::EventChannelManager::OperationFailed, 
-	    CF::EventChannelManager::OperationNotAllowed,
-	    CF::EventChannelManager::ServiceUnavailable )
   {
     SCOPED_LOCK(_mgrlock);
     try{
@@ -378,10 +342,6 @@ ossie::events::EventChannel_ptr EventChannelManager::get( const std::string &cha
 
 
   ossie::events::EventChannel_ptr EventChannelManager::createForRegistrations( const char *channel_name) 
-    throw ( CF::EventChannelManager::ChannelAlreadyExists, 
-	    CF::EventChannelManager::OperationFailed, 
-	    CF::EventChannelManager::OperationNotAllowed,
-	    CF::EventChannelManager::ServiceUnavailable )
   {
     SCOPED_LOCK(_mgrlock);
     try {
@@ -395,11 +355,6 @@ ossie::events::EventChannel_ptr EventChannelManager::get( const std::string &cha
 
 
   ossie::events::EventChannel_ptr EventChannelManager::_create( const std::string &channel_name, const bool autoRelease) 
-    throw ( CF::EventChannelManager::InvalidChannelName,
-            CF::EventChannelManager::ChannelAlreadyExists, 
-	    CF::EventChannelManager::OperationFailed, 
-	    CF::EventChannelManager::OperationNotAllowed,
-	    CF::EventChannelManager::ServiceUnavailable )
   {
     // get the event channel factory... throws ServiceUnavailable if factory is not resolved
     _getEventChannelFactory();
@@ -461,11 +416,6 @@ ossie::events::EventChannel_ptr EventChannelManager::get( const std::string &cha
   }
 
   ossie::events::EventChannel_ptr EventChannelManager::_get( const std::string &channel_name ) 
-    throw ( CF::EventChannelManager::InvalidChannelName,
-            CF::EventChannelManager::ChannelDoesNotExist, 
-	    CF::EventChannelManager::OperationFailed, 
-	    CF::EventChannelManager::OperationNotAllowed,
-	    CF::EventChannelManager::ServiceUnavailable )
   {
     //
     // validate channel name...
@@ -509,11 +459,6 @@ ossie::events::EventChannel_ptr EventChannelManager::get( const std::string &cha
 void EventChannelManager::restore( ossie::events::EventChannel_ptr savedChannel, 
                                    const std::string &channel_name, 
                                    const std::string &fqn_name) 
-  throw ( CF::EventChannelManager::InvalidChannelName,
-            CF::EventChannelManager::ChannelAlreadyExists, 
-	    CF::EventChannelManager::OperationFailed, 
-	    CF::EventChannelManager::OperationNotAllowed,
-	    CF::EventChannelManager::ServiceUnavailable )
   {
     // get the event channel factory... throws ServiceUnavailable if factory is not resolved
     _getEventChannelFactory();
@@ -583,22 +528,12 @@ void EventChannelManager::restore( ossie::events::EventChannel_ptr savedChannel,
 
 
 ossie::events::EventChannelReg_ptr EventChannelManager::registerResource( const ossie::events::EventRegistration &request)  
-    throw ( CF::EventChannelManager::InvalidChannelName, 
-        CF::EventChannelManager::RegistrationAlreadyExists,
-        CF::EventChannelManager::OperationFailed, 
-        CF::EventChannelManager::OperationNotAllowed,
-        CF::EventChannelManager::ServiceUnavailable )
 {
     SCOPED_LOCK(_mgrlock);
     return _registerResource( request );
 }
 
 ossie::events::EventChannelReg_ptr EventChannelManager::_registerResource( const ossie::events::EventRegistration &request)  
-    throw ( CF::EventChannelManager::InvalidChannelName, 
-        CF::EventChannelManager::RegistrationAlreadyExists,
-        CF::EventChannelManager::OperationFailed, 
-        CF::EventChannelManager::OperationNotAllowed,
-        CF::EventChannelManager::ServiceUnavailable )
   {
 
     RH_DEBUG(_eventChannelMgrLog, "REQUEST REGISTRATION , REG-ID:" << request.reg_id << " CHANNEL:" << request.channel_name );
@@ -641,7 +576,7 @@ ossie::events::EventChannelReg_ptr EventChannelManager::_registerResource( const
       try {
         ossie::events::EventChannel_var ch  __attribute__((unused)) = _create(channel_name);         // adds to list of channel registrations automatically
       }
-      catch( CF::EventChannelManager::ChannelAlreadyExists ){
+      catch( CF::EventChannelManager::ChannelAlreadyExists &){
         RH_ERROR(_eventChannelMgrLog, "REGISTRATION ERROR, REG-ID:" << regid << " CHANNEL:" << channel_name  << " Channel exists in EventService" );
         throw (CF::EventChannelManager::OperationFailed());    
       }
@@ -667,11 +602,7 @@ ossie::events::EventChannelReg_ptr EventChannelManager::_registerResource( const
   }
   
   ossie::events::EventChannelReg_ptr EventChannelManager::registerConsumer( CosEventComm::PushConsumer_ptr consumer, const ossie::events::EventRegistration &req)  
-    throw ( CF::EventChannelManager::InvalidChannelName, 
-            CF::EventChannelManager::RegistrationAlreadyExists,
-            CF::EventChannelManager::OperationFailed, 
-            CF::EventChannelManager::OperationNotAllowed,
-            CF::EventChannelManager::ServiceUnavailable ) {
+  {
       SCOPED_LOCK(_mgrlock);
       int retries = 10;
       int retry_wait = 10;
@@ -769,11 +700,7 @@ ossie::events::EventChannelReg_ptr EventChannelManager::_registerResource( const
   }
   
   ossie::events::PublisherReg_ptr EventChannelManager::registerPublisher( const ossie::events::EventRegistration &req, CosEventComm::PushSupplier_ptr disconnectReceiver)  
-    throw ( CF::EventChannelManager::InvalidChannelName, 
-            CF::EventChannelManager::RegistrationAlreadyExists,
-            CF::EventChannelManager::OperationFailed, 
-            CF::EventChannelManager::OperationNotAllowed,
-            CF::EventChannelManager::ServiceUnavailable ) {
+  {
       SCOPED_LOCK(_mgrlock);
       int retries = 10;
       int retry_wait = 10;
@@ -852,9 +779,6 @@ ossie::events::EventChannelReg_ptr EventChannelManager::_registerResource( const
      Unregister from an event channel and invalidates the context
   */
   void EventChannelManager::unregister( const ossie::events::EventRegistration &reg ) 
-    throw ( CF::EventChannelManager::ChannelDoesNotExist,
-	    CF::EventChannelManager::RegistrationDoesNotExist,
-	    CF::EventChannelManager::ServiceUnavailable ) 
   {
     SCOPED_LOCK(_mgrlock);
 
@@ -872,9 +796,6 @@ ossie::events::EventChannelReg_ptr EventChannelManager::_registerResource( const
      Unregister from an event channel and invalidates the context
   */
   void EventChannelManager::_unregister( const ossie::events::EventRegistration &reg ) 
-    throw ( CF::EventChannelManager::ChannelDoesNotExist,
-	    CF::EventChannelManager::RegistrationDoesNotExist,
-	    CF::EventChannelManager::ServiceUnavailable ) 
   {
     RH_DEBUG(_eventChannelMgrLog, "START:  ID:" << reg.reg_id );
     //
@@ -1037,8 +958,7 @@ ossie::events::EventChannelReg_ptr EventChannelManager::_registerResource( const
   }
 
 
-void EventChannelManager::_getEventChannelFactory ()
-    throw  ( CF::EventChannelManager::ServiceUnavailable )
+  void EventChannelManager::_getEventChannelFactory ()
   {
 
     RH_TRACE(_eventChannelMgrLog, " .. Checking ORB Context");
@@ -1087,10 +1007,6 @@ void EventChannelManager::_getEventChannelFactory ()
   ossie::events::EventChannel_ptr EventChannelManager::_createChannel( const std::string &cname, 
                                                                       const std::string &fqn, 
                                                                        const std::string &nc_name )
-    throw ( CF::EventChannelManager::ChannelAlreadyExists, 
-	    CF::EventChannelManager::OperationFailed, 
-	    CF::EventChannelManager::OperationNotAllowed,
-	    CF::EventChannelManager::ServiceUnavailable )
   {
     // resolve factory.... this throws.... ServiceUnavailable
     _getEventChannelFactory();
@@ -1314,8 +1230,6 @@ bool EventChannelManager::_regIdExists( const std::string &cname, const std::str
      @returns true -  publisher registration id was found for the specified channel
   */
   bool EventChannelManager::_regExists( const std::string &cname, const std::string &regid ) 
-    throw ( CF::EventChannelManager::ChannelDoesNotExist,
-            CF::EventChannelManager::RegistrationDoesNotExist )
   {
 
     bool retval = false;

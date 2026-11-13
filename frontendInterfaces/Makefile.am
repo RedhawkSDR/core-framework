@@ -162,17 +162,17 @@ setup.py: Makefile.am
 	@echo ")" >> $@
 
 $(PY_BUILD_OUT_DIR): $(PY_SRC_OUT_DIR)/__init__.py setup.py
-	python setup.py build --build-lib build/lib
+	python3 setup.py build --build-lib build/lib
 	touch $(PY_BUILD_OUT_DIR)
 
 all-python: $(PY_BUILD_OUT_DIR)
 
 install-python: $(PY_BUILT_SRCS) setup.py
-	python setup.py install -f --$(PYTHON_INSTALL_SCHEME)=$(DESTDIR)$(prefix)
+	python3 setup.py install -f --$(PYTHON_INSTALL_SCHEME)=$(DESTDIR)$(prefix)
 
 clean-python: setup.py
 	rm -rf src/python
-	python setup.py clean
+	python3 setup.py clean
 	rm setup.py
 
 ###############################################################################
@@ -193,7 +193,7 @@ manifest_edit = $(SED) \
   -e 's|@bundle_qualifier[@]|$(BUNDLE_QUALIFIER)|g'
 
 java_JARFILES = FRONTENDInterfaces.jar
-IDLJFLAGS = -i idl -i $(OSSIE_IDLDIR)
+IDLJFLAGS = -Iidl -I$(OSSIE_IDLDIR)
 IDLJ_BUILDDIR = $(IDLJ_SRC_DEST)
 
 # For IDLJ rules, set VPATH for .idl files so that pattern rules can find them.

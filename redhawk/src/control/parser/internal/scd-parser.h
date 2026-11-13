@@ -28,7 +28,7 @@
 
 namespace ossie {
     namespace internalparser {
-        std::auto_ptr<ossie::ComponentDescriptor::SCD> parseSCD(std::istream& input) throw (ossie::parser_error);
+        std::unique_ptr<ossie::ComponentDescriptor::SCD> parseSCD(std::istream& input);
     }
 }
 #endif

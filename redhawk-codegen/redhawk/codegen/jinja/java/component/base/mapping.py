@@ -19,7 +19,7 @@
 #
 
 from redhawk.codegen.lang import java
-import commands, os
+import subprocess, os
 import ossie.parsers
 
 from redhawk.codegen.jinja.mapping import ComponentMapper

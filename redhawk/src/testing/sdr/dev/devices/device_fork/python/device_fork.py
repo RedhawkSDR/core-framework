@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 #
 # AUTO-GENERATED
@@ -25,7 +25,7 @@ class device_fork_i(device_fork_base):
 
         """
         # TODO add customization here.
-        sp = _utils.Popen(['python', '../../../dev/devices/device_fork/python/loop.py'])
+        sp = _utils.Popen(['python3', '../../../dev/devices/device_fork/python/loop.py'])
         self._pid = sp.pid
 
     def updateUsageState(self):

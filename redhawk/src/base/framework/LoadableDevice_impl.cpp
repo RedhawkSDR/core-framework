@@ -195,7 +195,7 @@ void LoadableDevice_impl::setLogger(rh_logger::LoggerPtr logptr)
     _loadabledeviceLog = logptr;
 }
 
-void LoadableDevice_impl::update_ld_library_path (CF::FileSystem_ptr fs, const char* fileName, CF::LoadableDevice::LoadType loadKind) throw (CORBA::SystemException, CF::Device::InvalidState, CF::LoadableDevice::InvalidLoadKind, CF::InvalidFileName, CF::LoadableDevice::LoadFail)
+void LoadableDevice_impl::update_ld_library_path (CF::FileSystem_ptr fs, const char* fileName, CF::LoadableDevice::LoadType loadKind)
 {
 	// Update environment to use newly-loaded library
 	if (loadKind == CF::LoadableDevice::SHARED_LIBRARY)
@@ -204,7 +204,7 @@ void LoadableDevice_impl::update_ld_library_path (CF::FileSystem_ptr fs, const c
 	}
 }
 
-void LoadableDevice_impl::update_octave_path (CF::FileSystem_ptr fs, const char* fileName, CF::LoadableDevice::LoadType loadKind) throw (CORBA::SystemException, CF::Device::InvalidState, CF::LoadableDevice::InvalidLoadKind, CF::InvalidFileName, CF::LoadableDevice::LoadFail)
+void LoadableDevice_impl::update_octave_path (CF::FileSystem_ptr fs, const char* fileName, CF::LoadableDevice::LoadType loadKind)
 {
 	// Update environment to use newly-loaded library
 	if (loadKind == CF::LoadableDevice::SHARED_LIBRARY) 
@@ -224,9 +224,6 @@ void LoadableDevice_impl::merge_front_environment_path( const char* environment_
 void
 LoadableDevice_impl::load (CF::FileSystem_ptr fs, const char* fileName,
                            CF::LoadableDevice::LoadType loadKind)
-throw (CORBA::SystemException, CF::Device::InvalidState,
-       CF::LoadableDevice::InvalidLoadKind, CF::InvalidFileName,
-       CF::LoadableDevice::LoadFail)
 {
     boost::recursive_mutex::scoped_lock lock(load_execute_lock);
     try
@@ -262,9 +259,6 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
 void
 LoadableDevice_impl::do_load (CF::FileSystem_ptr fs, const char* fileName,
                            CF::LoadableDevice::LoadType loadKind)
-throw (CORBA::SystemException, CF::Device::InvalidState,
-       CF::LoadableDevice::InvalidLoadKind, CF::InvalidFileName,
-       CF::LoadableDevice::LoadFail,  CF::FileException )
 {
     RH_DEBUG(_loadabledeviceLog, "load " << fileName << " kind:" << loadKind)
 
@@ -446,13 +440,9 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
         bool PythonPackage = false;
         bool JavaJar = false;
         // Check to see if it's a C library
-        std::string command = "readelf -h ";
-        command += relativeFileName;
-        command += std::string(" 2>&1"); // redirect stdout to /dev/null
-        FILE *fileCheck = popen(command.c_str(), "r");
-        int status = pclose(fileCheck);
         std::string currentPath = ossie::getCurrentDirName();
-        if (!status) { // this file is a C library
+//        if (!status) { // this file is a C library
+        if (true) { // this file is a C library
             std::string ld_library_path;
             if (getenv("LD_LIBRARY_PATH")) {
                 ld_library_path = getenv("LD_LIBRARY_PATH");
@@ -462,10 +452,12 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
             std::string additionalPath = currentPath+std::string("/")+relativeFileName;
             additionalPath.erase(additionalPath.rfind('/'));
             env_changes.addModification("LD_LIBRARY_PATH", additionalPath);
+            env_changes.addModification("LD_LIBRARY_PATH", additionalPath+"/lib");
             CLibrary = true;
         }
         // Check to see if it's a Python module
-        if (!CLibrary) {
+//        if (!CLibrary) {
+        if (true) {
             currentPath = ossie::getCurrentDirName();
             std::string::size_type lastSlash = relativeFileName.find_last_of("/");
             if (lastSlash == std::string::npos) { // there are no slashes in the name
@@ -478,12 +470,13 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
                         fileOrDirectoryName.erase(iext);
                     }
                 }
-                std::string command = "python -c \"import ";
+                std::string command = "python3 -c \"import ";
                 command += fileOrDirectoryName;
                 command += std::string("\" 2>&1"); // redirect stdout and stderr to /dev/null
                 FILE *fileCheck = popen(command.c_str(), "r");
                 int status = pclose(fileCheck);
-                if (!status) {
+                if (!status) {}
+                if (true) {
                     RH_DEBUG(_loadabledeviceLog, "cmd= " << command <<
                             " relativeFileName: " << relativeFileName <<
                             " relativePath: " << relativePath);
@@ -527,12 +520,14 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
                 if (chdir(relativePath.c_str())) {
                         // this is an invalid path
                 } else {
-                    std::string command = "python -c \"import ";
+                    std::string command = "python3 -c \"import ";
                     command += fileOrDirectoryName;
                     command += std::string("\" 2>&1"); // redirect stdout and stderr to /dev/null
                     FILE *fileCheck = popen(command.c_str(), "r");
                     int status = pclose(fileCheck);
-                    if (!status) {
+//                    if (!status) {
+                    if (!status) {}
+                    if (true) {
                         RH_DEBUG(_loadabledeviceLog, "cmd= " << command << 
                                 " relativeFileName: " << relativeFileName <<
                                 " relativePath: " << relativePath);
@@ -556,7 +551,7 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
         }
 
         // Check to see if it's a Java package
-        if (!CLibrary and !PythonPackage) {
+        //if (!CLibrary and !PythonPackage) {
           int retval = ossie::helpers::is_jarfile( relativeFileName );
           if ( retval == 0 ) {
             currentPath = ossie::getCurrentDirName();
@@ -568,7 +563,7 @@ throw (CORBA::SystemException, CF::Device::InvalidState,
             RH_DEBUG(_loadabledeviceLog, "Adding " << additionalPath << " to CLASSPATH");
             JavaJar = true;
           }
-        }
+        //}
     
         // It doesn't match anything, assume that it's a set of libraries
         if (!(CLibrary || PythonPackage || JavaJar)) {
@@ -810,7 +805,6 @@ LoadableDevice_impl::incrementFile (std::string fileName)
 
 void
 LoadableDevice_impl::unload (const char* fileName)
-throw (CORBA::SystemException, CF::Device::InvalidState, CF::InvalidFileName)
 {
     boost::recursive_mutex::scoped_lock lock(load_execute_lock);
     try
@@ -830,7 +824,6 @@ throw (CORBA::SystemException, CF::Device::InvalidState, CF::InvalidFileName)
 ************************************************************************************************ */
 void
 LoadableDevice_impl::do_unload (const char* fileName)
-throw (CORBA::SystemException, CF::Device::InvalidState, CF::InvalidFileName)
 {
 
     RH_DEBUG(_loadabledeviceLog, "Unload called for " << fileName)

@@ -23,8 +23,8 @@
 #include "dmd-parser.h"
 #include "dmd-pimpl.h"
 
-std::auto_ptr<ossie::DomainManagerConfiguration::DMD>
-ossie::internalparser::parseDMD(std::istream& input) throw (ossie::parser_error)
+std::unique_ptr<ossie::DomainManagerConfiguration::DMD>
+ossie::internalparser::parseDMD(std::istream& input)
 {
     using namespace dmd;
 

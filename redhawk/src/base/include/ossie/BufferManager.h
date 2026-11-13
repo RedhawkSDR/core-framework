@@ -70,18 +70,18 @@ namespace redhawk {
                 typedef Allocator<U> other;
             };
 
-            Allocator() throw() :
+            Allocator() :
                 base()
             {
             }
 
-            Allocator(const Allocator& other) throw() :
+            Allocator(const Allocator& other) :
                 base(other)
             {
             }
 
             template <typename U>
-            Allocator(const Allocator<U>& other) throw() :
+            Allocator(const Allocator<U>& other) :
                 base(other)
             {
             }

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -41,15 +41,15 @@ import subprocess
 import CosNaming
 import re
 import tempfile
-import buildconfig
-import runtestHelpers
-import commands
+from . import buildconfig
+from . import runtestHelpers
+import subprocess
 import traceback
 
 _DCEUUID_RE = re.compile("DCE:[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}")
 
 def uuidgen():
-    return commands.getoutput('uuidgen')
+    return subprocess.getoutput('uuidgen')
 
 def getSdrPath():
     try:
@@ -155,7 +155,7 @@ def setupDeviceAndDomainMgrPackage():
 
 def createTestDomain():
     domainName = getTestDomainName()
-    print domainName
+    print(domainName)
 
     domainPath = os.path.join(getSdrPath(), "dom", "domain")
     templatePath = os.path.join(getSdrPath(), "templates", "domain")
@@ -202,6 +202,13 @@ def _skipUnless(condition, reason):
         return _skip(reason)
     else:
         return _id
+
+def requireAffinity(obj):
+    """
+    Decorator to conditionally disable affinity tests
+    """
+    _affinity = runtestHelpers.haveAffinitySupport('../Makefile')
+    return _skipUnless(_affinity, 'affinity is disabled')(obj)
 
 def requireJava(obj):
     """
@@ -263,14 +270,14 @@ def spawnNodeBooter(dmdFile=None,
         if os.path.exists(logconfig):
             args.extend(["-log4cxx", logconfig])
         else:
-            print "Could not find Log Conf file <" + logconfig + '>'
-            print "Not using a log configuration file"
+            print("Could not find Log Conf file <" + logconfig + '>')
+            print("Not using a log configuration file")
     args.extend(execparams.split(" "))
     args.insert(0, nodeBooterPath)
 
-    print '\n-------------------------------------------------------------------'
-    print 'Launching nodeBooter', " ".join(args)
-    print '-------------------------------------------------------------------'
+    print('\n-------------------------------------------------------------------')
+    print('Launching nodeBooter', " ".join(args))
+    print('-------------------------------------------------------------------')
     nb = ossie.utils.Popen(args, cwd=getSdrPath(), shell=False, preexec_fn=os.setpgrp, stderr=stderr)
     if DEBUG_NODEBOOTER:
         absNodeBooterPath = os.path.abspath("../control/framework/nodeBooter")
@@ -322,10 +329,10 @@ class OssieTestCase(unittest.TestCase):
         self.assertIsDceUUID(uuid, msg)
 
     def assertFileExists(self, filename):
-        self.assert_(os.path.exists(filename), "File %s does not exist" % filename)
+        self.assertTrue(os.path.exists(filename), "File %s does not exist" % filename)
 
     def assertFileNotExists(self, filename):
-        self.failIf(os.path.exists(filename), "File %s exists" % filename)
+        self.assertFalse(os.path.exists(filename), "File %s exists" % filename)
 
     def assertAlomstEqual(self, a, b):
         self.assertEqual(round(a-b, 7), 0)
@@ -335,13 +342,13 @@ class OssieTestCase(unittest.TestCase):
 
     def promptToContinue(self):
         if sys.stdout.isatty():
-            raw_input("Press enter to continue")
+            input("Press enter to continue")
         else:
             pass # For non TTY just continue
 
     def promptUserInput(self, question, default):
         if sys.stdout.isatty():
-            ans = raw_input("%s [%s]?" % (question, default))
+            ans = input("%s [%s]?" % (question, default))
             if ans == "":
                 return default
             else:
@@ -353,7 +360,7 @@ class OssieTestCase(unittest.TestCase):
         """Prompt the user to answer the question [Y]/N.  Fail if they answer N.
         If stdin isn't a tty then assume the test passed."""
         if sys.stdout.isatty():
-            ans = raw_input("%s [Y]/N?:" % question)
+            ans = input("%s [Y]/N?:" % question)
             if not ans.upper() in ("", "Y", "YES"):
                 self.fail("No answer to %s" % question)
         else:
@@ -363,7 +370,7 @@ class OssieTestCase(unittest.TestCase):
         """Prompt the user to answer the question Y/[N].  Fail if they answer Y.
         If stdin isn't a tty then assume the test passed."""
         if sys.stdout.isatty():
-            ans = raw_input("%s Y/[N]?:" % question)
+            ans = input("%s Y/[N]?:" % question)
             if not ans.upper() in ("", "N", "NO"):
                 self.fail("Yes answer to %s" % question)
         else:
@@ -392,7 +399,7 @@ class OssieTestCase(unittest.TestCase):
         significant side effects.
         """
         self.waitPredicate(predicate, wait)
-        self.assert_(predicate(), msg)
+        self.assertTrue(predicate(), msg)
 
     def getProcessArgs(self,pname ):
         return getProcessArgs(pname)
@@ -483,7 +490,7 @@ class CorbaTestCase(OssieTestCase):
             domMgr = self._root.resolve(getDomainMgrURI())._narrow(CF.DomainManager)
             if domMgr:
                 return domMgr
-        except CORBA.BAD_INV_ORDER, e:
+        except CORBA.BAD_INV_ORDER as e:
             self._reinit()
         except:
             pass
@@ -506,7 +513,7 @@ class CorbaTestCase(OssieTestCase):
             dcdPath = dcdPath[1:]
         dcdPath = os.path.join(getSdrPath(), 'dev', dcdPath)
         if not os.path.exists(dcdPath):
-            raise IOError, "Invalid dcdPath %s" % (dcdPath,)
+            raise IOError("Invalid dcdPath %s" % (dcdPath,))
         return dcdPath
 
     def launchDomainManager(self, dmdFile="", *args, **kwargs):
@@ -536,7 +543,7 @@ class CorbaTestCase(OssieTestCase):
         try:
             dcdPath = self._getDCDPath(dcdFile)
         except IOError:
-            print "ERROR: Invalid DCD path provided to launchDeviceManager", dcdFile
+            print("ERROR: Invalid DCD path provided to launchDeviceManager", dcdFile)
             return (None, None)
 
         # If debug level is not given, default to configured level
@@ -562,7 +569,7 @@ class CorbaTestCase(OssieTestCase):
         try:
             dcdPath = self._getDCDPath(dcdFile)
         except IOError:
-            print "ERROR: Invalid DCD path provided to waitDeviceManager", dcdFile
+            print("ERROR: Invalid DCD path provided to waitDeviceManager", dcdFile)
             return None
 
         # Parse the DCD file to get the identifier and number of devices, which can be
@@ -652,7 +659,7 @@ class CorbaTestCase(OssieTestCase):
                 if self.waitTermination(child):
                     break
             child.wait()
-        except OSError, e:
+        except OSError as e:
             #print "terminateChild: pid:" + str(child.pid) + " OS ERROR:" + str(e)
             pass
         finally:
@@ -660,7 +667,7 @@ class CorbaTestCase(OssieTestCase):
 
 
     def terminateChildrenPidOnly(self, pid, signals=(signal.SIGINT, signal.SIGTERM)):
-        ls = commands.getoutput('ls /proc')
+        ls = subprocess.getoutput('ls /proc')
         entries = ls.split('\n')
         for entry in entries:
             filename = '/proc/'+entry+'/status'
@@ -701,7 +708,7 @@ class CorbaTestCase(OssieTestCase):
                 continue
 
     def terminateChildren(self, child, signals=(signal.SIGINT, signal.SIGTERM)):
-        ls = commands.getoutput('ls /proc')
+        ls = subprocess.getoutput('ls /proc')
         entries = ls.split('\n')
         for entry in entries:
             filename = '/proc/'+entry+'/status'

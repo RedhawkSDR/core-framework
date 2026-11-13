@@ -20,14 +20,14 @@
 
 from redhawk.codegen.lang.idl import IDLInterface
 
-from environment import CodegenEnvironment
+from .environment import CodegenEnvironment
 
 class PortFactory(object):
     def match(self, port):
-        raise NotImplementedError, 'PortFactory.match'
+        raise NotImplementedError('PortFactory.match')
 
     def generator(self, port):
-        raise NotImplementedError, 'PortFactory.generator'
+        raise NotImplementedError('PortFactory.generator')
 
 
 class PortFactoryList(object):
@@ -44,7 +44,7 @@ class PortFactoryList(object):
         for factory in self.__factories:
             if factory.match(port):
                 return factory.generator(port)
-        raise KeyError, 'Unsupported port type '+port.repid()
+        raise KeyError('Unsupported port type '+port.repid())
 
 
 class PortGenerator(object):
@@ -72,7 +72,7 @@ class PortGenerator(object):
         return env.get_template(template.template)
 
     def loader(self):
-        raise NotImplementedError, self.__class__.__name__+'.loader'
+        raise NotImplementedError(self.__class__.__name__+'.loader')
 
     def hasImplementation(self):
         return self._implementation() is not None

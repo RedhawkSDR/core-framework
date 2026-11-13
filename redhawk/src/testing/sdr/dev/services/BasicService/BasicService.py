@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -49,7 +49,7 @@ class BasicService(CF__POA.PropertySet):
     def query(self, configProperties):
         # If the list is empty, get all props
         if configProperties == []:
-            return [CF.DataType(id=i, value=any.to_any(v)) for i,v in self.params.items()]
+            return [CF.DataType(id=i, value=any.to_any(v)) for i,v in list(self.params.items())]
         else:
             result = []
             for p in configProperties:
@@ -59,9 +59,9 @@ class BasicService(CF__POA.PropertySet):
 if __name__ == "__main__":
     # THESE ARE FOR UNITTESTING, REGULAR SERVICES SHOULD NOT USE THEM
     if not "SERVICE_NAME" in sys.argv:
-        raise StandardError, "Missing SERVICE_NAME"
+        raise Exception("Missing SERVICE_NAME")
     if not "DEVICE_MGR_IOR" in sys.argv:
-        raise StandardError, "Missing DEVICE_MGR_IOR"
+        raise Exception("Missing DEVICE_MGR_IOR")
 
     # THIS IS THE ONLY CODE THAT A REGULAR SERVICE SHOULD HAVE IN IT'S MAIN
     from omniORB import PortableServer

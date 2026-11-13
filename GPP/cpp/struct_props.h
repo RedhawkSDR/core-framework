@@ -1280,7 +1280,7 @@ struct component_monitor_struct {
 
     std::string component_id;
     std::string waveform_id;
-    unsigned short pid;
+    CORBA::ULong pid;
     float cores;
     float mem_rss;
     float mem_percent;

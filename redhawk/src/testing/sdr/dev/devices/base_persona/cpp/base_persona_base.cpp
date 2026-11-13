@@ -52,13 +52,13 @@ void base_persona_base::construct()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void base_persona_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void base_persona_base::start()
 {
     ExecutableDevice_impl::start();
     ThreadedComponent::startThread();
 }
 
-void base_persona_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void base_persona_base::stop()
 {
     ExecutableDevice_impl::stop();
     if (!ThreadedComponent::stopThread()) {
@@ -66,7 +66,7 @@ void base_persona_base::stop() throw (CORBA::SystemException, CF::Resource::Stop
     }
 }
 
-void base_persona_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void base_persona_base::releaseObject()
 {
     // This function clears the device running condition so main shuts down everything
     try {

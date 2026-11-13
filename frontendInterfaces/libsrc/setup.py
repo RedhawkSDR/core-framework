@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from distutils.core import setup
 import os
@@ -29,7 +29,7 @@ packages = ['frontend' ]
 # replaces it (i.e. a developer does a command-line build), use 1.X.X
 version='__VERSION__'
 if version.find('__') == 0:
-    version = '2.4.10'
+    version = '4.0.4'
 
 setup(
         name='frontend',

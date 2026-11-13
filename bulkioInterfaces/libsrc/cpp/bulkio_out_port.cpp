@@ -439,7 +439,7 @@ namespace bulkio {
           bool                      EOS,
           const std::string&        streamID)
   {
-    this->_sendPacket(BufferType::make_transient(&data[0], data.size()), T, EOS, streamID);
+    this->_sendPacket(BufferType::make_transient(data.data(), data.size()), T, EOS, streamID);
   }
 
   template <typename PortType>

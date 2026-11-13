@@ -61,8 +61,8 @@ class LoggingConfigTest(scatest.CorbaTestCase):
 
         domLoggingConfigUri, devLoggingConfigUri = self._testLoggingConfigURI(domLoggingConfigArg, devLoggingConfigArg)
 
-        self.assert_(domLoggingConfigUri in (None, ""))
-        self.assert_(devLoggingConfigUri in (None, ""))
+        self.assertTrue(domLoggingConfigUri in (None, ""))
+        self.assertTrue(devLoggingConfigUri in (None, ""))
 
     def test_RelativeFileURI(self):
         domLoggingConfigArg = "dom/mgr/logging.properties"
@@ -135,11 +135,11 @@ class LoggingConfigTest(scatest.CorbaTestCase):
             value = a[1]
             execparams[name] = value
 
-        self.assert_(execparams.has_key("LOGGING_CONFIG_URI"))
+        self.assertTrue("LOGGING_CONFIG_URI" in execparams)
         self.assertEqual(execparams["LOGGING_CONFIG_URI"].split("?fs=")[0], "sca:///mgr/logging.properties")
         execparamObj = self._orb.string_to_object(execparams["LOGGING_CONFIG_URI"].split("?fs=")[1])
         # Need to compare actual objects since the IOR strings could potentially differ for the same object
-        self.assert_(domMgr._get_fileMgr()._is_equivalent(execparamObj))
+        self.assertTrue(domMgr._get_fileMgr()._is_equivalent(execparamObj))
 
         # Launch an application with a C++ component to exercise Resource_impl logging configure
         domMgr.installApplication("/waveforms/TestCppProps/TestCppProps.sad.xml")
@@ -192,11 +192,11 @@ class LoggingConfigTest(scatest.CorbaTestCase):
             value = a[1]
             execparams[name] = value
 
-        self.assert_(execparams.has_key("LOGGING_CONFIG_URI"))
+        self.assertTrue("LOGGING_CONFIG_URI" in execparams)
         self.assertEqual(execparams["LOGGING_CONFIG_URI"].split("?fs=")[0], "sca:///mgr/logging.properties")
         execparamObj = self._orb.string_to_object(execparams["LOGGING_CONFIG_URI"].split("?fs=")[1])
         # Need to compare actual objects since the IOR strings could potentially differ for the same object
-        self.assert_(domMgr._get_fileMgr()._is_equivalent(execparamObj))
+        self.assertTrue(domMgr._get_fileMgr()._is_equivalent(execparamObj))
 
         # Launch an application with a C++ component to exercise Resource_impl logging configure
         domMgr.installApplication("/waveforms/TestCppProps/TestCppProps.sad.xml")
@@ -301,11 +301,11 @@ class LoggingConfigTest(scatest.CorbaTestCase):
             value = args.pop(0)
             execparams[name] = value
 
-        self.assert_(execparams.has_key("LOGGING_CONFIG_URI"))
+        self.assertTrue("LOGGING_CONFIG_URI" in execparams)
         self.assertEqual(execparams["LOGGING_CONFIG_URI"].split("?fs=")[0], "sca:///mgr/logging.properties")
         execparamObj = self._orb.string_to_object(execparams["LOGGING_CONFIG_URI"].split("?fs=")[1])
         # Need to compare actual objects since the IOR strings could potentially differ for the same object
-        self.assert_(devMgr._get_fileSys()._is_equivalent(execparamObj))
+        self.assertTrue(devMgr._get_fileSys()._is_equivalent(execparamObj))
 
     def test_DeviceManagerURIOverride(self):
         # Test that the device manager DCD can override the log4cxx URI
@@ -336,12 +336,12 @@ class LoggingConfigTest(scatest.CorbaTestCase):
             value = args.pop(0)
             execparams[name] = value
 
-        self.assert_(execparams.has_key("LOGGING_CONFIG_URI"))
+        self.assertTrue("LOGGING_CONFIG_URI" in execparams)
         devMgrFileSysIOR = self._orb.object_to_string(devMgr._get_fileSys())
         self.assertEqual(execparams["LOGGING_CONFIG_URI"].split("?fs=")[0], "sca:///mgr/logging.properties")
         execparamObj = self._orb.string_to_object(execparams["LOGGING_CONFIG_URI"].split("?fs=")[1])
         # Need to compare actual objects since the IOR strings could potentially differ for the same object
-        self.assert_(devMgr._get_fileSys()._is_equivalent(execparamObj))
+        self.assertTrue(devMgr._get_fileSys()._is_equivalent(execparamObj))
 
 
 @scatest.requireLog4cxx
@@ -352,7 +352,7 @@ class LoggingConfigPropTests(scatest.CorbaTestCase):
         domBooter, self._domMgr = self.launchDomainManager(loggingURI="dom/mgr/logging.properties")
         devBooter, self._devMgr = self.launchDeviceManager("/nodes/loggingconfig/DeviceManager.dcd.xml", loggingURI="dev/mgr/logging.properties")
         self._rhDom = redhawk.attach(scatest.getTestDomainName())
-        self.assertEquals(len(self._rhDom._get_applications()), 0)
+        self.assertEqual(len(self._rhDom._get_applications()), 0)
 
     def tearDown(self):
 
@@ -367,7 +367,7 @@ class LoggingConfigPropTests(scatest.CorbaTestCase):
         self.logcfg_uri=None
         self.debug_level=None
         try:
-            for i in xrange(len(args)):
+            for i in range(len(args)):
                 if 'LOGGING_CONFIG_URI' == args[i]:
                     self.logcfg_uri= args[i+1]
                 if 'DEBUG_LEVEL' == args[i]:
@@ -394,7 +394,7 @@ class LoggingConfigPropTests(scatest.CorbaTestCase):
         self.assertEqual(self.logcfg_uri.split("?fs=")[0], "sca:///logcfg/log.basic.props")
         execparamObj = self._orb.string_to_object(self.logcfg_uri.split("?fs=")[1])
         # Need to compare actual objects since the IOR strings could potentially differ for the same object
-        self.assert_(self._devMgr._get_fileSys()._is_equivalent(execparamObj))
+        self.assertTrue(self._devMgr._get_fileSys()._is_equivalent(execparamObj))
         self.assertEqual(self.debug_level,"2")
 
 
@@ -444,7 +444,7 @@ class LoggingConfigPropTests(scatest.CorbaTestCase):
         self.assertEqual(self.logcfg_uri.split("?fs=")[0], expect_logcfg)
         execparamObj = self._orb.string_to_object(self.logcfg_uri.split("?fs=")[1])
         # Need to compare actual objects since the IOR strings could potentially differ for the same object
-        self.assert_(self._domMgr._get_fileMgr()._is_equivalent(execparamObj))
+        self.assertTrue(self._domMgr._get_fileMgr()._is_equivalent(execparamObj))
 
 
     def test_Sad_CompProps_LogCfg_Debug(self):
@@ -470,7 +470,7 @@ class LoggingConfigPropTests(scatest.CorbaTestCase):
         self.assertEqual(self.logcfg_uri.split("?fs=")[0], expect_logcfg)
         execparamObj = self._orb.string_to_object(self.logcfg_uri.split("?fs=")[1])
         # Need to compare actual objects since the IOR strings could potentially differ for the same object
-        self.assert_(self._domMgr._get_fileMgr()._is_equivalent(execparamObj))
+        self.assertTrue(self._domMgr._get_fileMgr()._is_equivalent(execparamObj))
         self.assertEqual(self.debug_level,"5")
         app.releaseObject()
 
@@ -486,7 +486,7 @@ class LoggingConfigPropTests(scatest.CorbaTestCase):
         self.assertEqual(self.logcfg_uri.split("?fs=")[0], expect_logcfg)
         execparamObj = self._orb.string_to_object(self.logcfg_uri.split("?fs=")[1])
         # Need to compare actual objects since the IOR strings could potentially differ for the same object
-        self.assert_(self._domMgr._get_fileMgr()._is_equivalent(execparamObj))
+        self.assertTrue(self._domMgr._get_fileMgr()._is_equivalent(execparamObj))
         self.assertEqual(self.debug_level,"5")
 
     def test_Sad_LoggingConfig(self):
@@ -513,7 +513,7 @@ class LoggingConfigPropTests(scatest.CorbaTestCase):
         self.assertEqual(self.logcfg_uri.split("?fs=")[0], expect_logcfg)
         execparamObj = self._orb.string_to_object(self.logcfg_uri.split("?fs=")[1])
         # Need to compare actual objects since the IOR strings could potentially differ for the same object
-        self.assert_(self._domMgr._get_fileMgr()._is_equivalent(execparamObj))
+        self.assertTrue(self._domMgr._get_fileMgr()._is_equivalent(execparamObj))
 
 
     def test_Sad_LoggingConfig_Debug(self):
@@ -540,6 +540,6 @@ class LoggingConfigPropTests(scatest.CorbaTestCase):
         self.assertEqual(self.logcfg_uri.split("?fs=")[0], expect_logcfg)
         execparamObj = self._orb.string_to_object(self.logcfg_uri.split("?fs=")[1])
         # Need to compare actual objects since the IOR strings could potentially differ for the same object
-        self.assert_(self._domMgr._get_fileMgr()._is_equivalent(execparamObj))
+        self.assertTrue(self._domMgr._get_fileMgr()._is_equivalent(execparamObj))
         self.assertEqual(self.debug_level,"0")
 

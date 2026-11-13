@@ -1,7 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import os
 
-print 'CWD:', os.getcwd()
+print('CWD:', os.getcwd())
 with open('pid.out', 'w') as fp:
-    print >>fp, os.getpid()
+    print(os.getpid(), file=fp)

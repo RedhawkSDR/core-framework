@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
-import unittest, os, sys, commands, copy, shutil
+import unittest, os, sys, subprocess, copy, shutil
 from xml.dom.minidom import parse
 import ossie.utils.testing
 
@@ -58,8 +58,8 @@ class GeneratorTest(scatest.CodeGenTestCase):
         if os.path.isfile(self.build_dir + "/generate.sh"):
             # Some components might have a generate script for testing package
             # generation.
-            (status,output) = commands.getstatusoutput(self.build_dir + "/generate.sh")
-            self.assertEquals(
+            (status,output) = subprocess.getstatusoutput(self.build_dir + "/generate.sh")
+            self.assertEqual(
                 status,
                 0,
                 msg='generate script failed' + '\n\n' + output)
@@ -87,8 +87,8 @@ class GeneratorTest(scatest.CodeGenTestCase):
                                                                          module='test_'+self.artifact_name,
                                                                          impl=impl_id)
             for result in retval.results:
-                self.assertEquals(len(result.errors), 0, msg='failed for ' + lang)
-                self.assertEquals(len(result.failures), 0, msg='failed for ' + lang)
+                self.assertEqual(len(result.errors), 0, msg='failed for ' + lang)
+                self.assertEqual(len(result.failures), 0, msg='failed for ' + lang)
                 self.assertNotEqual(result.testsRun, 0, msg='failed for ' + lang)
 
 if __name__ == '__main__':

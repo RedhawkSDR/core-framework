@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -19,10 +19,10 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import commands
+import subprocess
 import multiprocessing
 import os
-import Queue
+import queue
 import resource
 import shlex
 import shutil
@@ -77,9 +77,9 @@ class GPPSandboxTest(ossie.utils.testing.RHTestCase):
     SPD_FILE = '../GPP.spd.xml'
 
     def setUp(self):
-        print "\n-----------------------"
-        print "Running: ", self.id().split('.')[-1]
-        print "-----------------------\n"
+        print("\n-----------------------")
+        print("Running: ", self.id().split('.')[-1])
+        print("-----------------------\n")
 
         if self._shouldLaunch():
             self.launchGPP(properties={'DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b':'x86_64'})
@@ -150,7 +150,7 @@ class GPPSandboxTest(ossie.utils.testing.RHTestCase):
         self._testFiles.remove(path)
 
     def addBusyTasks(self, count):
-        self._busyProcs += [subprocess.Popen('bin/busy.py') for _ in xrange(count)]
+        self._busyProcs += [subprocess.Popen('bin/busy.py') for _ in range(count)]
 
     def clearBusyTasks(self):
         for proc in self._busyProcs:
@@ -163,9 +163,9 @@ class GPPSandboxTest(ossie.utils.testing.RHTestCase):
 
     def _execute(self, executable, options, parameters):
         if isinstance(options, dict):
-            options = [CF.DataType(k, any.to_any(v)) for k, v in options.items()]
+            options = [CF.DataType(k, any.to_any(v)) for k, v in list(options.items())]
         if isinstance(parameters, dict):
-            parameters = [CF.DataType(k, any.to_any(v)) for k, v in parameters.items()]
+            parameters = [CF.DataType(k, any.to_any(v)) for k, v in list(parameters.items())]
         pid = self.comp.ref.execute(executable, options, parameters)
         if pid != 0:
             self._pids.append(pid)
@@ -202,7 +202,7 @@ class GPPSandboxTest(ossie.utils.testing.RHTestCase):
 
 class GPPTests(GPPSandboxTest):
     def testPropertyEvents(self):
-        event_queue = Queue.Queue()
+        event_queue = queue.Queue()
         event_channel = sb.createEventChannel('properties')
         event_channel.eventReceived.addListener(event_queue.put)
 
@@ -213,7 +213,7 @@ class GPPTests(GPPSandboxTest):
         # Make sure the background status events are emitted
         try:
             event = event_queue.get(timeout=1.0)
-        except Queue.Empty:
+        except queue.Empty:
             self.fail('Property change event not received')
         event = any.from_any(event, keep_structs=True)
         event_dict = ossie.properties.props_to_dict(event.properties)
@@ -298,7 +298,7 @@ class GPPTests(GPPSandboxTest):
     def _checkThresholdEvent(self, resourceId, thresholdClass, exceeded):
         try:
             event = self.queue.get(timeout=2.0)
-        except Queue.Empty:
+        except queue.Empty:
             self.fail('Threshold event not received')
         self.assertEqual(self.comp._refid, event['threshold_event::source_id'])
         self.assertEqual(thresholdClass, event['threshold_event::threshold_class'])
@@ -337,7 +337,7 @@ class GPPTests(GPPSandboxTest):
         while expected and (time.time() < end):
             try:
                 event = self.queue.get_nowait()
-            except Queue.Empty:
+            except queue.Empty:
                 time.sleep(0.1)
                 continue
 
@@ -372,7 +372,7 @@ class GPPTests(GPPSandboxTest):
 
         # Create a virtual event channel to queue the GPP's messages
         event_channel = sb.createEventChannel('thresholds')
-        self.queue = Queue.Queue()
+        self.queue = queue.Queue()
         def queue_message(message):
             # Unpack and queue up threshold event messages
             for event in self._unpackThresholdEvents(message):
@@ -386,7 +386,7 @@ class GPPTests(GPPSandboxTest):
         while not queue_empty:
             try:
                 event = self.queue.get(timeout=2.0)
-            except Queue.Empty:
+            except queue.Empty:
                 queue_empty = True
 
         # Test all thresholds except NIC, which is a little more complex
@@ -539,14 +539,14 @@ class GPPTests(GPPSandboxTest):
 
         # The load average may exceed the threshold to begin with, depending on
         # what the system was doing before this test
-        print 'Waiting for load average to fall below threshold, may take a while'
+        print('Waiting for load average to fall below threshold, may take a while')
         self.waitUsageState(CF.Device.IDLE, 30.0)
 
         # Occupy all of the CPUs with busy tasks and wait for the load average
         # to exceed the threshold; this may take a while, since it's based on a
         # 1 minute window
         self.addBusyTasks(self.comp.processor_cores)
-        print 'Waiting for load average to exceed threshold, may take a while'
+        print('Waiting for load average to exceed threshold, may take a while')
         self.waitUsageState(CF.Device.BUSY, 30.0)
         self.failUnless("LOAD AVG" in self.comp.busy_reason.upper())
 
@@ -554,7 +554,7 @@ class GPPTests(GPPSandboxTest):
         # may take a little while for the load average to drop back below the
         # threshold
         self.clearBusyTasks()
-        print 'Waiting for load average to fall below threshold, may take a while'
+        print('Waiting for load average to fall below threshold, may take a while')
         self.waitUsageState(CF.Device.IDLE, 90.0)
         self.assertEqual(self.comp.busy_reason, "")
 
@@ -578,7 +578,7 @@ class GPPTests(GPPSandboxTest):
             # Resize the file and write one byte every page to ensure that
             # shared memory is consumed
             fp.truncate(fill_size)
-            for pos in xrange(0, fill_size, 4096):
+            for pos in range(0, fill_size, 4096):
                 fp.seek(pos)
                 fp.write('\x00')
 
@@ -614,9 +614,9 @@ class ComponentTests(GPPSandboxTest):
     def get_single_nic_interface(self):
         self.nic_list = []
         cmd = '/sbin/ifconfig -a'
-        (exitstatus, ifconfig_info) = commands.getstatusoutput(cmd)
+        (exitstatus, ifconfig_info) = subprocess.getstatusoutput(cmd)
         if exitstatus != 0:
-            print "Problem running '{0}'".format(cmd)
+            print("Problem running '{0}'".format(cmd))
             return
 
         # add vlans
@@ -754,7 +754,7 @@ class ComponentTests(GPPSandboxTest):
             procs.append(subprocess.Popen('bin/busy.py'))
         end_time = time.time() + sleep_time
         while end_time > time.time():
-            print str(time.time()) + " busy reason: " + str(self.comp.busy_reason)
+            print(str(time.time()) + " busy reason: " + str(self.comp.busy_reason))
             time.sleep(.4)
         self.assertEqual(self.comp.ref._get_usageState(), CF.Device.BUSY)
         br=self.comp.busy_reason
@@ -792,7 +792,7 @@ class ComponentTests(GPPSandboxTest):
             procs.append(subprocess.Popen('bin/busy.py'))
         end_time = time.time() + sleep_time
         while end_time > time.time():
-            print str(time.time()) + " busy reason: " + str(self.comp.busy_reason)
+            print(str(time.time()) + " busy reason: " + str(self.comp.busy_reason))
             time.sleep(.4)
 
         self.assertEqual(self.comp.ref._get_usageState(), CF.Device.BUSY)
@@ -880,7 +880,7 @@ class ComponentTests(GPPSandboxTest):
         else:
             self.fail("Process failed to terminate")
         
-        output,status = commands.getstatusoutput('screen -wipe')
+        output,status = subprocess.getstatusoutput('screen -wipe')
             
         screens = os.listdir(screendir)
         self.assertEqual(len(screens), 0)
@@ -1033,7 +1033,7 @@ class ComponentTests(GPPSandboxTest):
         orig_thres = self.comp.thresholds.cpu_idle.queryValue()
         self.comp.thresholds.cpu_idle = 100.00
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.BUSY: break
            time.sleep(.5)
@@ -1043,7 +1043,7 @@ class ComponentTests(GPPSandboxTest):
         # set cpu idle  back
         self.comp.thresholds.cpu_idle = orig_thres
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.IDLE: break
            time.sleep(.5)
@@ -1055,7 +1055,7 @@ class ComponentTests(GPPSandboxTest):
         mem_free = self.comp.memFree.queryValue()
         self.comp.thresholds.mem_free = mem_free+2000
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.BUSY: break
            time.sleep(.5)
@@ -1065,7 +1065,7 @@ class ComponentTests(GPPSandboxTest):
         # set mem_free  back
         self.comp.thresholds.mem_free = orig_thres
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.IDLE: break
            time.sleep(.5)
@@ -1077,7 +1077,7 @@ class ComponentTests(GPPSandboxTest):
         orig_thres = self.comp.thresholds.load_avg.queryValue()
         self.comp.thresholds.load_avg=0.0
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.BUSY: break
            time.sleep(.5)
@@ -1087,7 +1087,7 @@ class ComponentTests(GPPSandboxTest):
         # set load_avg  back
         self.comp.thresholds.load_avg = orig_thres
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.IDLE: break
            time.sleep(.5)
@@ -1099,7 +1099,7 @@ class ComponentTests(GPPSandboxTest):
         orig_thres = self.comp.thresholds.nic_usage.queryValue()
         self.comp.thresholds.nic_usage=0.0
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.BUSY: break
            time.sleep(.5)
@@ -1109,7 +1109,7 @@ class ComponentTests(GPPSandboxTest):
         # set nic_usage  back
         self.comp.thresholds.nic_usage = orig_thres
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.IDLE: break
            time.sleep(.5)
@@ -1120,7 +1120,7 @@ class ComponentTests(GPPSandboxTest):
         orig_thres = self.comp.thresholds.files_available.queryValue()
         self.comp.thresholds.files_available=100.0
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.BUSY: break
            time.sleep(.5)
@@ -1130,7 +1130,7 @@ class ComponentTests(GPPSandboxTest):
         # set files_available back
         self.comp.thresholds.files_available = orig_thres
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.IDLE: break
            time.sleep(.5)
@@ -1141,7 +1141,7 @@ class ComponentTests(GPPSandboxTest):
         orig_thres = self.comp.thresholds.threads.queryValue()
         self.comp.thresholds.threads=100.0
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.BUSY: break
            time.sleep(.5)
@@ -1151,7 +1151,7 @@ class ComponentTests(GPPSandboxTest):
         # set threads back
         self.comp.thresholds.threads = orig_thres
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.IDLE: break
            time.sleep(.5)
@@ -1174,7 +1174,7 @@ class ComponentTests(GPPSandboxTest):
         orig_thres = self.comp.thresholds.cpu_idle.queryValue()
         self.comp.thresholds.cpu_idle = 100.00
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.BUSY: break
            time.sleep(.5)
@@ -1184,7 +1184,7 @@ class ComponentTests(GPPSandboxTest):
         # set cpu idle  back
         self.comp.thresholds.cpu_idle = orig_thres
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.IDLE: break
            time.sleep(.5)
@@ -1196,7 +1196,7 @@ class ComponentTests(GPPSandboxTest):
         mem_free = self.comp.memFree.queryValue()
         self.comp.thresholds.mem_free = mem_free+2000
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.BUSY: break
            time.sleep(.5)
@@ -1206,7 +1206,7 @@ class ComponentTests(GPPSandboxTest):
         # set mem_free  back
         self.comp.thresholds.mem_free = orig_thres
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.IDLE: break
            time.sleep(.5)
@@ -1218,7 +1218,7 @@ class ComponentTests(GPPSandboxTest):
         orig_thres = self.comp.thresholds.load_avg.queryValue()
         self.comp.thresholds.load_avg=0.0
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.BUSY: break
            time.sleep(.5)
@@ -1228,7 +1228,7 @@ class ComponentTests(GPPSandboxTest):
         # set load_avg  back
         self.comp.thresholds.load_avg = orig_thres
         ustate=None
-        for i in xrange(6):
+        for i in range(6):
            ustate= self.comp._get_usageState()
            if ustate == CF.Device.IDLE: break
            time.sleep(.5)
@@ -1257,11 +1257,11 @@ class AffinityTests(GPPSandboxTest):
     def _getNumCpus(self):
         output=2
         try:
-            status,output=commands.getstatusoutput("ls -d /sys/devices/system/cpu/cpu[0-9]*  | wc -l")
+            status,output=subprocess.getstatusoutput("ls -d /sys/devices/system/cpu/cpu[0-9]*  | wc -l")
             if status == 0:
                 return int(output)
             else:
-                status,output=commands.getstatusoutput("lscpu  | egrep '^CPU\('  | awk  '{ print  $2 }'")
+                status,output=subprocess.getstatusoutput("lscpu  | egrep '^CPU\('  | awk  '{ print  $2 }'")
                 return int(output)
         except:
             pass
@@ -1270,7 +1270,7 @@ class AffinityTests(GPPSandboxTest):
     def _deployWithAffinityOptions(self, name, affinity={}):
         options = {}
         if affinity:
-            options['AFFINITY'] = [CF.DataType(k, any.to_any(v)) for k,v in affinity.items()]
+            options['AFFINITY'] = [CF.DataType(k, any.to_any(v)) for k,v in list(affinity.items())]
         pid, comp = self._launchComponentStub(name, options=options)
         return pid
 
@@ -1497,12 +1497,12 @@ class DomainSupport(scatest.CorbaTestCase):
         super(DomainSupport,self).setUp()
         self.orig_sdrroot=os.environ['SDRROOT']
         os.environ['SDRROOT'] = os.getcwd()+'/sdr'
-        print "\n-----------------------"
-        print "Running: ", self.id().split('.')[-1]
-        print "-----------------------\n"
+        print("\n-----------------------")
+        print("Running: ", self.id().split('.')[-1])
+        print("-----------------------\n")
         self._makeLink(self.orig_sdrroot+'/dom/mgr', 'sdr/dom/mgr')
         self._makeLink(self.orig_sdrroot+'/dev/mgr', 'sdr/dev/mgr')
-        print 'done staging DomainManager'
+        print('done staging DomainManager')
 
     def tearDown(self):
         super(DomainSupport, self).tearDown()
@@ -1903,7 +1903,7 @@ class LoadableDeviceVariableDirectoriesTest(DomainSupport):
 if __name__ == "__main__":
     if False:
         # Debugging support: enable this conditional to dump NUMA topology
-        print "NumaSupport %d nodes %d CPUs" % (len(topology.nodes), len(topology.cpus))
+        print("NumaSupport %d nodes %d CPUs" % (len(topology.nodes), len(topology.cpus)))
         for node in topology.nodes:
-            print 'Node', node.node, 'CPUs:', node.cpus
+            print('Node', node.node, 'CPUs:', node.cpus)
     ossie.utils.testing.main()  # By default tests all implementations

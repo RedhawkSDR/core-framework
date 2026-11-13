@@ -143,7 +143,7 @@ void loadPRFExecParams (const std::string& prfFile, ExecParams& execParams)
         prf.load(prfStream);
     } catch (const ossie::parser_error& ex) {
         std::string parser_error_line = ossie::retrieveParserErrorLineNumber(ex.what());
-        LOG_ERROR(nodebooter, "Failed to parse PRF file " << prfStream<< ". " << parser_error_line << "The XML parser returned the following error: " << ex.what());
+        LOG_ERROR(nodebooter, "Failed to parse PRF file " << prfFile << ". " << parser_error_line << "The XML parser returned the following error: " << ex.what());
         exit(EXIT_FAILURE);
     }
     prfStream.close();
@@ -1085,6 +1085,27 @@ int main(int argc, char* argv[])
     const std::string DEV_FOLDER = "dev";
     fs::path devRootPath = sdrRootPath / DEV_FOLDER;
     if (startDeviceManagerRequested) {
+        if (dcdFile.find("*") != string::npos) {
+            std::string root_dir = dcdFile.substr(0, dcdFile.find("*"));
+            std::string rest_of_file = dcdFile.substr(dcdFile.find("*")+1, dcdFile.size()-root_dir.size()-1);
+            fs::path root_path = fs::system_complete(root_dir);
+            const fs::directory_iterator end_itr;
+            bool found_one = false;
+            std::string nodename;
+            for (fs::directory_iterator itr = fs::directory_iterator(devRootPath/root_path); itr != end_itr; ++itr) {
+                if (found_one) {
+                    std::cerr<<"Found more than one directory matching the pattern"<<std::endl;
+                    exit(EXIT_FAILURE);
+                }
+                nodename = itr->path().string();
+                found_one = true;
+            }
+            fs::path rest_of_file_path = fs::system_complete(rest_of_file);
+            fs::path nodename_path = fs::system_complete(nodename);
+            fs::path complete_path = nodename_path/rest_of_file_path;
+            dcdFile = complete_path.string();
+        }
+
         // Assume relative paths are relative to the current directory, and
         // turn into an absolute path
         fs::path dcdPath = fs::system_complete(dcdFile);

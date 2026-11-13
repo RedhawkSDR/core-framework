@@ -43,7 +43,7 @@ namespace ossie {
     public:
         ComponentDescriptor() {}
 
-        ComponentDescriptor(std::istream& input) throw (ossie::parser_error);
+        ComponentDescriptor(std::istream& input);
 
         ~ComponentDescriptor();
 
@@ -51,7 +51,7 @@ namespace ossie {
 
         ComponentDescriptor& operator=(const ComponentDescriptor &other);
 
-        void load(std::istream& istream) throw (ossie::parser_error);
+        void load(std::istream& istream);
 
         const char* getComponentType() const;
 

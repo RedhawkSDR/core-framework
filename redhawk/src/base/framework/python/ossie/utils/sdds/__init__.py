@@ -18,6 +18,6 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-from sdds_time import *
-from sdds_pkt import *
-from sdds_analyzer import *
+from .sdds_time import *
+from .sdds_pkt import *
+from .sdds_analyzer import *

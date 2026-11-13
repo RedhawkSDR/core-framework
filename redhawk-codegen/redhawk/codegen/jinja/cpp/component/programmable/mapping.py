@@ -34,19 +34,19 @@ class ProgrammableComponentMapper(PullComponentMapper):
         return cppcomp
 
     def _validateAggregateDevice(self, comp):
-        if not comp.has_key('superclasses'):
-            print >> sys.stderr, "WARNING: Programmable device MUST be an aggregate device!"
+        if 'superclasses' not in comp:
+            print("WARNING: Programmable device MUST be an aggregate device!", file=sys.stderr)
             return
 
         missingAggDevice = True
         for superclass in comp['superclasses']:
-            if not superclass.has_key('name'):
+            if 'name' not in superclass:
                 continue
             if superclass['name'] == "AggregateDevice_impl":
                 missingAggDevice = False
                 break
         if missingAggDevice:
-            print >> sys.stderr, "WARNING: Programmable device MUST be an aggregate device!"
+            print("WARNING: Programmable device MUST be an aggregate device!", file=sys.stderr)
 
     @staticmethod
     def reprogClass(softpkg):

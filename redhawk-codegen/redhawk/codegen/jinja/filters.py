@@ -29,7 +29,7 @@ except ImportError:
 
 from jinja2.filters import environmentfilter
 
-from testparser import TestParser
+from .testparser import TestParser
 
 def do_codealign(value):
     """
@@ -52,7 +52,7 @@ def do_codealign(value):
 
         # Adjust indentation based on scopes opened or closed on line.
         # NB: Scopes are not checked to ensure they match
-        for ii in xrange(len(line)):
+        for ii in range(len(line)):
             current = line[ii]
             if current in string_delim:
                 # Naive tracking of string literal entry and exit--each quote
@@ -92,7 +92,7 @@ def do_relpath(path, base):
     Otherwise, 'path' is assumed to be a list, and the relative path
     operation is applied to each element.
     """
-    if isinstance(path, basestring):
+    if isinstance(path, str):
         return relpath(path, base)
     else:
         return (relpath(p,base) for p in path)
@@ -103,7 +103,7 @@ def do_quote(value, quote='"'):
     Otherwise, 'value' is assumed to be a sequence, and a generator yielding
     each item quoted is returned.
     """
-    if isinstance(value, basestring):
+    if isinstance(value, str):
         return quote+value+quote
     else:
         return (quote+v+quote for v in value)

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -196,7 +196,7 @@ class eos_test_i(eos_test_base):
         self._log.debug("process() example log message")
 
         if self.frontend_tuner_status[0].enabled:
-            data = range(1000)
+            data = list(range(1000))
             self.port_dataFloat_out.pushPacket(data, bulkio.timestamp.now(), False, "hello")
                                                 
         return NOOP

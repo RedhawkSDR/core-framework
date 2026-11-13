@@ -368,6 +368,10 @@ public class TestLegacyJavaProps extends Resource implements Runnable {
             e.printStackTrace();
         } catch (IllegalAccessException e) {
             e.printStackTrace();
+        } catch (java.lang.reflect.InvocationTargetException e) {
+            e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
         }
 
         //begin-user-code

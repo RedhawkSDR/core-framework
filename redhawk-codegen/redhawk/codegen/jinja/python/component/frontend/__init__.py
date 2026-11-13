@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-from generator import FrontendComponentGenerator, loader
+from .generator import FrontendComponentGenerator, loader
 
 def factory(**opts):
     return FrontendComponentGenerator(**opts)

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -38,7 +38,7 @@ from ossie.properties import simpleseq_property
 from ossie.properties import struct_property
 from ossie.properties import structseq_property
 
-import Queue, copy, time, threading
+import queue, copy, time, threading
 from ossie.resource import usesport, providesport
 import bulkio
 import frontend
@@ -179,7 +179,7 @@ class fei_exc_src_base(CF__POA.Device, FrontendTunerDevice, digital_tuner_delega
         def assignListener(self,listen_alloc_id, allocation_id):
             # find control allocation_id
             existing_alloc_id = allocation_id
-            if self.listeners.has_key(existing_alloc_id):
+            if existing_alloc_id in self.listeners:
                 existing_alloc_id = self.listeners[existing_alloc_id]
             self.listeners[listen_alloc_id] = existing_alloc_id
 
@@ -211,7 +211,7 @@ class fei_exc_src_base(CF__POA.Device, FrontendTunerDevice, digital_tuner_delega
             self.port_dataDouble_out.updateConnectionFilter(newValue)
 
         def removeListener(self,listen_alloc_id):
-            if self.listeners.has_key(listen_alloc_id):
+            if listen_alloc_id in self.listeners:
                 del self.listeners[listen_alloc_id]
 
             old_table = self.connectionTable
@@ -235,7 +235,7 @@ class fei_exc_src_base(CF__POA.Device, FrontendTunerDevice, digital_tuner_delega
                 if entry.connection_id == allocation_id:
                     self.connectionTable.remove(entry)
 
-            for key,value in self.listeners.items():
+            for key,value in list(self.listeners.items()):
                 if (value == allocation_id):
                     for entry in list(self.connectionTable):
                         if entry.connection_id == key:
@@ -253,7 +253,7 @@ class fei_exc_src_base(CF__POA.Device, FrontendTunerDevice, digital_tuner_delega
                     if entry.stream_id == stream_id and entry.connection_id == allocation_id:
                         self.connectionTable.remove(entry)
 
-            for key,value in self.listeners.items():
+            for key,value in list(self.listeners.items()):
                 if (value == allocation_id):
                     for entry in list(self.connectionTable):
                         if entry.connection_id == key and entry.stream_id == stream_id:

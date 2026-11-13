@@ -31,7 +31,7 @@ import time
 import traceback
 import unittest
 from xml.sax.saxutils import escape
-from StringIO import StringIO
+from io import StringIO
 
 class _TestInfo(object):
     def __init__(self, test, time):

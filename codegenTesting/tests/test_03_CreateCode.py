@@ -1,4 +1,4 @@
-import unittest, os, sys, commands, copy, shutil
+import unittest, os, sys, subprocess, copy, shutil
 from xml.dom.minidom import parse
 import ossie.utils.testing
 import lxml.etree as ET
@@ -43,8 +43,8 @@ class GeneratorTest(scatest.CodeGenTestCase):
             # Some components might have a generate script for testing package
             # generation.
             os.chdir(self.build_dir)
-            (status,output) = commands.getstatusoutput("./generate.sh")
-            self.assertEquals(
+            (status,output) = subprocess.getstatusoutput("./generate.sh")
+            self.assertEqual(
                 status,
                 0,
                 msg='generate script failed' + '\n\n' + output)
@@ -63,7 +63,7 @@ class GeneratorTest(scatest.CodeGenTestCase):
         except:
             pass
 
-        self.assertEquals( implref, {'refid':'cpp'})
+        self.assertEqual( implref, {'refid':'cpp'})
 
 
 if __name__ == '__main__':

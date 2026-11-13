@@ -20,7 +20,7 @@
 #% set className = component.userclass.name
 #% set baseClass = component.baseclass.name
 #% set artifactType = component.artifacttype
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 #% block license
 #% endblock
@@ -35,7 +35,11 @@ from ossie.resource import start_component
 #{% endif %}
 import logging
 
+#{% if component.isChild %}
+from .${baseClass} import *
+#{% else %}
 from ${baseClass} import *
+#{% endif %}
 
 class ${className}(${baseClass}):
 #{% if component.description %}
@@ -56,13 +60,10 @@ class ${className}(${baseClass}):
         For a tuner device, the structure frontend_tuner_status needs to match the number
         of tuners that this device controls and what kind of device it is.
         The options for devices are: TX, RX, RX_DIGITIZER, CHANNELIZER, DDC, RX_DIGITIZER_CHANNELIZER
-     
-        For example, if this device has 5 physical
-        tuners, 3 RX_DIGITIZER and 2 CHANNELIZER, then the code in the construct function 
-        should look like this:
+        
+        An example of setting up this device as an RX_DIGITIZER would look like this:
 
-        self.addChannels(3, "RX_DIGITIZER")
-        self.addChannels(2, "CHANNELIZER")
+        self.addChannels(1, "RX_DIGITIZER")
      
         The incoming request for tuning contains a string describing the requested tuner
         type. The string for the request must match the string in the tuner status.
@@ -71,10 +72,23 @@ class ${className}(${baseClass}):
         # TODO add customization here.
 #{% if component.hastunerstatusstructure %}
         self.addChannels(1, "RX_DIGITIZER")
+#{% else %}
+        pass
 #{% endif %}
-        
+
+#{% if component.hastunerstatusstructure %}
+    def allocate(self, alloc_props):
+        retval = super(${className}, self).allocate(alloc_props)
+        #
+        # if len(retval) > 0, add data and control ports. For example:
+        # retval[0].data_ports = [CF.Device.PortDescription(self.port_dataShort_out._this(), 'dataShort_out', 'IDL:BULKIO/dataShort:1.0')]
+        # retval[0].control_ports = [CF.Device.PortDescription(self.port_DigitalTuner_in._this(), 'DigitalTuner_in', 'IDL:FRONTEND/DigitalTuner:1.0')]
+        #
+        return retval
+#{% endif %}
+
 #{% block updateUsageState %}
-#{% if component is device %}
+#{% if component is device %} 
     def updateUsageState(self):
         """
         This is called automatically after allocateCapacity or deallocateCapacity are called.
@@ -274,7 +288,7 @@ class ${className}(${baseClass}):
         """
 
         # TODO fill in your code here
-        self._baseLog.debug("process() example log message")
+        self._baseLog.trace("process() example log message")
         return NOOP
 
 #{% block fei_port_delegations %}
@@ -410,7 +424,7 @@ class ${className}(${baseClass}):
 
     def get_gps_info(self,port_name):
         _time = bulkio.timestamp.now()
-        _gpsinfo = FRONTEND.GPSInfo('','','',1L,1L,1L,1.0,1.0,1.0,1.0,1,1.0,'',_time,[])
+        _gpsinfo = FRONTEND.GPSInfo('','','',1,1,1,1.0,1.0,1.0,1.0,1,1.0,'',_time,[])
         return _gpsinfo
 
     def set_gps_info(self,port_name, gps_info):
@@ -478,7 +492,7 @@ class ${className}(${baseClass}):
         _freqrange = FRONTEND.FreqRange(0,0,[])
         _feedinfo = FRONTEND.FeedInfo('','',_freqrange)
         _sensorinfo = FRONTEND.SensorInfo('','','',_antennainfo,_feedinfo)
-        _rfcapabilities = FRONTEND.RFCapabilities(_freqrange,_freqrange)
+        _rfcapabilities=FRONTEND.RFCapabilities(_freqrange,_freqrange)
         _rfinfopkt = FRONTEND.RFInfoPkt('',0.0,0.0,0.0,False,_sensorinfo,[],_rfcapabilities,[])
         return _rfinfopkt
 
@@ -489,12 +503,14 @@ class ${className}(${baseClass}):
 #{% block extensions %}
 #{% endblock %}
   
+#{% if not component.isChild %}
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
-#{% if component is device %}
+#{%   if component is device %}
     logging.debug("Starting Device")
     start_device(${className})
-#{% else %}
+#{%   else %}
     logging.debug("Starting Component")
     start_component(${className})
+#{%   endif %}
 #{% endif %}

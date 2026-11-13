@@ -103,7 +103,7 @@ class StreamSource(SandboxHelper):
         if format:
             formats = [format]
         else:
-            formats = _PORT_MAP.keys()
+            formats = list(_PORT_MAP.keys())
         for format in formats:
             clazz, helper = _PORT_MAP[format]
             self._addUsesPort(format+'Out', helper._NP_RepositoryId, clazz)

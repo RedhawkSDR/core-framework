@@ -20,6 +20,8 @@
 #ifndef _PROCMEMINFOPARSER_H_
 #define _PROCMEMINFOPARSER_H_
 
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
+
 #include <iosfwd>
 #include <string>
 #include <vector>

@@ -191,10 +191,10 @@ public:
         }
     }
 
-    virtual const value_type& getValue (void)
+    virtual const value_type getValue (void)
     {
         if (query_) {
-            value_ = query_();
+            return query_();
         }
         return value_;
     }

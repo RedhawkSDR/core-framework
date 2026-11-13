@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -142,12 +142,12 @@ def main(args):
 
     try:
         spd = SPDParser.parse(spdfile)
-    except Exception, exc:
+    except Exception as exc:
         raise ValueError('Invalid SPD file %s:\n%s' % (filename, exc))
 
     for key, value in opts:
         if key == '--impls':
-            print ' '.join(getImplementations(spd))
+            print (' '.join(getImplementations(spd)))
         elif key == '--exists':
             impl = getImplementation(spd, implId)
             localfile = impl.get_code().get_localfile().get_name()
@@ -158,15 +158,15 @@ def main(args):
                 raise SystemExit('%s entrypoint does not exist: %s' % (spd.get_name(), entrypoint))
         elif key == '--localfile':
             impl = getImplementation(spd, implId)
-            print impl.get_code().get_localfile().get_name()
+            print (impl.get_code().get_localfile().get_name())
         elif key == '--entrypoint':
             impl = getImplementation(spd, implId)
             entrypoint = impl.get_code().get_entrypoint()
             if entrypoint:
-                print entrypoint
+                print (entrypoint)
         elif key == '--pkgconfigpath':
             pkgconfig = getPkgConfigPath(spdfile, implId)
-            print ':'.join(pkgconfig)
+            print (':'.join(pkgconfig))
         elif key == '--softpkgdeps':
             impl = getImplementation(spd, implId)
             libs = []
@@ -176,13 +176,13 @@ def main(args):
                     depspd = softpkgref.get_localfile().get_name()
                     if softpkgref.get_implref():
                         depspd += ':' + softpkgref.get_implref().get_refid()
-                    print depspd
+                    print (depspd)
         elif key == '--classpath':
             classpath = getClasspath(spdfile, implId)
-            print ':'.join(classpath)
+            print (':'.join(classpath))
         elif key == '--name':
             name = spd.get_name()
-            print name
+            print (name)
         elif key == '--check':
             checkDependencies(spdfile, implId)
 
@@ -190,5 +190,5 @@ def main(args):
 if __name__ == '__main__':
     try:
         main(sys.argv[1:])
-    except Exception, exc:
+    except Exception as exc:
         raise SystemExit(exc)

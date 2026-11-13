@@ -38,7 +38,7 @@ class DataGenerator(object):
     def start(self):
 
         if not self.thread:
-            print "Starting Thread"
+            print("Starting Thread")
             self.thread = threading.Thread(target = self._run)
             self.thread.start()
             
@@ -46,11 +46,11 @@ class DataGenerator(object):
         
     def stop(self):
         if self.thread:
-            print "Stopping Thread"
+            print("Stopping Thread")
             self.terminate = True
             self.thread.join(2)
         else:
-            print "No Thread to Stop"
+            print("No Thread to Stop")
 
     
     def _run(self):
@@ -65,7 +65,7 @@ class DataGenerator(object):
         self.enable = True 
         
     def disableDataFlow(self):
-        print "Disable Data Flow"
+        print("Disable Data Flow")
         self.enable = False 
         self.outputPort.pushPacket([], self.next_time, True, self.stream_id)
     
@@ -102,19 +102,19 @@ class DataGenerator(object):
         self.sri.xdelta =1.0/self.sr
         self.sri.streamID = self.stream_id
         keywords = []
-        for keyword in self.keyword_dict.keys():
+        for keyword in list(self.keyword_dict.keys()):
             keywords.append(CF.DataType(keyword, any.to_any(self.keyword_dict[keyword])))
         self.sri.keywords = keywords
         self.sri.mode = 1
         try:
             self.outputPort.pushSRI(self.sri)
-        except Exception, e:
-            print "Exception on pushSRI" , str(e)
+        except Exception as e:
+            print("Exception on pushSRI" , str(e))
 
 class TestPort(object):
     
     def pushPacket(self,data,sometime,EOS,stream_id):
-        print "Pusing Data of length" , len(data)
+        print("Pusing Data of length" , len(data))
 
 if __name__ == "__main__":
     
@@ -125,7 +125,7 @@ if __name__ == "__main__":
     generator.enableDataFlow()
     time.sleep(2)
     generator.stop()
-    print "complete"
+    print("complete")
     
     
     

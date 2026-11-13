@@ -262,7 +262,7 @@ namespace burstio {
     bool InPort<Traits>::waitBurst (float timeout, boost::mutex::scoped_lock& lock)
     {
         if (timeout > 0.0) {
-            boost::posix_time::time_duration offset = boost::posix_time::microseconds(timeout*1e6);
+            boost::posix_time::time_duration offset = boost::posix_time::microseconds((long)(timeout*1e6));
             LOG_INSTANCE_TRACE("Waiting " << offset.total_microseconds() << " us for burst");
             boost::system_time to_time = boost::get_system_time() + offset;
             while (started_ && queuedBursts_ == 0) {

@@ -116,11 +116,11 @@ BasicDevWithExecParam_cpp_impl1_base::~BasicDevWithExecParam_cpp_impl1_base(void
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void BasicDevWithExecParam_cpp_impl1_base::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException)
+void BasicDevWithExecParam_cpp_impl1_base::initialize()
 {
 }
 
-void BasicDevWithExecParam_cpp_impl1_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void BasicDevWithExecParam_cpp_impl1_base::start()
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
     if (serviceThread == 0) {
@@ -129,7 +129,7 @@ void BasicDevWithExecParam_cpp_impl1_base::start() throw (CORBA::SystemException
     }
 }
 
-void BasicDevWithExecParam_cpp_impl1_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void BasicDevWithExecParam_cpp_impl1_base::stop()
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
     // release the child thread (if it exists)
@@ -142,7 +142,7 @@ void BasicDevWithExecParam_cpp_impl1_base::stop() throw (CORBA::SystemException,
 }
 
 
-void BasicDevWithExecParam_cpp_impl1_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void BasicDevWithExecParam_cpp_impl1_base::releaseObject()
 {
     // This function clears the component running condition so main shuts down everything
     try {
@@ -159,7 +159,7 @@ void BasicDevWithExecParam_cpp_impl1_base::releaseObject() throw (CORBA::SystemE
     Device_impl::releaseObject();
 }
 
-void BasicDevWithExecParam_cpp_impl1_base::configure(const CF::Properties& props) throw (CORBA::SystemException, CF::PropertySet::InvalidConfiguration, CF::PropertySet::PartialConfiguration)
+void BasicDevWithExecParam_cpp_impl1_base::configure(const CF::Properties& props)
 {
     PropertySet_impl::configure(props);
 }

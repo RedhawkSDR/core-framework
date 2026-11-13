@@ -59,7 +59,7 @@ else:
         sys.path.insert(0,dist.location)
     except pkg_resources.DistributionNotFound:
         import_fail()
-    except pkg_resources.VersionConflict, e:
+    except pkg_resources.VersionConflict as e:
         import_fail(', but found ' + str(e.args[0]))
 
 try:

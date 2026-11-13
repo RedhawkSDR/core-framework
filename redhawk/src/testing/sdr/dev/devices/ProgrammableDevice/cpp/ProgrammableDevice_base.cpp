@@ -75,11 +75,11 @@ void ProgrammableDevice_base::construct()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void ProgrammableDevice_base::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException)
+void ProgrammableDevice_base::initialize()
 {
 }
 
-void ProgrammableDevice_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void ProgrammableDevice_base::start()
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
     if (serviceThread == 0) {
@@ -92,7 +92,7 @@ void ProgrammableDevice_base::start() throw (CORBA::SystemException, CF::Resourc
     }
 }
 
-void ProgrammableDevice_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void ProgrammableDevice_base::stop()
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
     // release the child thread (if it exists)
@@ -108,7 +108,7 @@ void ProgrammableDevice_base::stop() throw (CORBA::SystemException, CF::Resource
     }
 }
 
-void ProgrammableDevice_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void ProgrammableDevice_base::releaseObject()
 {
     // This function clears the device running condition so main shuts down everything
     try {

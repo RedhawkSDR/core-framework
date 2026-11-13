@@ -44,7 +44,7 @@ namespace redhawk {
         {
         }
 
-        virtual ~invalid_profile() throw()
+        virtual ~invalid_profile()
         {
             // Only defined because the compiler-generated destructor has a
             // looser throw specification than runtime_error's destructor

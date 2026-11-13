@@ -76,7 +76,7 @@ std::streambuf::int_type File_buffer::underflow()
     }
 }
 
-void File_buffer::close() throw(std::ios_base::failure)
+void File_buffer::close()
 {
     try {
         if (!CORBA::is_nil(fptr_) && (!fptr_->_non_existent())) {
@@ -90,7 +90,7 @@ void File_buffer::close() throw(std::ios_base::failure)
     }
 }
 
-File_stream::File_stream(CF::FileSystem_ptr fsysptr, const char* path) throw(std::ios_base::failure) :
+File_stream::File_stream(CF::FileSystem_ptr fsysptr, const char* path) :
     std::ios(0),
     needsClose(true) 
 {
@@ -118,7 +118,7 @@ File_stream::File_stream(CF::File_ptr fptr) :
     }
 }
 
-void File_stream::close() throw(std::ios_base::failure)
+void File_stream::close()
 {
     if ((needsClose) && (sb != 0)) {
         sb->close();

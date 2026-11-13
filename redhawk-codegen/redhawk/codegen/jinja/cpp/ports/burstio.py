@@ -22,7 +22,7 @@ from redhawk.codegen.lang.idl import IDLInterface
 from redhawk.codegen.lang import cpp
 from redhawk.codegen.jinja.ports import PortFactory
 
-from generator import CppPortGenerator
+from .generator import CppPortGenerator
 
 class BurstioPortFactory(PortFactory):
     NAMESPACE = 'BURSTIO'

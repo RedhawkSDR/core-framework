@@ -27,7 +27,10 @@ import shutil
 from redhawk.codegen import utils
 from redhawk.codegen import versions
 
-from environment import CodegenEnvironment
+from redhawk.codegen.generate import importTemplate
+from redhawk.codegen.model.softpkg import SoftPkg
+
+from .environment import CodegenEnvironment
 
 class Generator(object):
     def __init__(
@@ -37,6 +40,7 @@ class Generator(object):
             crcs={},
             variant="",
             header=None,
+            children=[],
             **options):
 
         self.outputdir = outputdir
@@ -44,6 +48,8 @@ class Generator(object):
         if variant != "":
             variant = "_" + variant
         self.variant = variant
+        self.children = children
+        self.childTemplates = {}
         self.parseopts(**options)
 
         # Read MD5 sums for testing file changes.
@@ -78,6 +84,8 @@ class Generator(object):
         # Save the header (if given)
         self.header = header
 
+        self.setupChildren()
+
     def parseopts(self):
         """
         Parse additional options passed to the constructor. Subclasses should
@@ -85,22 +93,32 @@ class Generator(object):
         """
         pass
 
+    def setupChildren(self):
+        pass
+
     def loader(self, component):
-        raise NotImplementedError, 'CodeGenerator.loader'
+        raise NotImplementedError('CodeGenerator.loader')
 
     def templates(self, component):
-        raise NotImplementedError, 'CodeGenerator.templates'
+        raise NotImplementedError('CodeGenerator.templates')
+
+    def templatesChildren(self, component):
+        return []
+
+    def allTemplates(self, component):
+        templates = self.templates(component)+self.templatesChildren(component)
+        return templates
 
     def filenames(self, softpkg):
         component = self.map(softpkg)
-        return [t.filename for t in self.templates(component)]
+        return [t.filename for t in self.allTemplates(component)]
 
     def trackedFiles(self):
         """
         Returns the list of files tracked by MD5 sums or CRC32s (for legacy
         projects).
         """
-        return self.md5sums.keys() + self.crcs.keys()
+        return list(self.md5sums.keys()) + list(self.crcs.keys())
 
     def fileChanged(self, filename, userfile=False):
         if userfile:
@@ -128,7 +146,7 @@ class Generator(object):
         stale = set(self.trackedFiles())
         files = []
         # Check state of files that would be generated
-        for template in self.templates(component):
+        for template in self.allTemplates(component):
             if template.filename in stale:
                 stale.remove(template.filename)
             info = { 'filename': template.filename,
@@ -169,7 +187,15 @@ class Generator(object):
         if filenames:
             stale.intersection_update(filenames)
 
-        for template in self.templates(component):
+        for _template in self.allTemplates(component):
+            isChild = False
+            childName = None
+            if isinstance(_template, dict):
+                template = _template[list(_template.keys())[0]]
+                isChild = True
+                childName = list(_template.keys())[0]
+            else:
+                template = _template
             # Mark the current template as seen so it will not be deleted,
             # regardless of whether it gets generated
             if template.filename in stale:
@@ -201,12 +227,16 @@ class Generator(object):
 
             # Initially, write the output to a temporary file to avoid trashing
             # the original file if the template is malformed
-            with tempfile.NamedTemporaryFile() as outfile:
+            with tempfile.NamedTemporaryFile(mode="w+t") as outfile:
                 # Start with the template-specific context, then add the mapped
                 # component and a reference to this generator with known names.
                 context = template.context()
-                context['component'] = component
-                context['generator'] = self
+                if isChild:
+                    context['component'] = component['children'][childName]
+                    context['generator'] = self.childTemplates[childName]['generator']
+                else:
+                    context['component'] = component
+                    context['generator'] = self
                 context['versions'] = versions
 
                 # Evaluate the template in streaming mode (rather than all at
@@ -277,8 +307,8 @@ class Generator(object):
         # NB: To work with "md5sum -c", there must be two spaces between the
         #     MD5 digest and the filename.
         md5out = open(self.md5file, 'w')
-        for name, digest in self.md5sums.items():
-            print >>md5out, "%s  %s" % (digest, name)
+        for name, digest in list(self.md5sums.items()):
+            print("%s  %s" % (digest, name), file=md5out)
         md5out.close()
 
         return generated, skipped
@@ -295,7 +325,7 @@ class TopLevelGenerator(Generator):
         self.generators = {}
 
     def projectMapper(self):
-        raise NotImplementedError, 'TopLevelGenerator.projectMapper'
+        raise NotImplementedError('TopLevelGenerator.projectMapper')
 
     def map(self, softpkg):
         return self.projectMapper().mapProject(softpkg, self.generators)
@@ -308,17 +338,23 @@ class CodeGenerator(Generator):
         super(CodeGenerator,self).__init__(**opts)
         self.implId = implId
 
+    def setupChildren(self):
+        for child in self.children:
+            childvalue = child.getElementsByTagName('childvalue')[0]
+            self.childTemplates.update({str(child.getAttribute('name')):{'generator':importTemplate(childvalue.getAttribute('template'))}})
+
+
     def componentMapper(self):
-        raise NotImplementedError, 'CodeGenerator.componentMapper'
+        raise NotImplementedError('CodeGenerator.componentMapper')
 
     def propertyMapper(self):
-        raise NotImplementedError, 'CodeGenerator.propertyMapper'
+        raise NotImplementedError('CodeGenerator.propertyMapper')
 
     def portMapper(self):
-        raise NotImplementedError, 'CodeGenerator.portMapper'
+        raise NotImplementedError('CodeGenerator.portMapper')
 
     def portFactory(self):
-        raise NotImplementedError, 'CodeGenerator.portFactory'
+        raise NotImplementedError('CodeGenerator.portFactory')
 
     def map(self, softpkg):
         # Apply template-specific mapping for component.
@@ -339,6 +375,32 @@ class CodeGenerator(Generator):
             portfactory = self.portFactory()
             ports = self.portMapper().mapPorts(softpkg, portfactory)
             component.update(ports)
+
+        for _child in softpkg.children():
+            cname=_child['name']
+            # if no wavedev file use parent generator class
+            if cname not in self.childTemplates:
+                generator=self.__module__
+                if self.__module__.endswith('generator'):
+                    generator=generator.replace('.generator','')
+                self.childTemplates.update( { cname : { 'generator' : importTemplate(generator) }} )
+            self.childTemplates[cname].update({'scd':_child['scd'], 'prf':_child['prf']})
+
+        component['children'] = {}
+
+        component['isParent'] = False
+        component['isChild'] = False
+
+        for _child_key in self.childTemplates:
+            component['isParent'] = True
+            _childspd = SoftPkg(None, name=_child_key, prfFile=self.childTemplates[_child_key]['prf'], scdFile=self.childTemplates[_child_key]['scd'])
+            childcomponent = compmapper.mapComponent(_childspd)
+            component['children'][_child_key] = childcomponent
+            childprops = propmapper.mapProperties(_childspd)
+            component['children'][_child_key].update(childprops)
+            childports = self.portMapper().mapPorts(_childspd, portfactory)
+            component['children'][_child_key].update(childports)
+            component['children'][_child_key]['isChild'] = True
 
         return component
 

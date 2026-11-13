@@ -20,7 +20,7 @@
 
 from redhawk.codegen.lang import python
 
-from generator import BuiltinPythonPort
+from .generator import BuiltinPythonPort
 
 class PropertyEventPortGenerator(BuiltinPythonPort):
     REPID = 'IDL:omg.org/CosEventChannelAdmin/EventChannel:1.0'

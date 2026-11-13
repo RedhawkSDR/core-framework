@@ -55,7 +55,7 @@ class DeviceRequires(scatest.CorbaTestCase):
         try:
             sadpath = '/waveforms/'+ appdir + '/'+appName+'/'+appName+'.sad.xml'
             self._domMgr.installApplication(sadpath)
-        except Exception, e:
+        except Exception as e:
             return app
 
         appFact=None

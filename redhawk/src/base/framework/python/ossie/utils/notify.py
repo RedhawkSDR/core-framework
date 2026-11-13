@@ -25,11 +25,12 @@ import sys
 def _notification_signature(func):
     # To provide meaningful documentation of the signature of a
     # notification, inspect the wrapped function to get its arguments.
-    args, varargs, varkw, defaults = inspect.getargspec(func)
-    if len(args) > 0 and args[0] == 'self':
-        # Discard "self" argument, if it exists.
-        args = args[1:]
-    return func.__name__+inspect.formatargspec(args, varargs, varkw, defaults)
+    #args, varargs, varkw, defaults = inspect.getargspec(func)
+    #if len(args) > 0 and args[0] == 'self':
+    # Discard "self" argument, if it exists.
+    #   args = args[1:]
+    #return func.__name__+inspect.formatargspec(args, varargs, varkw, defaults)
+    return func.__name__+str(inspect.signature(func))
 
 class notify_callback(object):
     """
@@ -46,7 +47,7 @@ class notify_callback(object):
             try:
                 match = self.nc_match(*args, **kwargs)
             except:
-                print >>sys.stderr, 'Exception in match function for notification %s:' % (repr(self.nc_func),)
+                print('Exception in match function for notification %s:' % (repr(self.nc_func),), file=sys.stderr)
                 traceback.print_exception(*sys.exc_info())
 
                 # Treat an exception in the function as a negative response
@@ -94,7 +95,7 @@ class notification_func(object):
                 # the case as long as the proper API is used--show the actual
                 # function
                 target = getattr(listener, 'nc_func', listener)
-                print >>sys.stderr, 'Exception in notification %s:' % (repr(target),)
+                print('Exception in notification %s:' % (repr(target),), file=sys.stderr)
                 traceback.print_exception(*sys.exc_info())
 
 class notification_method(notification_func):
@@ -113,22 +114,21 @@ class bound_notification(object):
     """
     A notification method associated with an object instance.
     """
-    def __init__(self, func, obj, owner):
+    def __init__(self, func, obj, owner=None):
         for attr in ('__name__', '__doc__', '__module__'):
             setattr(self, attr, getattr(func, attr))
-        self.im_self = obj
-        self.im_class = owner
-        self.im_func = func
+        self.__self__ = obj
+        self.__func__ = func
 
     def __call__(self, *args, **kwargs):
         """
         Executes the notification function and notifies any listeners.
         """
-        func = notification_method(self.im_func, self.listeners)
-        return func(self.im_self, *args, **kwargs)
+        func = notification_method(self.__func__, self.listeners)
+        return func(self.__self__, *args, **kwargs)
 
     def __getattr__(self, name):
-        return getattr(self.im_func, name)
+        return getattr(self.__func__, name)
 
     @property
     def listeners(self):
@@ -137,9 +137,9 @@ class bound_notification(object):
         # Since lists are passed by reference, this allows modifications to the
         # returned list without needing a reference to the owning object.
         attrname = '__' + self.__name__ + '_listeners'
-        if not hasattr(self.im_self, attrname):
-            setattr(self.im_self, attrname, [])
-        return getattr(self.im_self, attrname)
+        if not hasattr(self.__self__, attrname):
+            setattr(self.__self__, attrname, [])
+        return getattr(self.__self__, attrname)
 
     def addListener(self, callback, match=None):
         """
@@ -162,15 +162,14 @@ class unbound_notification(object):
     def __init__(self, func, owner):
         for attr in ('__name__', '__module__'):
             setattr(self, attr, getattr(func, attr))
-        self.im_func = func
-        self.im_self = None
-        self.im_class = owner
-        self.__doc__ = "Notification '%s'." % (_notification_signature(self.im_func),)
-        if self.im_func.__doc__:
-            self.__doc__ += '\n' + self.im_func.__doc__
+        self.__func__ = func
+        self.__self__ = None
+        self.__doc__ = "Notification '%s'." % (_notification_signature(self.__func__),)
+        if self.__func__.__doc__:
+            self.__doc__ += '\n' + self.__func__.__doc__
 
     def __call__(self, obj, *args, **kwargs):
-        func = bound_notification(self.im_func, obj, self.im_class)
+        func = bound_notification(self.__func__, obj )
         return func(*args, **kwargs)
 
     def __get__(self, obj, owner):
@@ -230,7 +229,7 @@ class notification(object):
         # help() treat notifications as data descriptors instead of methods.
         # For standalone functions, this means that help() will show the
         # available methods rather than the function documentation.
-        raise AttributeError, 'notification cannot be set'
+        raise AttributeError('notification cannot be set')
 
     def __call__(self, *args, **kwargs):
         # This notification is being used as a free-standing function; get the

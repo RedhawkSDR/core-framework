@@ -65,11 +65,11 @@ public:
     MessageSenderCpp (const char* uuid, const char* label);
     ~MessageSenderCpp (void);
  
-    CORBA::Object_ptr getPort (const char*) throw (CF::PortSupplier::UnknownPort, CORBA::SystemException);
+    CORBA::Object_ptr getPort (const char*);
  
-    void releaseObject (void) throw (CORBA::SystemException, CF::LifeCycle::ReleaseError);
+    void releaseObject (void);
 
-    void start() throw (CF::Resource::StartError);
+    void start();
 
 private:
     extendedMessageSupplier* message_out;

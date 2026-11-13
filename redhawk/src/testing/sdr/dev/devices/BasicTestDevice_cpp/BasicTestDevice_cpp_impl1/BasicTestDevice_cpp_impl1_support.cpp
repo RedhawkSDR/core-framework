@@ -37,7 +37,7 @@
 *******************************************************************************************/
 
 
-void BasicTestDevice_cpp_impl1_i::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void BasicTestDevice_cpp_impl1_i::releaseObject()
 {
     while ((*this->devices()).length() > 0) {
         CF::Device_ptr dev = (*this->devices())[0];

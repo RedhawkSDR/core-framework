@@ -109,13 +109,13 @@ class ProgrammableDevice_base : public ExecutableDevice_impl, public virtual POA
         ProgrammableDevice_base(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Properties capacities);
         ProgrammableDevice_base(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Properties capacities, char *compDev);
 
-        void start() throw (CF::Resource::StartError, CORBA::SystemException);
+        void start();
 
-        void stop() throw (CF::Resource::StopError, CORBA::SystemException);
+        void stop();
 
-        void releaseObject() throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
+        void releaseObject();
 
-        void initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException);
+        void initialize();
 
         void loadProperties();
 

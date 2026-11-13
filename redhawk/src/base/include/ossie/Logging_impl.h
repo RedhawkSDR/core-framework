@@ -19,6 +19,9 @@
  */
 #ifndef LOGGING_IMPL_H
 #define LOGGING_IMPL_H
+
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
+
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/ref.hpp>
@@ -57,10 +60,10 @@ class Logging_impl
   void         log_level( const CF::LogLevel newLevel );
 
   // override this method to accept logging configuration information as a string
-  void         setLogLevel( const char *logger_id, const CF::LogLevel newLevel ) throw (CF::UnknownIdentifier);
+  void         setLogLevel( const char *logger_id, const CF::LogLevel newLevel );
 
   // override this method to accept logging configuration information as a string
-  CF::LogLevel getLogLevel( const char *logger_id ) throw (CF::UnknownIdentifier);
+  CF::LogLevel getLogLevel( const char *logger_id );
 
   // retrieves the list of named loggers associated with the logger
   CF::StringSequence* getNamedLoggers();

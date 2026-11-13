@@ -22,12 +22,64 @@
 #define APPLICATIONFACTORY_H
 
 #include <string>
+#include <cctype>
+#include <algorithm>
 
 #include <ossie/CF/cf.h>
 #include <ossie/SoftwareAssembly.h>
 #include <ossie/debug.h>
 
 class DomainManager_impl;
+
+class ContainerRegistrar : public virtual POA_CF::ApplicationRegistrar {
+
+public:
+    ContainerRegistrar(boost::condition_variable *_regCondition, boost::condition_variable *_regCondition_post, CF::Application_ptr *app, CF::DomainManager_ptr *domMgr) {
+        _rC = _regCondition;
+        _rC_post = _regCondition_post;
+        _app = app;
+        _domMgr = domMgr;
+    };
+    void registerComponent(const char * Name, CF::Resource_ptr obj) {
+        CF::Application_ptr tmp_app = CF::Application::_narrow(obj);
+        *_app = tmp_app;
+        if (_rC) {
+            _rC->notify_all();
+        } else {
+            if (_rC_post) {
+                _rC_post->notify_all();
+            }
+        }
+    };
+    void resetCondition() {
+        _rC = NULL;
+    }
+    void resetCondition_post() {
+        _rC_post = NULL;
+    }
+
+    CF::Application_ptr app() {return CF::Application::_duplicate(*_app);};
+    CF::DomainManager_ptr domMgr() {return CF::DomainManager::_duplicate(*_domMgr);};
+
+    void bind(const CosNaming::Name &Name, CORBA::Object_ptr obj) {};
+    void unbind(const CosNaming::Name &Name) {};
+    void rebind(const CosNaming::Name &Name, CORBA::Object_ptr obj) {};
+
+    void bind_context(const CosNaming::Name &Name, CosNaming::NamingContext_ptr obj) {};
+    void rebind_context(const CosNaming::Name &Name, CosNaming::NamingContext_ptr obj) {};
+    CORBA::Object_ptr resolve(const CosNaming::Name &Name) {return CORBA::Object::_nil();};
+    CosNaming::NamingContext_ptr new_context() {return CosNaming::NamingContext::_nil();};
+    CosNaming::NamingContext_ptr bind_new_context(const CosNaming::Name &Name) {return CosNaming::NamingContext::_nil();};
+    void destroy() {};
+    void list(CORBA::ULong length, CosNaming::BindingList_out out, CosNaming::BindingIterator_out iterator) {};
+
+protected:
+    boost::condition_variable *_rC;
+    boost::condition_variable *_rC_post;
+    CF::Application_ptr *_app;
+    CF::DomainManager_ptr *_domMgr;
+
+};
 
 class ApplicationFactory_impl: public virtual POA_CF::ApplicationFactory
 {
@@ -66,12 +118,7 @@ public:
 
     CF::Application_ptr create (const char* name,
                                 const CF::Properties& initConfiguration,
-                                const CF::DeviceAssignmentSequence& deviceAssignments)
-    throw (CF::ApplicationFactory::InvalidInitConfiguration,
-           CF::ApplicationFactory::CreateApplicationRequestError,
-           CF::ApplicationFactory::CreateApplicationInsufficientCapacityError,
-           CF::ApplicationFactory::CreateApplicationError,
-           CORBA::SystemException);
+                                const CF::DeviceAssignmentSequence& deviceAssignments);
 
     rh_logger::LoggerPtr returnLogger() const {
         return _appFactoryLog;
@@ -83,15 +130,15 @@ public:
     };
 
     // getters for attributes
-    char* name () throw (CORBA::SystemException) {
+    char* name () {
         return CORBA::string_dup(_name.c_str());
     }
 
-    char* identifier () throw (CORBA::SystemException) {
+    char* identifier () {
         return CORBA::string_dup(_identifier.c_str());
     }
 
-    char* softwareProfile () throw (CORBA::SystemException) {
+    char* softwareProfile () {
         return CORBA::string_dup(_softwareProfile.c_str());
     }
 

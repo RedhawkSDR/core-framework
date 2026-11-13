@@ -81,7 +81,7 @@ class DeviceManagerStub(CF__POA.DeviceManager):
             return device._get_identifer()
         except:
             pass
-        for identifier, knownDevice in self.__devices.iteritems():
+        for identifier, knownDevice in self.__devices.items():
             if knownDevice._is_equivalent(device):
                 return identifier
         return None

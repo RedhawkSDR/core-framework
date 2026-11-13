@@ -18,17 +18,17 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-AC_INIT(burstio, 2.2.10)
+AC_INIT(burstio, 4.0.4)
 AC_CONFIG_SRCDIR([src/cpp/Makefile.am])
 AC_CONFIG_MACRO_DIR([m4])
 
-AM_INIT_AUTOMAKE([foreign])
+AM_INIT_AUTOMAKE([subdir-objects foreign])
 AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
 
-AM_PATH_PYTHON([2.4])
+AM_PATH_PYTHON([3.9])
 
 OSSIE_CHECK_OSSIE
 OSSIE_OSSIEHOME_AS_PREFIX
@@ -42,10 +42,10 @@ fi
 AC_LANG_PUSH([C++])
 PKG_CHECK_MODULES([OMNIORB], [omniORB4 >= 4.1.0])
 
-PKG_CHECK_MODULES(OSSIE, ossie >= 2.2.10,,exit)
+PKG_CHECK_MODULES(OSSIE, ossie >= 4.0.4,,exit)
 RH_PKG_IDLDIR([OSSIE], [ossie])
 
-PKG_CHECK_MODULES([BULKIO], [bulkio >= 2.2])
+PKG_CHECK_MODULES([BULKIO], [bulkio >= 4.0])
 RH_PKG_IDLDIR([BULKIO], [bulkioInterfaces])
 
 AX_BOOST_BASE([1.41])
@@ -60,9 +60,10 @@ AC_ARG_ENABLE([java], AS_HELP_STRING([--disable-java], [Disable java support]))
 HAVE_JAVASUPPORT=no
 if test "x$enable_java" != "xno"; then
   # configure was run with java enabled
-  java_source_version=1.8
+  java_source_version=${JAVA_VERSION:-11}
 
   RH_JAVA_HOME
+  RH_JACORB_HOME
   RH_PROG_JAVAC([$java_source_version])
   RH_PROG_JAR
   RH_JARFILE_RULES
@@ -120,7 +121,7 @@ if test "x$enable_java" != "xno"; then
 
   if test -n "$BULKIOJNI_LIBS"; then
     HAVE_JAVASUPPORT="yes"
-    AC_SUBST([AM_JAVACFLAGS], "-source $java_source_version")
+    AC_SUBST([AM_JAVACFLAGS], "--release $java_source_version")
     AC_SUBST([JNI_LIBS], "$CFJNI_LIBS $BULKIOJNI_LIBS")
     AC_SUBST([javadir], '${prefix}/lib')
   else
@@ -135,7 +136,8 @@ AM_CONDITIONAL(HAVE_JAVASUPPORT, test $HAVE_JAVASUPPORT = yes)
 # Optionally disable unit tests
 AC_ARG_ENABLE([testing], AS_HELP_STRING([--disable-testing], [disable build of unit tests]))
 AS_IF([test "x$enable_testing" != "xno"], [
-  AM_PATH_CPPUNIT(1.12.1)
+  #AM_PATH_CPPUNIT(1.12.1)
+  PKG_CHECK_MODULES([CPPUNIT],[cppunit >= 1.15.1])
   AS_IF([test "x$HAVE_JAVASUPPORT" == "xyes"], [
     dnl Use RPM location hard-coded for now
     AC_SUBST([JUNIT_CLASSPATH], "/usr/share/java/junit4.jar")

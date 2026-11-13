@@ -83,7 +83,7 @@ class CppDeviceCapacityExceptions(scatest.CorbaTestCase):
         self.dev=sb.launch('DevC', impl="cpp")
         
         res=self.dev.allocateCapacity({'myulong': 3 } )
-        self.assertEquals(res,False)
+        self.assertEqual(res,False)
         self.dev.releaseObject()
         self.dev=None
         sb.release()
@@ -95,10 +95,10 @@ class CppDeviceCapacityExceptions(scatest.CorbaTestCase):
         from ossie.utils import redhawk
         dom=redhawk.attach(scatest.getTestDomainName())
         d=dom.devices[0]
-        self.assertNotEquals(d,None)
+        self.assertNotEqual(d,None)
         b=[ CF.DataType(id='myulong', value=CORBA.Any(CORBA.TC_ulong,3))]
         res=d.allocateCapacity(b)
-        self.assertEquals(res,False)
+        self.assertEqual(res,False)
 
 
     def test_deallocate_overage(self):
@@ -106,7 +106,7 @@ class CppDeviceCapacityExceptions(scatest.CorbaTestCase):
         self.dev=sb.launch('DevC', impl="cpp",configure={'myulong': 3 } )
 
         res=self.dev.allocateCapacity({'myulong': 3 } )
-        self.assertEquals(res,True)
+        self.assertEqual(res,True)
 
         a=[ CF.DataType(id='myulong', value=CORBA.Any(CORBA.TC_ulong,3)), CF.DataType(id='myulong', value=CORBA.Any(CORBA.TC_ulong,3))]
         self.assertRaises(CF.Device.InvalidCapacity, self.dev.deallocateCapacity, a)
@@ -122,9 +122,9 @@ class CppDeviceCapacityExceptions(scatest.CorbaTestCase):
         from ossie.utils import redhawk
         dom=redhawk.attach(scatest.getTestDomainName())
         d=dom.devices[0]
-        self.assertNotEquals(d,None)
+        self.assertNotEqual(d,None)
         res=d.allocateCapacity({'myulong': 3 } )
-        self.assertEquals(res,True)
+        self.assertEqual(res,True)
 
         a=[ CF.DataType(id='myulong', value=CORBA.Any(CORBA.TC_ulong,3)), CF.DataType(id='myulong', value=CORBA.Any(CORBA.TC_ulong,3))]
         self.assertRaises(CF.Device.InvalidCapacity,d.deallocateCapacity, a)
@@ -167,7 +167,7 @@ class JavaDeviceCapacityExceptions(scatest.CorbaTestCase):
         from ossie.utils import redhawk
         dom=redhawk.attach(scatest.getTestDomainName())
         dev=dom.devices[0]
-        self.assertNotEquals(dev,None)
+        self.assertNotEqual(dev,None)
         b=[ CF.DataType(id='myulong', value=CORBA.Any(CORBA.TC_ulong,3))]
         self.assertRaises(CF.Device.InvalidCapacity, dev.allocateCapacity, b)
 
@@ -176,7 +176,7 @@ class JavaDeviceCapacityExceptions(scatest.CorbaTestCase):
         self.dev=sb.launch('DevC', impl="java",configure={'myulong': 3 } )
 
         res=self.dev.allocateCapacity({'myulong': 3 } )
-        self.assertEquals(res,True)
+        self.assertEqual(res,True)
 
         a=[ CF.DataType(id='myulong', value=CORBA.Any(CORBA.TC_ulong,3)), CF.DataType(id='myulong', value=CORBA.Any(CORBA.TC_ulong,3))]
         self.assertRaises(CF.Device.InvalidCapacity, self.dev.deallocateCapacity, a)
@@ -192,9 +192,9 @@ class JavaDeviceCapacityExceptions(scatest.CorbaTestCase):
         from ossie.utils import redhawk
         dom=redhawk.attach(scatest.getTestDomainName())
         d=dom.devices[0]
-        self.assertNotEquals(d,None)
+        self.assertNotEqual(d,None)
         res=d.allocateCapacity({'myulong': 3 } )
-        self.assertEquals(res,True)
+        self.assertEqual(res,True)
 
         a=[ CF.DataType(id='myulong', value=CORBA.Any(CORBA.TC_ulong,3)), CF.DataType(id='myulong', value=CORBA.Any(CORBA.TC_ulong,3))]
         self.assertRaises(CF.Device.InvalidCapacity,d.deallocateCapacity, a)

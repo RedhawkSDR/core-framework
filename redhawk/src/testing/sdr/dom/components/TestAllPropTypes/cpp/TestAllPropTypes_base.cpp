@@ -59,11 +59,11 @@ void TestAllPropTypes_base::construct()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void TestAllPropTypes_base::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException)
+void TestAllPropTypes_base::initialize()
 {
 }
 
-void TestAllPropTypes_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void TestAllPropTypes_base::start()
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
     if (serviceThread == 0) {
@@ -76,7 +76,7 @@ void TestAllPropTypes_base::start() throw (CORBA::SystemException, CF::Resource:
     }
 }
 
-void TestAllPropTypes_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void TestAllPropTypes_base::stop()
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
     // release the child thread (if it exists)
@@ -93,7 +93,7 @@ void TestAllPropTypes_base::stop() throw (CORBA::SystemException, CF::Resource::
 }
 
 
-void TestAllPropTypes_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void TestAllPropTypes_base::releaseObject()
 {
     // This function clears the component running condition so main shuts down everything
     try {

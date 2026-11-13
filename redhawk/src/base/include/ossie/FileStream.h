@@ -32,7 +32,7 @@ class File_buffer : public std::streambuf
     public:
         explicit File_buffer(CF::File_ptr fptr, std::size_t buff_sz = 32768, std::size_t put_back = 8);
 
-        virtual void close() throw(std::ios_base::failure);
+        virtual void close();
 
     private:
         // overrides base class underflow()
@@ -56,7 +56,7 @@ class File_stream : public std::istream
          * Opening a stream using this constructor will ensure that the SCA file get's closed automatically
          * when the file stream is destroyed.
          */
-        File_stream(CF::FileSystem_ptr fsysptr, const char* path) throw(std::ios_base::failure);
+        File_stream(CF::FileSystem_ptr fsysptr, const char* path);
 
         /*
          * Open a stream given a SCA File.
@@ -67,7 +67,7 @@ class File_stream : public std::istream
 
         virtual ~File_stream();
 
-        virtual void close() throw(std::ios_base::failure);
+        virtual void close();
         
     private:
         bool needsClose;

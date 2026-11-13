@@ -21,7 +21,7 @@
 namespace urn:mil:jpeojtrs:sca:dmd {
     include "memory";
     include "../include/ossie/DomainManagerConfiguration.h";
-    domainmanagerconfiguration "::std::auto_ptr<ossie::DomainManagerConfiguration::DMD>";
+    domainmanagerconfiguration "::std::unique_ptr<ossie::DomainManagerConfiguration::DMD>";
     domainmanagersoftpkg "::std::string";
     localfile "::std::string";
 }

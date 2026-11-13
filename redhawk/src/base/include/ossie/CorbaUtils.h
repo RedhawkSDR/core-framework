@@ -369,7 +369,7 @@ namespace ossie {
             POACreator() {}
             virtual ~POACreator() { }
 
-            virtual CORBA::Boolean unknown_adapter(PortableServer::POA_ptr parent, const char* name) throw(CORBA::SystemException);
+            virtual CORBA::Boolean unknown_adapter(PortableServer::POA_ptr parent, const char* name);
         private:
             // copy not supported
             POACreator(const POACreator&);
@@ -415,7 +415,7 @@ namespace ossie {
         template <class T, class SeqT, class ElemT>
         inline void vector_insert (CORBA::Any& _a, const std::vector<T>& _s)
         {
-            SeqT seq(_s.size(), _s.size(), (ElemT*)&_s[0], 0);
+            SeqT seq(_s.size(), _s.size(), (ElemT*) _s.data(), 0);
             _a <<= seq;
         }
 

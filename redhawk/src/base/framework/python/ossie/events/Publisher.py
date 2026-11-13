@@ -20,12 +20,13 @@
 
 import sys
 import time
-import Queue
+import queue
 import copy
 import logging
 import traceback
 import threading
 
+import omniORB
 from omniORB import any, URI, CORBA
 import CosEventComm__POA
 import CosEventChannelAdmin, CosEventChannelAdmin__POA
@@ -114,41 +115,24 @@ class Publisher:
     def __del__(self):
         self.logger.debug("Publisher  DTOR START")
         if self.disconnectReceiver and self.disconnectReceiver.get_disconnect() == False:
-            self.logger.debug("Publisher::DTOR  DISCONNECT")
-            self.disconnect()
-        
+            self.terminate()
         self.logger.debug("Publisher::DTOR  DEACTIVATE")
-        self.disconnectReceiver=None
-        self.proxy=None
-        self.channel=None
-        self.logger.debug("Publisher  DTOR END")
-
 
     def terminate(self):
+        # check if orb has shutdown
         self.logger.debug("Publisher::terminate START")
-        if self.disconnectReceiver:
+        try:
             self.logger.debug("Publisher::terminate  DISCONNECT")
             self.disconnect()
+        except:
+            pass
         
         self.logger.debug("Publisher::terminate  DEACTIVATE")
         self.disconnectReceiver=None
         self.proxy=None
+        self.supplier = None
         self.channel=None
         self.logger.debug("Publisher::terminate END")
-
-        if self.proxy:
-            for x in range(10):
-                try:
-                    self.proxy.disconnect_push_consumer()
-                    break
-                except CORBA.COMM_FAILURE:
-                    pass
-                time.sleep(.01)
-
-        self.proxy = None
-        self.supplier = None
-        self.channel = None
-
 
     def push(self,data ):
         retval=0
@@ -168,7 +152,8 @@ class Publisher:
 
     def disconnect(self, retries=10, retry_wait=.01):
         if self.channel != None:
-            self.disconnectEvtChan(retries, retry_wait)
+            if self.disconnectReceiver and self.disconnectReceiver.get_disconnect() == False:
+                self.disconnectEvtChan(retries, retry_wait)
         else:
             self.disconnectDomMgr()
 
@@ -177,7 +162,7 @@ class Publisher:
 
     def disconnectEvtChan(self, retries=10, retry_wait=.01):
         retval=0
-        if self.channel == None:
+        if self.channel == None or  omniORB.orb is None :
             return retval
 
         if self.proxy:

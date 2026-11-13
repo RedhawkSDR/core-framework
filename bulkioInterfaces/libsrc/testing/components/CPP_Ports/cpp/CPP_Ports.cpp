@@ -46,7 +46,7 @@ CPP_Ports_i::~CPP_Ports_i()
 {
 }
 
-void CPP_Ports_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException)
+void CPP_Ports_i::initialize() 
 {
   CPP_Ports_base::initialize();
   dataCharIn->setNewStreamListener(this, &CPP_Ports_i::newStreamCallback);

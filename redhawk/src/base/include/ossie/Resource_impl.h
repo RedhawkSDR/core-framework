@@ -72,13 +72,13 @@ public:
     void setParentId( const std::string &parentid ) { _parent_id = parentid; };
 
 
-    void start () throw (CF::Resource::StartError, CORBA::SystemException);
-    void stop () throw (CF::Resource::StopError, CORBA::SystemException);
-    void initialize () throw (CF::LifeCycle::InitializeError, CORBA::SystemException);
-    void releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError);
-    char* identifier () throw (CORBA::SystemException);
-    CORBA::Boolean started() throw (CORBA::SystemException);
-    char* softwareProfile () throw (CORBA::SystemException);
+    void start ();
+    void stop ();
+    void initialize ();
+    void releaseObject();
+    char* identifier ();
+    CORBA::Boolean started();
+    char* softwareProfile ();
     CF::StringSequence* getNamedLoggers();
     
     virtual void run ();

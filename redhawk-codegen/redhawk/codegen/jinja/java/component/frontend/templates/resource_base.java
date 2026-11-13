@@ -25,6 +25,7 @@ import frontend.*;
 /*{% endif %}*/
 /*{% endblock %}*/
 /*{% block baseadditionalimports %}*/
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
@@ -128,7 +129,10 @@ import CF.DevicePackage.InvalidCapacity;
         for (int i=0; i<this.${port_out.javaname}.connections().length; i++) {
             String connection_id = tmp[i].connectionId;
             if (connection_id.equals(listen_alloc_id)) {
-                this.${port_out.javaname}.disconnectPort(connection_id);
+                try {
+                    this.${port_out.javaname}.disconnectPort(connection_id);
+                } catch( final Throwable t ) {
+                }
             }
         }
 /*{%   endfor %}*/
@@ -266,6 +270,10 @@ import CF.DevicePackage.InvalidCapacity;
         } catch (InstantiationException e) {
             e.printStackTrace();
         } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
             e.printStackTrace();
         }
     }

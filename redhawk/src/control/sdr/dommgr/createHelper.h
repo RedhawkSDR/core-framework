@@ -70,9 +70,25 @@ public:
                                 const CF::Properties& initConfiguration,
                                 const DeviceAssignmentMap& deviceAssignments);
 
+    typedef std::vector<redhawk::ComponentDeployment*> DeploymentList;
+
+    CF::Application_ptr launchContainerWaveform (const char* name,
+                                const CF::Properties& initConfiguration,
+                                const std::string& _waveform_context_name);
+    bool deletePod(std::string &token, std::string &pod_namespace, std::string &no_under_app_name);
+    bool postNamespacedYaml(std::string &token, std::string &pod_namespace, std::string &payload);
+    //static size_t process_return(void *buffer, size_t size, size_t nmemb, void *stream);
+    std::string queryPodState(std::string &token, std::string &pod_namespace, std::string &no_under_app_name);
+    static void writer(void *buffer, size_t size, size_t nmemb, void* f);
+    size_t setBuffer(char *buffer, size_t size, size_t nmemb);
+
 private:
     // Used for storing the current state of the OE & create process
     const ApplicationFactory_impl& _appFact;
+
+    boost::mutex _ContainerDeployMutex;
+    boost::mutex _ContainerDeployMutex_post;
+    std::stringstream json_stream;
 
     const rh_logger::LoggerPtr _createHelperLog;
 
@@ -98,7 +114,6 @@ private:
 
     redhawk::ProfileCache _profileCache;
 
-    typedef std::vector<redhawk::ComponentDeployment*> DeploymentList;
     typedef std::vector<redhawk::ContainerDeployment*> ContainerList;
     typedef std::vector<std::string> ProcessorList;
     typedef std::vector<ossie::SPD::NameVersionPair> OSList;

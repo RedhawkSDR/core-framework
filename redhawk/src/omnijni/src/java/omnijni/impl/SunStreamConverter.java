@@ -21,18 +21,19 @@
 package omnijni.impl;
 
 import org.omg.CORBA.portable.OutputStream;
+import org.jacorb.orb.CDROutputStream;
 
 public class SunStreamConverter extends omnijni.StreamConverter
 {
     public static boolean test ()
     {
         OutputStream out = omnijni.ORB.create_output_stream();
-        return (out instanceof com.sun.corba.se.impl.encoding.CDROutputStream);
+        return (out instanceof org.jacorb.orb.CDROutputStream);
     }
 
     public byte[] toBytes (final OutputStream out)
     {
-        return ((com.sun.corba.se.impl.encoding.CDROutputStream)out).toByteArray();
+        return ((org.jacorb.orb.CDROutputStream)out).getBufferCopy();
     }
 }
 

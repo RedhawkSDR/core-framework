@@ -20,7 +20,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 -->
 
 <!DOCTYPE softwareassembly PUBLIC '-//JTRS//DTD SCA V2.2.2 SAD//EN' 'softwareassembly.dtd'>
-<softwareassembly id="DCE:b01643cc-4b76-4fe3-9915-d748386f3940" name="MalformedComponentFile" version="1.0">
+<softwareassembly id="DCE:b01643cc-4b76-4fe3-9915-d748386f3940" name="MalformedComponentFile">
     <componentfiles>
         <componentfile id="bad_CommandWrapper_spd" type="SPD">
             <localfile name="/components/CommandWrapper/CommandWrapper.spd.xml"/>

@@ -23,8 +23,8 @@
 #include "dcd-parser.h"
 #include "dcd-pimpl.h"
 
-std::auto_ptr<ossie::DeviceManagerConfiguration::DCD>
-ossie::internalparser::parseDCD(std::istream& input) throw (ossie::parser_error)
+std::unique_ptr<ossie::DeviceManagerConfiguration::DCD>
+ossie::internalparser::parseDCD(std::istream& input)
 {
     try {
         // Instantiate individual parsers.

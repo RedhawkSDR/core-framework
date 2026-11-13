@@ -27,7 +27,7 @@ idl_srcdir = $(top_srcdir)/src/idl
 ###############################################################################
 java_JARFILES = BURSTIOInterfaces.jar
 
-IDLJFLAGS = -i $(idl_srcdir) -i $(OSSIE_IDLDIR) -i $(BULKIO_IDLDIR)
+IDLJFLAGS = -I$(idl_srcdir) -I$(OSSIE_IDLDIR) -I$(BULKIO_IDLDIR)
 IDLJNIFLAGS = -I $(idl_srcdir) -I $(OSSIE_IDLDIR) -I $(BULKIO_IDLDIR)
 
 IDLJ_BUILDDIR = src

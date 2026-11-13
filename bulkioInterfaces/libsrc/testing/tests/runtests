@@ -35,11 +35,11 @@ fi
 if [ $# -gt 0 ]
 then
     # run an associated test script
-    python  $*
+    python3  $*
     exit
 else
     for pt in test_*.py ; do
-        python $pt
+        python3 $pt
     done
 fi
 

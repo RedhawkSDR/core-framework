@@ -12,11 +12,11 @@ class time_cp_now_base : public Component, protected ThreadedComponent
         time_cp_now_base(const char *uuid, const char *label);
         ~time_cp_now_base();
 
-        void start() throw (CF::Resource::StartError, CORBA::SystemException);
+        void start();
 
-        void stop() throw (CF::Resource::StopError, CORBA::SystemException);
+        void stop();
 
-        void releaseObject() throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
+        void releaseObject();
 
         void loadProperties();
 

@@ -46,19 +46,19 @@ public:
 
     ~File_impl ();
 
-    char* fileName () throw (CORBA::SystemException);
-    void read (CF::OctetSequence_out data, CORBA::ULong length) throw (CF::File::IOException, CORBA::SystemException);
-    void write (const CF::OctetSequence& data) throw (CF::File::IOException, CORBA::SystemException);
-    void close () throw (CF::FileException, CORBA::SystemException);
-    void setFilePointer (CORBA::ULong _filePointer) throw (CF::FileException, CF::File::InvalidFilePointer, CORBA::SystemException);
-    CORBA::ULong filePointer () throw (CORBA::SystemException);
-    CORBA::ULong sizeOf () throw (CF::FileException, CORBA::SystemException);
+    char* fileName ();
+    void read (CF::OctetSequence_out data, CORBA::ULong length);
+    void write (const CF::OctetSequence& data);
+    void close ();
+    void setFilePointer (CORBA::ULong _filePointer);
+    CORBA::ULong filePointer ();
+    CORBA::ULong sizeOf ();
     void setIOR( const std::string &ior);
 
 private:
     File_impl (const char* fileName, FileSystem_impl *ptrFs, bool readOnly, bool create);
 
-    CORBA::ULong getSize () throw (CF::FileException);
+    CORBA::ULong getSize ();
 
     std::string fName;
     std::string fullFileName;

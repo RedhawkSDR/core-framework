@@ -32,13 +32,13 @@ src_base::~src_base()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void src_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void src_base::start() 
 {
     Component::start();
     ThreadedComponent::startThread();
 }
 
-void src_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void src_base::stop() 
 {
     Component::stop();
     if (!ThreadedComponent::stopThread()) {
@@ -46,7 +46,7 @@ void src_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
     }
 }
 
-void src_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void src_base::releaseObject() 
 {
     // This function clears the component running condition so main shuts down everything
     try {

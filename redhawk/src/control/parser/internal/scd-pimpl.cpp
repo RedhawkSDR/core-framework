@@ -69,10 +69,10 @@ propertyfile ()
 {
 }
 
-std::auto_ptr<ossie::ComponentDescriptor::SCD> softwarecomponent_pimpl::
+std::unique_ptr<ossie::ComponentDescriptor::SCD> softwarecomponent_pimpl::
 post_softwarecomponent ()
 {
-  return _data;
+  return std::move(_data);
 }
 
 // propertyFile_pimpl

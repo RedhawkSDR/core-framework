@@ -330,7 +330,6 @@ namespace  redhawk {
         from properly formatted string support by numa library parse methods
      */
     CpuList get_cpu_list( const std::string &list_type,  const std::string &context )
-      throw (AffinityFailed)
     {
       CpuList cpu_list;
       if ( is_disabled() ) {
@@ -462,7 +461,6 @@ namespace  redhawk {
 
 
     AffinityDirectives convert_properties(const CF::Properties& options ) 
-      throw (AffinityFailed)
     {
       AffinityDirectives spec;
 
@@ -540,7 +538,6 @@ namespace  redhawk {
 
      */
     int set_affinity( const CF::Properties& options, const pid_t pid, const CpuList &blacklist ) 
-      throw (AffinityFailed)
     {
       AffinityDirectives spec;
 
@@ -554,7 +551,6 @@ namespace  redhawk {
     }
 
     int set_affinity( const AffinityDirectives &spec, const pid_t pid, const CpuList &blacklist) 
-      throw (AffinityFailed)
     {
 
       if ( is_disabled() ) {

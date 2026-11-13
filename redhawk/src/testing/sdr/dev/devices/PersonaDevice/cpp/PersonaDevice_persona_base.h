@@ -35,10 +35,8 @@ class PersonaDevice_persona_base : public PersonaDevice_base
         virtual void construct();
         virtual void setParentDevice(Device_impl* parentDevice) { _parentDevice = parentDevice; };
         virtual Device_impl* getParentDevice() { return _parentDevice; };
-        virtual void adminState(CF::Device::AdminType adminState) 
-            throw (CORBA::SystemException);
-        virtual void releaseObject() 
-            throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
+        virtual void adminState(CF::Device::AdminType adminState);
+        virtual void releaseObject();
 
     protected:
 

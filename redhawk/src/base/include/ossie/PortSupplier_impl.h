@@ -45,7 +45,7 @@ public:
     PortSupplier_impl ();
 
     // Return an object reference for the named port.
-    CORBA::Object* getPort (const char*) throw (CF::PortSupplier::UnknownPort, CORBA::SystemException);
+    CORBA::Object* getPort (const char*);
 
     void setLogger(rh_logger::LoggerPtr logptr);
 

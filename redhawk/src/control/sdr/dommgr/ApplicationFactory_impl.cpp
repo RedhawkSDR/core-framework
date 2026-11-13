@@ -29,6 +29,8 @@
 #include <set>
 #include <list>
 #include <unistd.h>
+#include <curl/curl.h>
+#include "json/json.h"
 
 #include <boost/foreach.hpp>
 #include <boost/filesystem/path.hpp>
@@ -237,6 +239,7 @@ ApplicationFactory_impl::ApplicationFactory_impl (const std::string& softwarePro
 
 ApplicationFactory_impl::~ApplicationFactory_impl ()
 {
+
   try {
     //
     // remove the naming context assocated with the factory that generates new
@@ -866,6 +869,503 @@ void createHelper::setUpExternalProperties(redhawk::ApplicationDeployment& appDe
     }
 }
 
+CF::Application_ptr createHelper::launchContainerWaveform (const char* name,
+                            const CF::Properties& initConfiguration,
+                            const std::string& _waveform_context_name)
+{
+    redhawk::ApplicationDeployment app_deployment(_appFact._sadParser, _waveform_context_name, initConfiguration);
+    bool has_loadCapacity = false;
+    bool has_memCapacity = false;
+    float total_loadCapacity = 0;
+    float total_memCapacity = 0;
+
+    redhawk::PropertyMap allocationProperties;
+    BOOST_FOREACH(const ComponentPlacement& placement, _appFact._sadParser.getComponentPlacements()) {
+        const SoftPkg* softpkg = _profileCache.loadProfile(placement.filename);
+        BOOST_FOREACH(const ComponentInstantiation& instantiation, placement.getInstantiations()) {
+            ossie::SPD::Implementations implementations = softpkg->getImplementations();
+            ossie::SPD::Implementation implementation = implementations[0];
+            std::vector<PropertyRef> dependencies = implementation.dependencies;
+            redhawk::ComponentDeployment* deployment = app_deployment.createComponentDeployment(softpkg, &instantiation);
+            std::vector<PropertyRef> prop_refs;
+            for (unsigned int i=0; i<dependencies.size();i++) {
+                try {
+                    std::string prop_id(dependencies[i].property->getID());
+                    if (prop_id == "DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056") {
+                        prop_refs.push_back(dependencies[i]);
+                    } else if (prop_id == "DCE:8dcef419-b440-4bcf-b893-cab79b6024fb") {
+                        prop_refs.push_back(dependencies[i]);
+                    }
+                } catch (...) {
+                }
+            }
+            this->_castRequestProperties(allocationProperties, prop_refs);
+            redhawk::PropertyMap alloc_context = deployment->getAllocationContext();
+            this->_evaluateMATHinRequest(allocationProperties, alloc_context);
+            RH_DEBUG(_createHelperLog, "allocations: "<<allocationProperties.size())
+            if (allocationProperties.find("DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056") != allocationProperties.end()) {
+                RH_DEBUG(_createHelperLog, "loadCapacity: "<<allocationProperties["DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056"].toString())
+                total_loadCapacity += atof(allocationProperties["DCE:72c1c4a9-2bcf-49c5-bafd-ae2c1d567056"].toString().c_str());
+                has_loadCapacity = true;
+            }
+            if (allocationProperties.find("DCE:8dcef419-b440-4bcf-b893-cab79b6024fb") != allocationProperties.end()) {
+                RH_DEBUG(_createHelperLog, "memCapacity: "<<allocationProperties["DCE:8dcef419-b440-4bcf-b893-cab79b6024fb"].toString())
+                total_memCapacity += atof(allocationProperties["DCE:8dcef419-b440-4bcf-b893-cab79b6024fb"].toString().c_str());
+                has_memCapacity = true;
+            }
+        }
+    }
+
+    RH_DEBUG(_createHelperLog, "total loadcap: "<<total_loadCapacity)
+    RH_DEBUG(_createHelperLog, "total memcap: "<<total_memCapacity)
+    std::stringstream total_loadCapacity_stream;
+    std::stringstream total_memCapacity_stream;
+    total_loadCapacity_stream << total_loadCapacity;
+    total_memCapacity_stream << total_memCapacity;
+    std::string total_loadCapacity_str = total_loadCapacity_stream.str();
+    std::string total_memCapacity_str = total_memCapacity_stream.str();
+
+    std::string image_name = _appFact._sadParser.getVersion();
+    boost::condition_variable _registrationCondition;
+    boost::condition_variable _registrationCondition_post;
+    CF::Application_ptr tmp_app = CF::Application::_nil();
+    CF::DomainManager_ptr tmp_dmgr = _appFact._domainManager->_this();
+    ContainerRegistrar* _cr = new ContainerRegistrar(&_registrationCondition, &_registrationCondition_post, &tmp_app, &tmp_dmgr);
+    std::string registrar_ior = _appFact._domainManager->_orbCtx.orb->object_to_string(_cr->_this());
+    std::string naming_context_ior = _appFact._domainManager->_orbCtx.orb->object_to_string(_waveformContext);
+    std::string base_name(name);
+    std::string app_name(_waveform_context_name);
+    std::string no_under_upper_app_name = app_name;
+    boost::replace_all(no_under_upper_app_name, "_", "-");
+    boost::replace_all(no_under_upper_app_name, ".", "-");
+    boost::replace_all(no_under_upper_app_name, ":", "-");
+    std::string no_under_app_name;
+    std::transform(no_under_upper_app_name.begin(), no_under_upper_app_name.end(), std::back_inserter(no_under_app_name), ::tolower);
+
+    bool use_sriov = false;
+    bool dns_mount = false;
+    BOOST_FOREACH(const SoftwareAssembly::Option& option, _appFact._sadParser.getOptions()) {
+        if ((option.name == "SR-IOV") or (option.name == "SRIOV")) {
+            if ((option.value == "true") || (option.value == "True") || (option.value == "TRUE") || (option.value == "1")) {
+                use_sriov = true;
+            }
+        }
+        if (option.name == "DNS") {
+            if ((option.value == "true") || (option.value == "True") || (option.value == "TRUE") || (option.value == "1")) {
+                dns_mount = true;
+            }
+        }
+    }
+
+    std::string interface_name = "data0";
+    if (getenv("INTERFACE_NAME")) {
+        std::string tmp_interface_name(getenv("INTERFACE_NAME"));
+        interface_name = tmp_interface_name;
+    }
+    std::string command = "APISERVER=https://kubernetes.default.svc && SERVICEACCOUNT=/var/run/secrets/kubernetes.io/serviceaccount && ";
+    command += "NAMESPACE=$(cat ${SERVICEACCOUNT}/namespace) && ";
+    command += "TOKEN=$(cat ${SERVICEACCOUNT}/token) && ";
+    command += "CACERT=${SERVICEACCOUNT}/ca.crt && ";
+    system(command.c_str());
+
+    std::string cert_file("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt");
+    std::string token_file("/var/run/secrets/kubernetes.io/serviceaccount/token");
+    std::string namespace_file("/var/run/secrets/kubernetes.io/serviceaccount/namespace");
+    
+    std::ifstream token_stream(token_file.c_str());
+    std::stringstream buffer;
+    buffer << token_stream.rdbuf();
+    std::string token = buffer.str();
+
+    std::ifstream namespace_stream(namespace_file.c_str());
+    std::stringstream namespace_buffer;
+    namespace_buffer << namespace_stream.rdbuf();
+    std::string pod_namespace = namespace_buffer.str();
+
+    std::string payload = "---\n";
+    payload += "apiVersion: v1\n";
+    payload += "kind: Pod\n";
+    payload += "metadata:\n";
+    payload += "  name: "+no_under_app_name+"\n";
+    payload += "  namespace: ";
+    payload += pod_namespace;
+    payload += "\n";
+    payload += "  labels:\n";
+    payload += "    name: "+no_under_app_name+"\n";
+    payload += "  annotations:\n";
+    payload += "    waveform: "+app_name+"\n";
+    if (use_sriov) {
+    payload += "  annotations:\n";
+    payload += "    k8s.v1.cni.cncf.io/networks: sriov-conf@"+interface_name+"\n";
+    }
+    payload += "spec:\n";
+    payload += "  containers:\n";
+    payload += "  - name: "+no_under_app_name+"\n";
+    payload += "    image: "+image_name+"\n";
+    payload += "    command: [ '/bin/bash', '-c' ]\n";
+    payload += "    args: [ 'rm -rf /var/redhawk/sdr/* && echo $SDRROOT && ls /var/redhawk/sdr && mkdir -p /var/redhawk/sdr && rsync -a --exclude dom/mgr/domain_state.db --exclude db /tmp_sdr/ /var/redhawk/sdr && /usr/bin/python -u /usr/local/redhawk/core/bin/launch_sb_app "+registrar_ior+" "+_appFact._softwareProfile+" "+base_name+" "+naming_context_ior+" "+_waveform_context_name+"' ]\n";
+    if (has_loadCapacity or has_memCapacity or use_sriov) {
+    payload += "    resources:\n";
+    payload += "      requests:\n";
+        if (has_loadCapacity) {
+    payload += "        cpu: \""+total_loadCapacity_str+"\"\n";
+        }
+        if (has_memCapacity) {
+    payload += "        memory: \""+total_memCapacity_str+"M\"\n";
+        }
+        if (use_sriov) {
+    payload += "        intel.com/intel_sriov_netdevice: '1'\n";
+    payload += "      limits:\n";
+    payload += "        intel.com/intel_sriov_netdevice: '1'\n";
+        }
+    }
+    payload += "    env:\n";
+    const char* component_log_config_c = getenv("COMPONENT_LOG_CONFIG");
+    if (component_log_config_c) {
+    std::string component_log_config(component_log_config_c);
+    payload += "    - name: COMPONENT_LOG_CONFIG\n";
+    payload += "      value: "+component_log_config+"\n";
+    }
+    payload += "    - name: DOMAIN_NAME\n";
+    payload += "      value: "+_appFact._domainManager->getDomainManagerName()+"\n";
+    payload += "    - name: MY_NODE_NAME\n";
+    payload += "      valueFrom:\n";
+    payload += "        fieldRef:\n";
+    payload += "          fieldPath: spec.nodeName\n";
+    payload += "    - name: MY_POD_IP\n";
+    payload += "      valueFrom:\n";
+    payload += "        fieldRef:\n";
+    payload += "          fieldPath: status.podIP\n";
+    payload += "    volumeMounts:\n";
+    payload += "    - name: rh-vol\n";
+    payload += "      mountPath: /tmp_sdr\n";
+    // begin debug mount
+    //payload += "    - name: oss-vol\n";
+    //payload += "      mountPath: /usr/local/redhawk/core\n";
+    // end debug mount
+    payload += "    - name: omnicfg\n";
+    payload += "      mountPath: /etc/omniORB.cfg\n";
+    payload += "      subPath: 'omniORB.cfg'\n";
+    payload += "      readOnly: true\n";
+    if (use_sriov) {
+    payload += "  nodeSelector:\n";
+    payload += "    feature.node.kubernetes.io/network-sriov.capable: 'true'\n";
+    payload += "    feature.node.kubernetes.io/network-sriov.configured: 'true'\n";
+    }
+    payload += "  imagePullSecrets:\n";
+    payload += "  - name: regcred\n";
+    payload += "  restartPolicy: Never\n";
+    payload += "  volumes:\n";
+    payload += "  - name: rh-vol\n";
+    payload += "    persistentVolumeClaim:\n";
+    payload += "      claimName: rhfs-pvc\n";
+    payload += "      readOnly: false\n";
+    // begin debug mount
+    //payload += "  - name: oss-vol\n";
+    //payload += "    persistentVolumeClaim:\n";
+    //payload += "      claimName: ossfs-pvc\n";
+    // end debug mount
+    payload += "  - name: omnicfg\n";
+    payload += "    configMap:\n";
+    payload += "      name: omniorb-cfg\n";
+    payload += "\n";
+    postNamespacedYaml(token, pod_namespace, payload);
+
+    if (dns_mount) {
+        std::string payload = "---\n";
+        payload += "apiVersion: v1\n";
+        payload += "kind: Service\n";
+        payload += "metadata:\n";
+        payload += "  name: "+no_under_app_name+"\n";
+        payload += "  namespace: ${NAMESPACE}\n";
+        payload += "spec:\n";
+        payload += "  selector:\n";
+        payload += "    name: "+no_under_app_name+"\n";
+        payload += "  clusterIP: None\n";
+        payload += "  ports:\n";
+        payload += "    - name: web\n";
+        payload += "      port: 80\n";
+        payload += "\n";
+        postNamespacedYaml(token, pod_namespace, payload);
+    }
+
+    boost::mutex::scoped_lock lock(_ContainerDeployMutex);
+    boost::mutex::scoped_lock lock_post(_ContainerDeployMutex_post);
+    // hard code 10 minute timeout for now
+    boost::system_time end = boost::get_system_time() + boost::posix_time::seconds(600);
+
+    while (true) {
+        std::string pod_state = queryPodState(token, pod_namespace, no_under_app_name);
+        if (!pod_state.compare("Running")) {
+            break;
+        }
+        if (!pod_state.compare("ErrImagePull")) {
+            deletePod(token, pod_namespace, no_under_app_name);
+
+            std::ostringstream eout;
+            eout << "The application: "<<name<<" image could not load";
+            RH_ERROR(_createHelperLog, eout.str())
+            throw CF::ApplicationFactory::CreateApplicationError(CF::CF_NOTSET, eout.str().c_str());
+        }
+        if (not CORBA::is_nil(tmp_app)) {
+            break;
+        }
+        boost::system_time short_term = boost::get_system_time() + boost::posix_time::seconds(1);
+        _registrationCondition.timed_wait(lock, short_term);
+    }
+
+    // make sure the application registered
+    while (CORBA::is_nil(tmp_app)) {
+        if (!_registrationCondition.timed_wait(lock, end)) {
+            break;
+        }
+    }
+    _cr->resetCondition();
+
+    tmp_app->initializeProperties(initConfiguration);
+
+    tmp_app = CF::Application::_nil();
+
+    while (CORBA::is_nil(tmp_app)) {
+        if (!_registrationCondition_post.timed_wait(lock, end)) {
+            break;
+        }
+    }
+    _cr->resetCondition_post();
+
+    if (CORBA::is_nil(tmp_app)) {
+        deletePod(token, pod_namespace, no_under_app_name);
+
+        std::ostringstream eout;
+        eout << "The application: "<<name<<" failed to deploy on a pod";
+        RH_ERROR(_createHelperLog, eout.str())
+        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_NOTSET, eout.str().c_str());
+    }
+
+    CF::Components_var reg_comps = tmp_app->registeredComponents();
+    if (reg_comps->length() == 0) {
+        deletePod(token, pod_namespace, no_under_app_name);
+
+        std::ostringstream eout;
+        eout << "The application: "<<name<<" failed to deploy on a pod";
+        RH_ERROR(_createHelperLog, eout.str())
+        throw CF::ApplicationFactory::CreateApplicationError(CF::CF_NOTSET, eout.str().c_str());
+    }
+
+    _appFact._domainManager->sendAddEvent(_appFact._identifier,
+                                          tmp_app->identifier(),
+                                          name,
+                                          tmp_app,
+                                          StandardEvent::APPLICATION);
+
+    return tmp_app;
+};
+
+bool createHelper::postNamespacedYaml(std::string &token, std::string &pod_namespace, std::string &payload)
+{
+    CURL *curl;
+    CURLcode res;
+    std::string cert_file("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt");
+
+    curl = curl_easy_init();
+    if(curl) {
+        struct curl_slist *chunk = NULL;
+
+        // Add a custom header
+        std::string token_header("Authorization: Bearer ");
+        token_header += token;
+
+        chunk = curl_slist_append(chunk, token_header.c_str());
+        chunk = curl_slist_append(chunk, "Content-Type: application/yaml");
+
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+
+        curl_easy_setopt(curl, CURLOPT_CAINFO, cert_file.c_str());
+
+        std::string curlopt_url("https://kubernetes.default.svc/api/v1/namespaces/");
+        curlopt_url += pod_namespace;
+        curlopt_url += "/pods";
+
+        curl_easy_setopt(curl, CURLOPT_URL, curlopt_url.c_str());
+
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, payload.c_str());
+
+        curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+
+        res = curl_easy_perform(curl);
+        // Check for errors
+        if(res != CURLE_OK)
+            fprintf(stderr, "curl_easy_perform() failed: %s\n",
+                    curl_easy_strerror(res));
+
+        // always cleanup
+        curl_easy_cleanup(curl);
+
+        // free the custom headers
+        curl_slist_free_all(chunk);
+        RH_TRACE(_createHelperLog, payload)
+        return true;
+    } else {
+        RH_ERROR(_createHelperLog, "Unable to create curl command")
+    }
+    return false;
+}
+
+bool createHelper::deletePod(std::string &token, std::string &pod_namespace, std::string &no_under_app_name)
+{
+    CURL *curl;
+    CURLcode res;
+    std::string cert_file("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt");
+
+    curl = curl_easy_init();
+    if(curl) {
+        struct curl_slist *chunk = NULL;
+
+        // Add a custom header
+        std::string token_header("Authorization: Bearer ");
+        token_header += token;
+
+        chunk = curl_slist_append(chunk, token_header.c_str());
+        chunk = curl_slist_append(chunk, "Content-Type: application/yaml");
+
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+
+        curl_easy_setopt(curl, CURLOPT_CAINFO, cert_file.c_str());
+
+        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
+
+        std::string curlopt_url("https://kubernetes.default.svc/api/v1/namespaces/");
+        curlopt_url += pod_namespace;
+        curlopt_url += "/pods/";
+        curlopt_url += no_under_app_name;
+
+        curl_easy_setopt(curl, CURLOPT_URL, curlopt_url.c_str());
+
+        curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+
+        res = curl_easy_perform(curl);
+        // Check for errors
+        if(res != CURLE_OK)
+            fprintf(stderr, "curl_easy_perform() failed: %s\n",
+                    curl_easy_strerror(res));
+
+        // always cleanup
+        curl_easy_cleanup(curl);
+
+        // free the custom headers
+        curl_slist_free_all(chunk);
+        RH_TRACE(_createHelperLog, "Deleted failed pod")
+        return true;
+    } else {
+        RH_ERROR(_createHelperLog, "Unable to create curl command")
+    }
+    return false;
+}
+
+// size_t createHelper::process_return(void *buffer, size_t size, size_t nmemb, void *stream) {
+//     json_stream << (char *)buffer;
+//     return size * nmemb;
+// }
+
+void createHelper::writer(void *buffer, size_t size, size_t nmemb, void* f)
+{
+    // Call non-static member function.
+    static_cast<createHelper*>(f)->setBuffer((char*)buffer, size, nmemb);
+}
+
+size_t createHelper::setBuffer(char *buffer, size_t size, size_t nmemb)
+{
+    // What we will return
+    int result = 0;
+    // Is there anything in the buffer?
+    if (buffer != NULL)
+    {
+        // Append the data to the buffer
+        json_stream << (char *)buffer;
+        //m_mybuffer.append(buffer, size * nmemb);
+        // How much did we write?
+        result = size * nmemb;
+    }
+    return result;
+}
+
+std::string createHelper::queryPodState(std::string &token, std::string &pod_namespace, std::string &no_under_app_name)
+{
+    CURL *curl;
+    CURLcode res;
+    std::string cert_file("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt");
+
+    curl = curl_easy_init();
+    if(curl) {
+        struct curl_slist *chunk = NULL;
+
+        // Add a custom header
+        std::string token_header("Authorization: Bearer ");
+        token_header += token;
+
+        chunk = curl_slist_append(chunk, token_header.c_str());
+        chunk = curl_slist_append(chunk, "Content-Type: application/yaml");
+
+        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+
+        curl_easy_setopt(curl, CURLOPT_CAINFO, cert_file.c_str());
+
+        std::string curlopt_url("https://kubernetes.default.svc/api/v1/namespaces/");
+        curlopt_url += pod_namespace;
+        curlopt_url += "/pods";
+        //curlopt_url += no_under_app_name;
+
+        curl_easy_setopt(curl, CURLOPT_URL, curlopt_url.c_str());
+
+        //curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, createHelper::process_return);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, createHelper::writer);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, this);
+
+        curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+
+        res = curl_easy_perform(curl);
+        // Check for errors
+        if(res != CURLE_OK)
+            fprintf(stderr, "curl_easy_perform() failed: %s\n",
+                    curl_easy_strerror(res));
+
+        // always cleanup
+        curl_easy_cleanup(curl);
+
+        // free the custom headers
+        curl_slist_free_all(chunk);
+
+        Json::Value root;
+        Json::CharReaderBuilder builder;
+        builder["collectComments"] = true;
+        std::string errs;
+        if (!parseFromStream(builder, json_stream, &root, &errs)) {
+            std::cout << errs << std::endl;
+            return cert_file;
+        }
+        const Json::Value items = root["items"];
+
+        for (Json::Value::const_iterator item = items.begin(); item!=items.end(); ++item) {
+            std::string item_name = (*item)["metadata"]["name"].asString();
+            if (item_name == no_under_app_name){
+                std::string phase = (*item)["status"]["phase"].asString();
+                if (phase.compare("Running")) { // it's not running, so find out the reason why
+                    phase = (*item)["status"]["containerStatuses"][0]["state"]["waiting"]["reason"].asString();
+                }
+                return phase;
+            }
+        }
+
+        RH_TRACE(_createHelperLog, "Deleted failed pod")
+        std::string phase("error");
+        return phase;
+    } else {
+        RH_ERROR(_createHelperLog, "Unable to create curl command")
+    }
+    std::string phase("error");
+    return phase;
+}
+
 /* Creates and instance of the application.
  *  - Assigns components to devices
  *      - First based on user-provided DAS if one is passed in
@@ -881,10 +1381,6 @@ CF::Application_ptr ApplicationFactory_impl::create (
     const char* name,
     const CF::Properties& initConfiguration,
     const CF::DeviceAssignmentSequence& deviceAssignments)
-throw (CORBA::SystemException, CF::ApplicationFactory::CreateApplicationError,
-        CF::ApplicationFactory::CreateApplicationRequestError,
-        CF::ApplicationFactory::CreateApplicationInsufficientCapacityError,
-        CF::ApplicationFactory::InvalidInitConfiguration)
 {
     RH_TRACE(_appFactoryLog, "Creating application " << name);
 
@@ -931,6 +1427,9 @@ throw (CORBA::SystemException, CF::ApplicationFactory::CreateApplicationError,
 
     // Convert the device assignments into a map for easier lookup
     std::map<std::string,std::string> deviceAssignmentMap;
+
+    CF::Application_ptr new_app;
+
     for (size_t index = 0; index < deviceAssignments.length(); ++index) {
         const std::string componentId(deviceAssignments[index].componentId);
         const std::string assignedDeviceId(deviceAssignments[index].assignedDeviceId);
@@ -945,7 +1444,6 @@ throw (CORBA::SystemException, CF::ApplicationFactory::CreateApplicationError,
 
     // now actually perform the create operation
     RH_TRACE(_appFactoryLog, "Performing 'create' function.");
-    CF::Application_ptr new_app;
     try {
         new_app = new_createhelper.create(name, initConfiguration, deviceAssignmentMap);
     } catch (const redhawk::DeploymentError& exc) {
@@ -985,6 +1483,23 @@ CF::Application_ptr createHelper::create (
 {
     
     redhawk::PropertyMap modifiedInitConfiguration;
+
+    std::string version = _appFact._sadParser.getVersion();
+
+    if (not version.empty()) {
+        RH_DEBUG(_createHelperLog, "image (from version attribute in xml): " << version)
+        CF::Application_ptr new_app = launchContainerWaveform(name, initConfiguration, _waveformContextName);
+        if (CORBA::is_nil(new_app)) {
+            std::ostringstream eout;
+            eout << "The application: "<<name<<" failed to deploy";
+            RH_ERROR(_createHelperLog, eout.str())
+            throw CF::ApplicationFactory::CreateApplicationError(CF::CF_NOTSET, eout.str().c_str());
+        } else {
+            _appFact._domainManager->addContainerApplication(new_app);
+        }
+        _isComplete = true;
+        return new_app;
+    }
 
     checkOptions();
 
@@ -1919,7 +2434,7 @@ void createHelper::loadAndExecuteContainers(const ContainerList& containers,
             std::ostringstream message;
             message << "container " << container->getIdentifier() << " was assigned to non-loadable device "
                     << device->identifier;
-            RH_ERROR(_createHelperLog, message);
+            RH_ERROR(_createHelperLog, message.str());
             throw std::logic_error(message.str());
         }
 
@@ -1987,7 +2502,7 @@ void createHelper::loadAndExecuteComponents(const DeploymentList& deployments,
             std::ostringstream message;
             message << "component " << component_id << " was assigned to non-loadable device "
                     << device->identifier;
-            RH_ERROR(_createHelperLog, message);
+            RH_ERROR(_createHelperLog, message.str());
             throw std::logic_error(message.str());
         }
 

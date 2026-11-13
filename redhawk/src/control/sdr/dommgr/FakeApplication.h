@@ -43,12 +43,9 @@ public:
     void initializeProperties (const CF::Properties& configProperties){};
     void configure (const CF::Properties& configProperties);
     void query (CF::Properties& configProperties);
-    CF::Properties* metrics (const CF::StringSequence& components, const CF::StringSequence& attributes)
-        throw (CF::Application::InvalidMetric, CORBA::SystemException);
-    char *registerPropertyListener( CORBA::Object_ptr listener, const CF::StringSequence &prop_ids, const CORBA::Float interval)
-      throw(CF::UnknownProperties, CF::InvalidObjectReference);
-    void unregisterPropertyListener( const char *reg_id )  
-      throw(CF::InvalidIdentifier);
+    CF::Properties* metrics (const CF::StringSequence& components, const CF::StringSequence& attributes);
+    char *registerPropertyListener( CORBA::Object_ptr listener, const CF::StringSequence &prop_ids, const CORBA::Float interval);
+    void unregisterPropertyListener( const char *reg_id );
 
     void initialize ();
         
@@ -68,9 +65,9 @@ public:
     
     bool aware ();
     
-    CORBA::Float stopTimeout () throw (CORBA::SystemException);
+    CORBA::Float stopTimeout ();
 
-    void stopTimeout (CORBA::Float timeout) throw (CORBA::SystemException);
+    void stopTimeout (CORBA::Float timeout);
     
     CF::DeviceAssignmentSequence * componentDevices ();
     CF::Application::ComponentElementSequence * componentImplementations ();

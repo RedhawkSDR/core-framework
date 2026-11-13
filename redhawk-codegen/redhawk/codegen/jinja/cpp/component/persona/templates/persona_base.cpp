@@ -112,7 +112,6 @@ void ${className}::construct()
 
 // TODO: This was overriden since setting admin state is not accessible via the current IDL
 void ${className}::adminState(CF::Device::AdminType adminState) 
-    throw (CORBA::SystemException)
 {
     // Force admin state to change usage state since usage state is currently protected
     switch (adminState) {
@@ -131,9 +130,6 @@ void ${className}::adminState(CF::Device::AdminType adminState)
 }
 
 void ${className}::releaseObject() 
-    throw (
-        CF::LifeCycle::ReleaseError, 
-        CORBA::SystemException ) 
 {
 /*{% if component is executabledevice %}*/
     // Terminate all children that were executed
@@ -230,14 +226,6 @@ CF::ExecutableDevice::ProcessID_Type ${className}::execute (
                         const char*                 name, 
                         const CF::Properties&       options, 
                         const CF::Properties&       parameters )
-    throw ( 
-        CF::ExecutableDevice::ExecuteFail, 
-        CF::InvalidFileName, 
-        CF::ExecutableDevice::InvalidOptions, 
-        CF::ExecutableDevice::InvalidParameters,
-        CF::ExecutableDevice::InvalidFunction, 
-        CF::Device::InvalidState, 
-        CORBA::SystemException ) 
 {
     // Initialize local variables
     std::string propId;
@@ -258,7 +246,7 @@ CF::ExecutableDevice::ProcessID_Type ${className}::execute (
     if (resourcePtr == NULL) {
         RH_FATAL(this->_deviceLog, __FUNCTION__ << 
             ": Unable to instantiate '" << name << "'");
-        throw (CF::ExecutableDevice::ExecuteFail());
+        throw CF::ExecutableDevice::ExecuteFail();
     }
 
     resourceId = ossie::corba::returnString(resourcePtr->identifier());
@@ -270,10 +258,6 @@ CF::ExecutableDevice::ProcessID_Type ${className}::execute (
 }
 
 void ${className}::terminate(CF::ExecutableDevice::ProcessID_Type processId)
-    throw (
-        CF::Device::InvalidState, 
-        CF::ExecutableDevice::InvalidProcess, 
-        CORBA::SystemException ) 
 {
     // Initialize local variables
     ProcessMapIter processIter;

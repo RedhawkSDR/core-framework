@@ -214,7 +214,7 @@ ImplementationInfo* ImplementationInfo::buildImplementationInfo(CF::FileManager_
     std::vector<ossie::SPD::SoftPkgRef>::const_iterator jj;
     for (jj = softpkgDependencies.begin(); jj != softpkgDependencies.end(); ++jj) {
         LOG_TRACE(ImplementationInfo, "Loading component implementation softpkg dependency '" << *jj);
-        std::auto_ptr<SoftpkgInfo> softpkg(SoftpkgInfo::buildSoftpkgInfo(fileMgr, jj->localfile.c_str()));
+        std::unique_ptr<SoftpkgInfo> softpkg(SoftpkgInfo::buildSoftpkgInfo(fileMgr, jj->localfile.c_str()));
         impl->addSoftPkgDependency(softpkg.release());
     }
 
@@ -391,7 +391,7 @@ SoftpkgInfo* SoftpkgInfo::buildSoftpkgInfo(CF::FileManager_ptr fileMgr, const ch
 {
     LOG_TRACE(SoftpkgInfo, "Building soft package info from file " << spdFileName);
 
-    std::auto_ptr<ossie::SoftpkgInfo> softpkg(new SoftpkgInfo(spdFileName));
+    std::unique_ptr<ossie::SoftpkgInfo> softpkg(new SoftpkgInfo(spdFileName));
 
     if (!softpkg->parseProfile(fileMgr)) {
         return 0;

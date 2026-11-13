@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -22,7 +22,7 @@
 from setuptools import setup
 
 setup(name='bulkio',
-      version='2.2.10',
+      version='4.0.4',
       description='Python Classes for REDHAWK BULKIO Interfaces',
       packages=['bulkio',
                 'bulkio.sandbox'],

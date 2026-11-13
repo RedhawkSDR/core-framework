@@ -32,8 +32,6 @@ class props_i : public props_base
         ~props_i();
         int serviceFunction();
 
-        bool old_bool;
-
         void ushortSimpleChanged (const std::string&);
         void charSimpleChanged (const std::string&);
         void octetSimpleChanged (const std::string&);

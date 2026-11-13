@@ -21,7 +21,7 @@
 from redhawk.codegen.jinja.common import ShellTemplate, SpecfileTemplate
 from redhawk.codegen.jinja.generator import TopLevelGenerator
 from redhawk.codegen.jinja.loader import CodegenLoader
-from mapping import DependencyProjectMapper
+from .mapping import DependencyProjectMapper
 
 if not '__package__' in locals():
     # Python 2.4 compatibility

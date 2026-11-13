@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -43,8 +43,8 @@ class CommandWrapperSubProcess_i(CF__POA.Resource, Resource):
         loggerName = execparams['NAME_BINDING'].replace('/', '.')
         Resource.__init__(self, identifier, execparams, loggerName=loggerName)
         self._pid = None
-        self.execparams = " ".join(["%s %s" % x for x in execparams.items()])
-        command = "python"
+        self.execparams = " ".join(["%s %s" % x for x in list(execparams.items())])
+        command = "python3"
         args = [command, "components/CommandWrapperSubProcess/executables/FirstChild.py"]
         sp = subprocess.Popen(args, executable=command, cwd=os.getcwd())
 

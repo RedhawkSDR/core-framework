@@ -26,7 +26,7 @@
 #include <vector>
 #include <sched.h>
 
-#ifdef HAVE_BOOST
+//#ifdef HAVE_BOOST
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/locks.hpp>
 #include <ossie/RedhawkDefs.h>
@@ -35,15 +35,15 @@
 #define _ULOCK                boost::unique_lock
 #define _SLOCK                boost::mutex::scoped_lock
 
-#endif
+//#endif
 
-#ifndef HAVE_BOOST           // resolve with pthreads
-#define _MUTEX                
-#define _ULOCK                
-#define _SLOCK                
-#endif
+// #ifndef HAVE_BOOST           // resolve with pthreads
+// #define _MUTEX                
+// #define _ULOCK                
+// #define _SLOCK                
+// #endif
 
-REDHAWK_CPP_NAMESPACE_BEGIN
+namespace redhawk {
 
   typedef   _MUTEX                    Mutex;
 
@@ -54,6 +54,6 @@ REDHAWK_CPP_NAMESPACE_BEGIN
 #define  SCOPED_LOCK(x)               REDHAWK_CPP_NAMESPACE::ScopedLock  __slock(x)
 
 
-REDHAWK_CPP_NAMESPACE_END
+};
 
 #endif

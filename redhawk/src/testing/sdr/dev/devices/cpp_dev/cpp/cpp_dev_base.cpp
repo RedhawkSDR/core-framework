@@ -71,13 +71,13 @@ void cpp_dev_base::construct()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void cpp_dev_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void cpp_dev_base::start()
 {
     Device_impl::start();
     ThreadedComponent::startThread();
 }
 
-void cpp_dev_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void cpp_dev_base::stop()
 {
     Device_impl::stop();
     if (!ThreadedComponent::stopThread()) {
@@ -85,7 +85,7 @@ void cpp_dev_base::stop() throw (CORBA::SystemException, CF::Resource::StopError
     }
 }
 
-void cpp_dev_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void cpp_dev_base::releaseObject()
 {
     // This function clears the device running condition so main shuts down everything
     try {

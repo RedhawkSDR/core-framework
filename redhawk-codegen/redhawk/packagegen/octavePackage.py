@@ -110,7 +110,7 @@ class OctavePackage(ResourcePackage):
         propArgs = ["__sampleRate"]
 
         # Add properties
-        for propName in mFunctionParameters.defaults.keys():
+        for propName in list(mFunctionParameters.defaults.keys()):
             value = mFunctionParameters.defaults[propName]
             if type(value) == type([]):
                 # simple sequence

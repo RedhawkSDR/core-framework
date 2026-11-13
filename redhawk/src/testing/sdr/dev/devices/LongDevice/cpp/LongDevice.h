@@ -15,21 +15,19 @@ class LongDevice_i : public LongDevice_base
         ~LongDevice_i();
 
         void constructor();
-        void stop() throw (CF::Resource::StopError, CORBA::SystemException);
+        void stop();
         int serviceFunction();
 
-        char* identifier () throw (CORBA::SystemException);
-        CORBA::Boolean  started () throw (CORBA::SystemException);
-        char *softwareProfile() throw (CORBA::SystemException);
+        char* identifier ();
+        CORBA::Boolean  started ();
+        char *softwareProfile();
 
-        CF::Device::UsageType usageState() throw (CORBA::SystemException);
-        CF::Device::AdminType adminState() throw (CORBA::SystemException);
-        CF::Device::OperationalType operationalState() throw (CORBA::SystemException);
-        char *label() throw (CORBA::SystemException);
-        CORBA::Boolean allocateCapacity( const CF::Properties &props )
-            throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::InsufficientCapacity, CORBA::SystemException);
-        void  deallocateCapacity( const CF::Properties &props )
-            throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CORBA::SystemException);
+        CF::Device::UsageType usageState();
+        CF::Device::AdminType adminState();
+        CF::Device::OperationalType operationalState();
+        char *label();
+        CORBA::Boolean allocateCapacity( const CF::Properties &props );
+        void  deallocateCapacity( const CF::Properties &props );
 
     protected:
         void updateUsageState();

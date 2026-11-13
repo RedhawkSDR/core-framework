@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
@@ -52,7 +52,7 @@ except ImportError:
 
 Validate_simpletypes_ = True
 if sys.version_info[0] == 2:
-    BaseStrType_ = basestring
+    BaseStrType_ = str
 else:
     BaseStrType_ = str
 
@@ -78,7 +78,13 @@ def parsexmlstring_(instring, parser=None, **kwargs):
         except AttributeError:
             # fallback to xml.etree
             parser = etree_.XMLParser()
-    element = etree_.fromstring(instring, parser=parser, **kwargs)
+    if 'lxml' in etree_.__name__:
+        element = etree_.fromstring(instring, parser=parser, **kwargs)
+    else:
+        if type(instring) == bytes:
+            instring = instring.decode('ISO-8859-1')
+        instring = str(instring)
+        element = etree_.fromstring(bytes(instring, encoding='utf-8'), parser=parser, **kwargs)
     return element
 
 #
@@ -115,7 +121,7 @@ except ImportError:
 #   in a module named generatedssuper.py.
 
 try:
-    from generatedssuper import GeneratedsSuper
+    from .generatedssuper import GeneratedsSuper
 except ImportError as exp:
     
     class GeneratedsSuper(object):
@@ -415,7 +421,7 @@ except ImportError as exp:
             return None
         @classmethod
         def gds_reverse_node_mapping(cls, mapping):
-            return dict(((v, k) for k, v in mapping.iteritems()))
+            return dict(((v, k) for k, v in mapping.items()))
         @staticmethod
         def gds_encode(instring):
             if sys.version_info[0] == 2:
@@ -426,7 +432,7 @@ except ImportError as exp:
         def convert_unicode(instring):
             if isinstance(instring, str):
                 result = quote_xml(instring)
-            elif sys.version_info[0] == 2 and isinstance(instring, unicode):
+            elif sys.version_info[0] == 2 and isinstance(instring, str):
                 result = quote_xml(instring).encode('utf8')
             else:
                 result = GeneratedsSuper.gds_encode(str(instring))
@@ -767,7 +773,7 @@ class action(GeneratedsSuper):
                     enumeration_respectee = True
                     break
             if not enumeration_respectee:
-                warnings_.warn('Value "%(value)s" does not match xsd enumeration restriction on ActionType' % {"value" : value.encode("utf-8")} )
+                warnings_.warning('Value "%(value)s" does not match xsd enumeration restriction on ActionType' % {"value" : value.encode("utf-8")} )
     def hasContent_(self):
         if (
 
@@ -853,7 +859,7 @@ class configurationKind(GeneratedsSuper):
                     enumeration_respectee = True
                     break
             if not enumeration_respectee:
-                warnings_.warn('Value "%(value)s" does not match xsd enumeration restriction on StructPropertyConfigurationType' % {"value" : value.encode("utf-8")} )
+                warnings_.warning('Value "%(value)s" does not match xsd enumeration restriction on StructPropertyConfigurationType' % {"value" : value.encode("utf-8")} )
             value = str(value)
             enumerations = ['configure', 'execparam', 'allocation', 'factoryparam', 'test', 'event', 'message', 'property']
             enumeration_respectee = False
@@ -862,7 +868,7 @@ class configurationKind(GeneratedsSuper):
                     enumeration_respectee = True
                     break
             if not enumeration_respectee:
-                warnings_.warn('Value "%(value)s" does not match xsd enumeration restriction on StructPropertyConfigurationType' % {"value" : value.encode("utf-8")} )
+                warnings_.warning('Value "%(value)s" does not match xsd enumeration restriction on StructPropertyConfigurationType' % {"value" : value.encode("utf-8")} )
     def hasContent_(self):
         if (
 
@@ -3038,7 +3044,10 @@ def parseString(inString, silence=False):
     Returns -- The root object in the tree.
     '''
     parser = None
-    rootNode= parsexmlstring_(inString, parser)
+    _inString=inString
+    if type(inString) == str:
+        _inString=inString.encode()
+    rootNode= parsexmlstring_(_inString, parser)
     rootTag, rootClass = get_root_tag(rootNode)
     if rootClass is None:
         rootTag = 'properties'

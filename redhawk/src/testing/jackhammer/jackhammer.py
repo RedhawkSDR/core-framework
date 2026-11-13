@@ -43,15 +43,15 @@ class Jackhammer(object):
         try:
             self.domMgr = self.inc.resolve(URI.stringToName('/'.join([domainName]*2)))
         except:
-            print >>sys.stderr, "Unable to connect to domain manager for domain", domainName
+            print("Unable to connect to domain manager for domain", domainName, file=sys.stderr)
             sys.exit(1)
 
-        print 'Arguments: ', ' '.join(args)
+        print('Arguments: ', ' '.join(args))
         self.initialize(*args)
 
     def createThreads (self, numThreads):
-        print "Creating %d threads" % (numThreads,)
-        for ii in xrange(numThreads):
+        print("Creating %d threads" % (numThreads,))
+        for ii in range(numThreads):
             t = threading.Thread(target=self.run, args=(ii,))
             t.start()
             self.threads.append(t)
@@ -59,14 +59,14 @@ class Jackhammer(object):
         self.numThreads = len(self.threads)
 
     def jackhammer (self):
-        print 'Starting threads'
+        print('Starting threads')
         self.runThreads.set()
 
         while self.runThreads.isSet() and self.numThreads > 0:
             try:
                 time.sleep(1)
             except KeyboardInterrupt:
-                print 'Terminating'
+                print('Terminating')
                 self.runThreads.clear()
 
     def run (self, id):
@@ -78,7 +78,7 @@ class Jackhammer(object):
             except:
                 excType = sys.exc_info()[0]
                 excStr = sys.exc_info()[1]
-                print "Error (thread %d): %s %s" % (id, excType, excStr)
+                print("Error (thread %d): %s %s" % (id, excType, excStr))
                 break
         self.numThreads -= 1
 
@@ -132,7 +132,7 @@ def run(TestClass):
             hammer.setOption(key, value)
 
     if domainName is None:
-        print >>sys.stderr, "Unable to determine domain name; use --domainname=<name>"
+        print("Unable to determine domain name; use --domainname=<name>", file=sys.stderr)
         sys.exit(1)
 
     hammer.setup(domainName, *args)

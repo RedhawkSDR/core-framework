@@ -21,10 +21,36 @@
 import os
 
 from redhawk.codegen.jinja.generator import CodeGenerator
+from redhawk.codegen.jinja.cpp import CppTemplate
 
 class CppCodeGenerator(CodeGenerator):
+
     def sourceFiles(self, component):
         for template in self.templates(component):
             filename, ext = os.path.splitext(template.filename)
             if ext in ('.h', '.cpp'):
                 yield template.filename
+        for _template in self.templatesChildren(component):
+            child = list(_template.keys())[0]
+            template = list(_template.values())[0]
+            filename, ext = os.path.splitext(template.filename)
+            if ext in ('.h', '.cpp'):
+                yield template.filename
+
+    def templatesChildren(self, component):
+        templates = []
+        if 'children' not in component:
+            return templates
+
+        for child_key in component['children']:
+            templates.append({child_key: CppTemplate('resource.cpp', child_key+'/'+component['children'][child_key]['userclass']['file'], userfile=True)})
+            templates.append({child_key: CppTemplate('resource.h', child_key+'/'+component['children'][child_key]['userclass']['header'], userfile=True)})
+            templates.append({child_key: CppTemplate('resource_base.cpp', child_key+'/'+component['children'][child_key]['baseclass']['file'])})
+            templates.append({child_key: CppTemplate('resource_base.h', child_key+'/'+component['children'][child_key]['baseclass']['header'])})
+            if component['children'][child_key]['structdefs']:
+                templates.append({child_key: CppTemplate('struct_props.h', child_key+'/'+child_key+'_struct_props.h')})
+            if len(self.getPortTemplates(component['children'][child_key])) > 0:
+                for fn in self.getPortTemplates(component['children'][child_key]):
+                    templates.append({child_key: CppTemplate('pull/'+fn, child_key+'/'+child_key+'_'+fn)})
+
+        return templates

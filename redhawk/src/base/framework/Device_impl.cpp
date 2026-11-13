@@ -239,7 +239,6 @@ void  Device_impl::halt ()
 
 void
 Device_impl::releaseObject ()
-throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
 {
     // SR:419
     RH_DEBUG(_deviceLog, "Receive releaseObject call");
@@ -293,7 +292,6 @@ Device_impl::~Device_impl ()
 
 /* Alternate implementation*/
 CORBA::Boolean Device_impl::allocateCapacity (const CF::Properties& capacities)
-throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState, CF::Device::InsufficientCapacity)
 {
     RH_TRACE(_deviceLog, "in allocateCapacity");
 
@@ -371,7 +369,7 @@ bool Device_impl::allocateCapacityLegacy (const CF::Properties& capacities)
         try {
             // Get all properties currently in device
             query (currentCapacities);
-        } catch (CF::UnknownProperties) {
+        } catch (CF::UnknownProperties &) {
         }
 
         SCOPED_LOCK(propertySetAccess);
@@ -521,7 +519,6 @@ bool Device_impl::allocateCapacityNew (const CF::Properties& capacities)
 }
 
 void Device_impl::deallocateCapacity (const CF::Properties& capacities)
-throw (CORBA::SystemException, CF::Device::InvalidCapacity, CF::Device::InvalidState)
 {
     // Verify that the device is in a valid state
     if (isLocked() || isDisabled()) {
@@ -1008,7 +1005,6 @@ void Device_impl::setAdminState (CF::Device::AdminType new_adminState)
 
 
 void Device_impl::adminState (CF::Device::AdminType new_adminState)
-throw (CORBA::SystemException)
 {
     setAdminState(new_adminState);
     _adminState = new_adminState;
@@ -1066,43 +1062,36 @@ bool Device_impl::isIdle ()
 
 
 char* Device_impl::label ()
-throw (CORBA::SystemException)
 {
     return CORBA::string_dup(_label.c_str());
 }
 
 
 CF::Device::UsageType Device_impl::usageState ()
-throw (CORBA::SystemException)
 {
     return _usageState;
 }
 
 
 CF::Device::AdminType Device_impl::adminState ()
-throw (CORBA::SystemException)
 {
     return _adminState;
 }
 
 
 CF::Device::OperationalType Device_impl::operationalState ()
-throw (CORBA::SystemException)
 {
     return _operationalState;
 }
 
 
 CF::AggregateDevice_ptr Device_impl::compositeDevice ()
-throw (CORBA::SystemException)
 {
     return CF::AggregateDevice::_duplicate(_aggregateDevice);
 }
 
 
 void  Device_impl::configure (const CF::Properties& capacities)
-throw (CF::PropertySet::PartialConfiguration, CF::PropertySet::
-       InvalidConfiguration, CORBA::SystemException)
 {
     if (initialConfiguration) {
         initialConfiguration = false;

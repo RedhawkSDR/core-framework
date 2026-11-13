@@ -28,7 +28,7 @@ include "../../include/ossie/componentProfile.h";
 
 scaComplianceType "::std::string";
 localFile "::std::string";
-softPkg "std::auto_ptr<ossie::SPD>";
+softPkg "std::unique_ptr<ossie::SPD>";
 propertyFile "::std::string";
 descriptor "::std::string";
 author "ossie::SPD::Author";

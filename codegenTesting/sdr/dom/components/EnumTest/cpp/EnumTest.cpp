@@ -268,7 +268,7 @@ int EnumTest_i::serviceFunction()
     return NOOP;
 }
 
-void EnumTest_i::runTest(CORBA::ULong testid, CF::Properties& testValues) throw (CF::UnknownProperties, CF::TestableObject::UnknownTest, CORBA::SystemException)
+void EnumTest_i::runTest(CORBA::ULong testid, CF::Properties& testValues)
 {
     redhawk::PropertyMap& testProps = redhawk::PropertyMap::cast(testValues);
     switch (testid) {

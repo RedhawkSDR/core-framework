@@ -54,7 +54,7 @@ multiout_attachable_i::~multiout_attachable_i()
 }
 
 char* multiout_attachable_i::attach(const BULKIO::SDDSStreamDefinition& stream, const char* userid)
-        throw (BULKIO::dataSDDS::AttachError, BULKIO::dataSDDS::StreamInputError) {
+{ 
 
 	this->callback_stats.num_sdds_attaches++;
 	std::string aid = ossie::generateUUID();
@@ -70,7 +70,7 @@ char* multiout_attachable_i::attach(const BULKIO::SDDSStreamDefinition& stream, 
 }
 
 char* multiout_attachable_i::attach(const BULKIO::VITA49StreamDefinition& stream, const char* userid)
-        throw (BULKIO::dataVITA49::AttachError, BULKIO::dataVITA49::StreamInputError) {
+{        
 	this->callback_stats.num_vita49_attaches++;
 	std::string aid = ossie::generateUUID();
 	LOG_DEBUG(multiout_attachable_i, "Received VITA49::AttachCallback: ATTACH ID: " << aid);

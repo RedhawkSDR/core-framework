@@ -40,43 +40,31 @@ public:
     FileManager_impl (const char* _fsroot);
     ~FileManager_impl ();
 
-    void mount (const char* mountPoint, CF::FileSystem_ptr _fileSystem)
-        throw (CORBA::SystemException, CF::InvalidFileName, CF::FileManager::InvalidFileSystem, CF::FileManager::MountPointAlreadyExists);
+    void mount (const char* mountPoint, CF::FileSystem_ptr _fileSystem);
 
-    void unmount (const char* mountPoint)
-        throw (CF::FileManager::NonExistentMount, CORBA::SystemException);
+    void unmount (const char* mountPoint);
 
-    void mkdir (const char* directoryName)
-        throw (CF::InvalidFileName, CF::FileException, CORBA::SystemException);
+    void mkdir (const char* directoryName);
 
-    void rmdir (const char* directoryName)
-        throw (CF::InvalidFileName, CF::FileException, CORBA::SystemException);
+    void rmdir (const char* directoryName);
 
-    void query (CF::Properties& fileSysProperties)
-        throw (CF::FileSystem::UnknownFileSystemProperties, CORBA::SystemException);
+    void query (CF::Properties& fileSysProperties);
 
-    void remove (const char* fileName)
-        throw (CF::InvalidFileName, CF::FileException, CORBA::SystemException);
+    void remove (const char* fileName);
 
-    void copy (const char* sourceFileName, const char* destinationFileName)
-        throw (CF::FileException, CF::InvalidFileName, CORBA::SystemException);
+    void copy (const char* sourceFileName, const char* destinationFileName);
 
-    void move (const char* sourceFileName, const char* destinationFileName)
-        throw (CF::FileException, CF::InvalidFileName, CORBA::SystemException);
+    void move (const char* sourceFileName, const char* destinationFileName);
 
-    CORBA::Boolean exists (const char* fileName)
-        throw (CF::InvalidFileName, CORBA::SystemException);
+    CORBA::Boolean exists (const char* fileName);
 
-    CF::File_ptr create (const char* fileName)
-        throw (CF::FileException, CF::InvalidFileName, CORBA::SystemException);
+    CF::File_ptr create (const char* fileName);
 
-    CF::File_ptr open (const char* fileName, CORBA::Boolean read_Only)
-        throw (CF::FileException, CF::InvalidFileName, CORBA::SystemException);
+    CF::File_ptr open (const char* fileName, CORBA::Boolean read_Only);
 
-    CF::FileSystem::FileInformationSequence* list (const char* pattern)
-        throw (CF::InvalidFileName, CF::FileException, CORBA::SystemException);
+    CF::FileSystem::FileInformationSequence* list (const char* pattern);
 
-    CF::FileManager::MountSequence* getMounts () throw (CORBA::SystemException);
+    CF::FileManager::MountSequence* getMounts ();
 
 private:
     struct MountPoint {

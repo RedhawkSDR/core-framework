@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -75,6 +75,7 @@ _log4j_strftime= [
 
 class PatternLayout(logging.Formatter,object):
   def setConversionPattern(self, pattern):
+    from logging import PercentStyle
     self.pattern = pattern
     fmt = []
     # Translate the pattern to python logging formats
@@ -119,7 +120,10 @@ class PatternLayout(logging.Formatter,object):
           fmt.append(_FORMATTER_TRANS[char][0])
           fmt.append(modifier)
           fmt.append(_FORMATTER_TRANS[char][1])
-    self._fmt = "".join(fmt)
+    self._trans_fmt = "".join(fmt)
+    self._style = PercentStyle(self._trans_fmt)
+    self._fmt=self._style._fmt
+    
 
   def getConversionPattern(self):
     return pattern

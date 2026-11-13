@@ -115,7 +115,7 @@ class UsesPort(object):
     def _get_connections(self):
         self._connectionMutex.acquire()  
         try:
-            return [ExtendedCF.UsesConnection(k,v.port) for k, v in self._connections.iteritems()]
+            return [ExtendedCF.UsesConnection(k,v.port) for k, v in self._connections.items()]
         finally:
             self._connectionMutex.release()  
 

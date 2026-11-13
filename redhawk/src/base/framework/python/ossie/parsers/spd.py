@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
@@ -20,8 +20,8 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 
 #
-# Generated Mon Jul 30 12:29:35 2018 by generateDS.py version 2.29.14.
-# Python 2.7.5 (default, Nov  6 2016, 00:28:07)  [GCC 4.8.5 20150623 (Red Hat 4.8.5-11)]
+# Generated Mon Jun 21 16:13:00 2021 by generateDS.py version 2.29.14.
+# Python 2.7.5 (default, Nov 16 2020, 22:23:17)  [GCC 4.8.5 20150623 (Red Hat 4.8.5-44)]
 #
 # Command line options:
 #   ('-f', '')
@@ -52,7 +52,7 @@ except ImportError:
 
 Validate_simpletypes_ = True
 if sys.version_info[0] == 2:
-    BaseStrType_ = basestring
+    BaseStrType_ = str
 else:
     BaseStrType_ = str
 
@@ -115,7 +115,7 @@ except ImportError:
 #   in a module named generatedssuper.py.
 
 try:
-    from generatedssuper import GeneratedsSuper
+    from .generatedssuper import GeneratedsSuper
 except ImportError as exp:
     
     class GeneratedsSuper(object):
@@ -415,7 +415,7 @@ except ImportError as exp:
             return None
         @classmethod
         def gds_reverse_node_mapping(cls, mapping):
-            return dict(((v, k) for k, v in mapping.iteritems()))
+            return dict(((v, k) for k, v in mapping.items()))
         @staticmethod
         def gds_encode(instring):
             if sys.version_info[0] == 2:
@@ -426,7 +426,7 @@ except ImportError as exp:
         def convert_unicode(instring):
             if isinstance(instring, str):
                 result = quote_xml(instring)
-            elif sys.version_info[0] == 2 and isinstance(instring, unicode):
+            elif sys.version_info[0] == 2 and isinstance(instring, str):
                 result = quote_xml(instring).encode('utf8')
             else:
                 result = GeneratedsSuper.gds_encode(str(instring))
@@ -739,7 +739,7 @@ def _cast(typ, value):
 class softPkg(GeneratedsSuper):
     subclass = None
     superclass = None
-    def __init__(self, id_=None, name=None, type_=None, version=None, title=None, author=None, description=None, propertyfile=None, descriptor=None, implementation=None, usesdevice=None):
+    def __init__(self, id_=None, name=None, type_=None, version=None, title=None, author=None, description=None, propertyfile=None, descriptor=None, implementation=None, usesdevice=None, child=None):
         self.original_tagname_ = None
         self.id_ = _cast(None, id_)
         self.name = _cast(None, name)
@@ -761,6 +761,10 @@ class softPkg(GeneratedsSuper):
             self.usesdevice = []
         else:
             self.usesdevice = usesdevice
+        if child is None:
+            self.child = []
+        else:
+            self.child = child
     def factory(*args_, **kwargs_):
         if CurrentSubclassModule_ is not None:
             subclass = getSubclassFromModule_(
@@ -802,6 +806,12 @@ class softPkg(GeneratedsSuper):
     def insert_usesdevice_at(self, index, value): self.usesdevice.insert(index, value)
     def replace_usesdevice_at(self, index, value): self.usesdevice[index] = value
     usesdeviceProp = property(get_usesdevice, set_usesdevice)
+    def get_child(self): return self.child
+    def set_child(self, child): self.child = child
+    def add_child(self, value): self.child.append(value)
+    def insert_child_at(self, index, value): self.child.insert(index, value)
+    def replace_child_at(self, index, value): self.child[index] = value
+    childProp = property(get_child, set_child)
     def get_id(self): return self.id_
     def set_id(self, id_): self.id_ = id_
     idProp = property(get_id, set_id)
@@ -822,7 +832,8 @@ class softPkg(GeneratedsSuper):
             self.propertyfile is not None or
             self.descriptor is not None or
             self.implementation or
-            self.usesdevice
+            self.usesdevice or
+            self.child
         ):
             return True
         else:
@@ -882,6 +893,8 @@ class softPkg(GeneratedsSuper):
             implementation_.export(outfile, level, namespace_, name_='implementation', pretty_print=pretty_print)
         for usesdevice_ in self.usesdevice:
             usesdevice_.export(outfile, level, namespace_, name_='usesdevice', pretty_print=pretty_print)
+        for child_ in self.child:
+            child_.export(outfile, level, namespace_, name_='child', pretty_print=pretty_print)
     def build(self, node):
         already_processed = set()
         self.buildAttributes(node, node.attrib, already_processed)
@@ -940,6 +953,11 @@ class softPkg(GeneratedsSuper):
             obj_.build(child_)
             self.usesdevice.append(obj_)
             obj_.original_tagname_ = 'usesdevice'
+        elif nodeName_ == 'child':
+            obj_ = child.factory()
+            obj_.build(child_)
+            self.child.append(obj_)
+            obj_.original_tagname_ = 'child'
 # end class softPkg
 
 
@@ -1565,7 +1583,7 @@ class code(GeneratedsSuper):
         # Validate type codeFileType, a restriction on xs:NMTOKEN.
         if value is not None and Validate_simpletypes_:
             value = str(value)
-            enumerations = ['Executable', 'KernelModule', 'SharedLibrary', 'Driver']
+            enumerations = ['Executable', 'KernelModule', 'SharedLibrary', 'Driver', 'Container']
             enumeration_respectee = False
             for enum in enumerations:
                 if value == enum:
@@ -3228,6 +3246,165 @@ class values(GeneratedsSuper):
 # end class values
 
 
+class childSoftwarePackageFile(GeneratedsSuper):
+    subclass = None
+    superclass = None
+    def __init__(self, localfile=None):
+        self.original_tagname_ = None
+        self.localfile = localfile
+    def factory(*args_, **kwargs_):
+        if CurrentSubclassModule_ is not None:
+            subclass = getSubclassFromModule_(
+                CurrentSubclassModule_, childSoftwarePackageFile)
+            if subclass is not None:
+                return subclass(*args_, **kwargs_)
+        if childSoftwarePackageFile.subclass:
+            return childSoftwarePackageFile.subclass(*args_, **kwargs_)
+        else:
+            return childSoftwarePackageFile(*args_, **kwargs_)
+    factory = staticmethod(factory)
+    def get_localfile(self): return self.localfile
+    def set_localfile(self, localfile): self.localfile = localfile
+    localfileProp = property(get_localfile, set_localfile)
+    def hasContent_(self):
+        if (
+            self.localfile is not None
+        ):
+            return True
+        else:
+            return False
+    def export(self, outfile, level, namespace_='', name_='childSoftwarePackageFile', namespacedef_='', pretty_print=True):
+        imported_ns_def_ = GenerateDSNamespaceDefs_.get('childSoftwarePackageFile')
+        if imported_ns_def_ is not None:
+            namespacedef_ = imported_ns_def_
+        if pretty_print:
+            eol_ = '\n'
+        else:
+            eol_ = ''
+        if self.original_tagname_ is not None:
+            name_ = self.original_tagname_
+        showIndent(outfile, level, pretty_print)
+        outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
+        already_processed = set()
+        self.exportAttributes(outfile, level, already_processed, namespace_, name_='childSoftwarePackageFile')
+        if self.hasContent_():
+            outfile.write('>%s' % (eol_, ))
+            self.exportChildren(outfile, level + 1, namespace_='', name_='childSoftwarePackageFile', pretty_print=pretty_print)
+            showIndent(outfile, level, pretty_print)
+            outfile.write('</%s%s>%s' % (namespace_, name_, eol_))
+        else:
+            outfile.write('/>%s' % (eol_, ))
+    def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='childSoftwarePackageFile'):
+        pass
+    def exportChildren(self, outfile, level, namespace_='', name_='childSoftwarePackageFile', fromsubclass_=False, pretty_print=True):
+        if pretty_print:
+            eol_ = '\n'
+        else:
+            eol_ = ''
+        if self.localfile is not None:
+            self.localfile.export(outfile, level, namespace_, name_='localfile', pretty_print=pretty_print)
+    def build(self, node):
+        already_processed = set()
+        self.buildAttributes(node, node.attrib, already_processed)
+        for child in node:
+            nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
+            self.buildChildren(child, node, nodeName_)
+        return self
+    def buildAttributes(self, node, attrs, already_processed):
+        pass
+    def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
+        if nodeName_ == 'localfile':
+            obj_ = localFile.factory()
+            obj_.build(child_)
+            self.localfile = obj_
+            obj_.original_tagname_ = 'localfile'
+# end class childSoftwarePackageFile
+
+
+class child(GeneratedsSuper):
+    subclass = None
+    superclass = None
+    def __init__(self, name=None, childSoftwarePackageFile=None):
+        self.original_tagname_ = None
+        self.name = _cast(None, name)
+        self.childSoftwarePackageFile = childSoftwarePackageFile
+    def factory(*args_, **kwargs_):
+        if CurrentSubclassModule_ is not None:
+            subclass = getSubclassFromModule_(
+                CurrentSubclassModule_, child)
+            if subclass is not None:
+                return subclass(*args_, **kwargs_)
+        if child.subclass:
+            return child.subclass(*args_, **kwargs_)
+        else:
+            return child(*args_, **kwargs_)
+    factory = staticmethod(factory)
+    def get_childSoftwarePackageFile(self): return self.childSoftwarePackageFile
+    def set_childSoftwarePackageFile(self, childSoftwarePackageFile): self.childSoftwarePackageFile = childSoftwarePackageFile
+    childSoftwarePackageFileProp = property(get_childSoftwarePackageFile, set_childSoftwarePackageFile)
+    def get_name(self): return self.name
+    def set_name(self, name): self.name = name
+    nameProp = property(get_name, set_name)
+    def hasContent_(self):
+        if (
+            self.childSoftwarePackageFile is not None
+        ):
+            return True
+        else:
+            return False
+    def export(self, outfile, level, namespace_='', name_='child', namespacedef_='', pretty_print=True):
+        imported_ns_def_ = GenerateDSNamespaceDefs_.get('child')
+        if imported_ns_def_ is not None:
+            namespacedef_ = imported_ns_def_
+        if pretty_print:
+            eol_ = '\n'
+        else:
+            eol_ = ''
+        if self.original_tagname_ is not None:
+            name_ = self.original_tagname_
+        showIndent(outfile, level, pretty_print)
+        outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
+        already_processed = set()
+        self.exportAttributes(outfile, level, already_processed, namespace_, name_='child')
+        if self.hasContent_():
+            outfile.write('>%s' % (eol_, ))
+            self.exportChildren(outfile, level + 1, namespace_='', name_='child', pretty_print=pretty_print)
+            showIndent(outfile, level, pretty_print)
+            outfile.write('</%s%s>%s' % (namespace_, name_, eol_))
+        else:
+            outfile.write('/>%s' % (eol_, ))
+    def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='child'):
+        if self.name is not None and 'name' not in already_processed:
+            already_processed.add('name')
+            outfile.write(' name=%s' % (self.gds_encode(self.gds_format_string(quote_attrib(self.name), input_name='name')), ))
+    def exportChildren(self, outfile, level, namespace_='', name_='child', fromsubclass_=False, pretty_print=True):
+        if pretty_print:
+            eol_ = '\n'
+        else:
+            eol_ = ''
+        if self.childSoftwarePackageFile is not None:
+            self.childSoftwarePackageFile.export(outfile, level, namespace_, name_='childSoftwarePackageFile', pretty_print=pretty_print)
+    def build(self, node):
+        already_processed = set()
+        self.buildAttributes(node, node.attrib, already_processed)
+        for child in node:
+            nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
+            self.buildChildren(child, node, nodeName_)
+        return self
+    def buildAttributes(self, node, attrs, already_processed):
+        value = find_attr_value_('name', node)
+        if value is not None and 'name' not in already_processed:
+            already_processed.add('name')
+            self.name = value
+    def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
+        if nodeName_ == 'childSoftwarePackageFile':
+            obj_ = childSoftwarePackageFile.factory()
+            obj_.build(child_)
+            self.childSoftwarePackageFile = obj_
+            obj_.original_tagname_ = 'childSoftwarePackageFile'
+# end class child
+
+
 GDSClassesMapping = {
     'softpkg': softPkg,
 }
@@ -3306,7 +3483,10 @@ def parseString(inString, silence=False):
     Returns -- The root object in the tree.
     '''
     parser = None
-    rootNode= parsexmlstring_(inString, parser)
+    _inString=inString
+    if type(inString) == str:
+        _inString=inString.encode()
+    rootNode= parsexmlstring_(_inString, parser)
     rootTag, rootClass = get_root_tag(rootNode)
     if rootClass is None:
         rootTag = 'softpkg'
@@ -3358,6 +3538,8 @@ if __name__ == '__main__':
 
 __all__ = [
     "author",
+    "child",
+    "childSoftwarePackageFile",
     "code",
     "compiler",
     "dependency",

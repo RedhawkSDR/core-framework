@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -27,7 +27,7 @@ This program cleans up services associated with omniORB. It stops omniNames and 
 
 Use this program only if the Domain is hopelessly damaged and a complete cleanup is needed.
 """
-import os, sys, commands
+import os, sys, subprocess
 
 def read_pid(filename):
     try:
@@ -51,7 +51,7 @@ if __name__ == '__main__':
     errors = 0
 
     if os.geteuid() != 0:
-        print "This script must be run with root privileges"
+        print("This script must be run with root privileges")
         sys.exit(-1)
 
     oe_pid = read_pid('/var/run/omniEvents.pid')
@@ -63,41 +63,41 @@ if __name__ == '__main__':
         except:
             oe_up = False
     if options.verbose:
-        print "Stopping omniEvents"
-    retval=commands.getstatusoutput('/sbin/service omniEvents stop')
+        print("Stopping omniEvents")
+    retval=subprocess.getstatusoutput('/sbin/service omniEvents stop')
     if options.verbose:
-        print "Stopping omniNames"
-    retval=commands.getstatusoutput('/sbin/service omniNames stop')
+        print("Stopping omniNames")
+    retval=subprocess.getstatusoutput('/sbin/service omniNames stop')
     if oe_up:
         try:
             retval = os.getsid(oe_pid)
         except:
             try:
                 if options.verbose:
-                    print "Killing omniEvents process"
+                    print("Killing omniEvents process")
                 os.kill(oe_pid, 9)
             except:
                 pass
         if os.path.exists("/proc/"+str(oe_pid)):
             try:
                 if options.verbose:
-                    print "Killing omniEvents process"
+                    print("Killing omniEvents process")
                 os.kill(oe_pid, 9)
             except:
                 pass
     if options.verbose:
-        print "Removing omniNames log"
-    retval=commands.getstatusoutput('rm -rf /var/log/omniORB/*')
+        print("Removing omniNames log")
+    retval=subprocess.getstatusoutput('rm -rf /var/log/omniORB/*')
     if options.verbose:
-        print "Removing omniEvents log"
-    retval=commands.getstatusoutput('[ -d /var/lib/omniEvents ] && rm -rf /var/lib/omniEvents/*')
-    retval=commands.getstatusoutput('[ -d /var/log/omniEvents ] && rm -rf /var/log/omniEvents/*')
+        print("Removing omniEvents log")
+    retval=subprocess.getstatusoutput('[ -d /var/lib/omniEvents ] && rm -rf /var/lib/omniEvents/*')
+    retval=subprocess.getstatusoutput('[ -d /var/log/omniEvents ] && rm -rf /var/log/omniEvents/*')
     if options.verbose:
-        print "Starting omniNames"
+        print("Starting omniNames")
     if os.system('/sbin/service omniNames start'):
         errors += 1
     if options.verbose:
-        print "Starting omniEvents"
+        print("Starting omniEvents")
     if os.system('/sbin/service omniEvents start'):
         errors += 1
     raise SystemExit(errors)

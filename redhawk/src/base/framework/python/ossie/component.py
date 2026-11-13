@@ -18,8 +18,8 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 from ossie.cf import CF
-from resource import Resource
-import containers
+from .resource import Resource
+from . import containers
 from omniORB import CORBA
 
 class Component(Resource):

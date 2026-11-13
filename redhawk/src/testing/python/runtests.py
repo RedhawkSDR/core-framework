@@ -103,7 +103,7 @@ class TestProgram(object):
                 else:
                     self.testRunner = xmlrunner.XMLTestRunner(verbosity=self.verbosity)
             except ImportError:
-                print >>sys.stderr, 'WARNING: XML test runner module is not installed'
+                print('WARNING: XML test runner module is not installed', file=sys.stderr)
             except TypeError:
                 # Maybe it didn't like the verbosity argument
                 self.testRunner = xmlrunner.XMLTestRunner()

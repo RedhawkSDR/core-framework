@@ -52,7 +52,7 @@ namespace redhawk {
     PortCallError::PortCallError( const std::string &msg, const std::vector<std::string> &connectionids ) :
         std::runtime_error(PortCallError::makeMessage(msg, connectionids)) {}
 
-    PortCallError::~PortCallError() throw () {}
+    PortCallError::~PortCallError() {}
 
     std::string PortCallError::makeMessage(const std::string& msg, const std::vector<std::string>& connectionids) {
         std::ostringstream cnvt;

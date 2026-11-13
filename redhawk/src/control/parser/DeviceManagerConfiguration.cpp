@@ -26,11 +26,11 @@ using namespace ossie;
 
 PREPARE_CF_LOGGING(DeviceManagerConfiguration);
 
-DeviceManagerConfiguration::DeviceManagerConfiguration(std::istream& input) throw (ossie::parser_error) {
+DeviceManagerConfiguration::DeviceManagerConfiguration(std::istream& input) {
     this->load(input);
 }
 
-void DeviceManagerConfiguration::load(std::istream& input) throw (ossie::parser_error) 
+void DeviceManagerConfiguration::load(std::istream& input)
 {
     _dcd = ossie::internalparser::parseDCD(input);
 }
@@ -87,7 +87,7 @@ const char* DeviceManagerConfiguration::getFileNameFromRefId(const char* refid) 
     return 0;
 }
 
-const ComponentInstantiation& DeviceManagerConfiguration::getComponentInstantiationById(std::string id) throw(std::out_of_range) {
+const ComponentInstantiation& DeviceManagerConfiguration::getComponentInstantiationById(std::string id) {
     const std::vector<DevicePlacement>& componentPlacements = getComponentPlacements();
     std::vector<DevicePlacement>::const_iterator i;
     for (i = componentPlacements.begin(); i != componentPlacements.end(); ++i) {

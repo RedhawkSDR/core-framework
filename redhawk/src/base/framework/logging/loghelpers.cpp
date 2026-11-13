@@ -813,7 +813,7 @@ namespace ossie {
     }
 
 
-    std::string GetSCAFileContents( const std::string &url) throw ( std::exception )
+    std::string GetSCAFileContents( const std::string &url)
     {
       std::string fileContents;
       std::string::size_type pos;
@@ -853,7 +853,7 @@ namespace ossie {
       return fileContents;
     }
 
-    std::string GetHTTPFileContents(const std::string &url) throw ( std::exception )
+    std::string GetHTTPFileContents(const std::string &url)
     {
       std::string fileContents;
       std::ostringstream ss;
@@ -925,9 +925,10 @@ namespace ossie {
         }
 
         while (boost::asio::read(socket, response,
-            boost::asio::transfer_at_least(1), error)) 
+            boost::asio::transfer_at_least(1), error)) {
           ss << &response;
-          fileContents = ss.str();
+        }
+        fileContents = ss.str();
         if (error != boost::asio::error::eof)
           throw boost::system::system_error(error);
         
@@ -938,7 +939,7 @@ namespace ossie {
       return fileContents;
     }
 
-    std::string GetConfigFileContents( const std::string &url ) throw (std::exception)
+    std::string GetConfigFileContents( const std::string &url )
     {
       std::string fileContents("");
       if ( url.find( "file://") == 0 ) { 

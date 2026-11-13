@@ -27,91 +27,17 @@ import tempfile
 import subprocess
 import platform
 import zipfile
+from ossie.utils.sandbox.cluster import cluster
+from .process import LocalProcess
 
 from ossie.utils import log4py
 from ossie import parsers
 from ossie.utils.popen import Popen
+from ossie.utils import uuid as _uuid
 
-__all__ = ('LocalProcess', 'VirtualDevice')
+__all__ = ('VirtualDevice')
 
 log = logging.getLogger(__name__)
-
-
-class LocalProcess(object):
-    STOP_SIGNALS = ((signal.SIGINT, 1),
-                    (signal.SIGTERM, 5),
-                    (signal.SIGKILL, 0))
-
-    def __init__(self, command, arguments, environment=None, stdout=None):
-        self.__terminateRequested = False
-        self.__command = command
-        self.__arguments = arguments
-        log.debug('%s %s', command, ' '.join(arguments))
-        self.__process = Popen([command]+arguments, executable=command,
-                               cwd=os.getcwd(), env=environment,
-                               stdout=stdout, stderr=subprocess.STDOUT,
-                               preexec_fn=os.setpgrp)
-        self.__tracker = None
-        self.__callback = None
-        self.__children = []
-    
-    def setTerminationCallback(self, callback):
-        if not self.__tracker:
-            # Nothing is currently waiting for notification, start monitor.
-            name = 'process-%d-tracker' % self.pid()
-            self.__tracker = threading.Thread(name=name, target=self._monitorProcess)
-            self.__tracker.daemon = True
-            self.__tracker.start()
-        self.__callback = callback
-
-    def _monitorProcess(self):
-        try:
-            status = self.__process.wait()
-        except:
-            # If wait fails, don't bother with notification.
-            return
-        if self.__callback:
-            self.__callback(self.pid(), status)
-
-    def terminate(self):
-        for child in self.__children:
-            child.terminate()
-        self.__children = []
-
-        for sig, timeout in self.STOP_SIGNALS:
-            try:
-                log.debug('Killing process group %s with signal %s', self.__process.pid, sig)
-                os.killpg(self.__process.pid, sig)
-            except OSError:
-                pass
-            giveup_time = time.time() + timeout
-            while self.__process.poll() is None:
-                if time.time() > giveup_time:
-                    break
-                time.sleep(0.1)
-            if self.__process.poll() is not None:
-                break
-        self.__process.wait()
-        self.__process = None
-    
-    def requestTermination(self):
-        self.__terminateRequested = True
-    
-    def command(self):
-        return self.__command
-
-    def pid(self):
-        if self.__process:
-            return self.__process.pid
-        else:
-            return None
-
-    def isAlive(self):
-        return self.__process and self.__process.poll() is None
-
-    def addChild(self, process):
-        self.__children.append(process)
-
 
 class VirtualDevice(object):
     def __init__(self):
@@ -153,16 +79,22 @@ class VirtualDevice(object):
         localfile = impl.get_code().get_localfile().get_name()
         filename = sdrroot.relativePath(profile, localfile)
         log.trace("Checking localfile '%s' ('%s')", localfile, filename)
-        if not os.path.exists(filename):
-            return False
+        if impl.get_code().get_type() not in "Container":
+            if not os.path.exists(filename):
+                return False
 
         # If the implementation has an entry point, make sure it exists too
         if impl.get_code().get_entrypoint():
-            entry_point = impl.get_code().get_entrypoint()
-            filename = sdrroot.relativePath(profile, entry_point)
+            entry_point = impl.get_code().get_entrypoint().split('::')[0]
+
+            if impl.get_code().get_type() not in "Container":
+                filename = sdrroot.relativePath(profile, entry_point)
+                if not os.path.exists(filename):
+                    return False
+            else:
+                # no way to check the content of the container without running it
+                pass
             log.trace("Checking entrypoint '%s' ('%s')", entry_point, filename)
-            if not os.path.exists(filename):
-                return False
 
         return True
 
@@ -170,18 +102,19 @@ class VirtualDevice(object):
         for impl in spd.get_implementation():
             if self._checkImplementation(sdrroot, profile, impl):
                 return impl
-        raise RuntimeError, "Softpkg '%s' has no usable implementation" % spd.get_name()
+        raise RuntimeError("Softpkg '%s' has no usable implementation" % spd.get_name())
 
-    def execute(self, entryPoint, deps, execparams, debugger, window, stdout=None):
+    def getExecArgs(self, entryPoint, deps, execparams, debugger, window, stdout=None, isContainer=False):        
         # Make sure the entry point exists and can be run.
-        if not os.path.exists(entryPoint):
-            raise RuntimeError, "Entry point '%s' does not exist" % entryPoint
-        elif not os.access(entryPoint, os.X_OK|os.R_OK):
-            raise RuntimeError, "Entry point '%s' is not executable" % entryPoint
+        if not isContainer:
+            if not os.path.exists(entryPoint):
+                raise RuntimeError("Entry point '%s' does not exist" % entryPoint)
+            elif not os.access(entryPoint, os.X_OK|os.R_OK):
+                raise RuntimeError("Entry point '%s' is not executable" % entryPoint)
         log.trace("Using entry point '%s'", entryPoint)
 
         # Process softpkg dependencies and modify the child environment.
-        environment = dict(os.environ.items())
+        environment = dict(list(os.environ.items()))
         for dependency in deps:
             self._processDependency(environment, dependency)
 
@@ -190,7 +123,10 @@ class VirtualDevice(object):
 
         # Convert execparams into arguments.
         arguments = []
-        for name, value in execparams.iteritems():
+        for name, value in execparams.items():
+            # pass omniORB params to process
+            if name.startswith('ORB'):
+                name='-{}'.format(name)
             arguments += [name, str(value)]
 
         if window:
@@ -219,13 +155,49 @@ class VirtualDevice(object):
                 window_proc = LocalProcess(window_command, window_args)
                 stdout = open(fifoname, 'w')
                 os.unlink(fifoname)
-            except IOError, e:
+            except IOError as e:
                 pass
         elif window_mode == 'direct':
             # Run the command directly in a window (typically, in the debugger).
             command, arguments = window.command(command, arguments)
+
+        return command, arguments, environment, stdout
+
+    def execute(self, entryPoint, deps, execparams, debugger, window, env, stdout=None):
+
+        command, arguments, environment, stdout = self.getExecArgs(entryPoint, deps, execparams, debugger, window, stdout)
+
+        # add other environment variables to the process
+        if env:
+            environment.update(env)
+
         process = LocalProcess(command, arguments, environment, stdout)
 
+        return process
+
+    def executeContainer(self, entryPoint_image, deps, execparams, debugger, window, stdout=None, orchestrationType=None, componenthostid=None):
+        image = ""
+        if "::" in entryPoint_image:
+            entryPoint = entryPoint_image.split("::")[0]
+            image      = entryPoint_image.split("::")[1]
+        else:
+            raise RuntimeError("No docker image was found in the spd file")
+
+        command, arguments, environment, stdout = self.getExecArgs(entryPoint, deps, execparams, debugger, window, stdout, True)
+
+        if command[-3:] == '.py':
+            arguments.insert(0,command)
+            arguments.insert(0, '-u')
+            command = '/usr/bin/python'
+
+        if command[-3:] == '.so':
+            c_command, c_arguments, c_environment, c_stdout = command, arguments, environment, stdout
+            command = "/var/redhawk/sdr/dom/mgr/rh/ComponentHost/ComponentHost"
+            arguments[1] = 'DCE:'+str(_uuid.uuid4())
+            arguments[5] = "/var/redhawk/sdr/dom/mgr/rh/ComponentHost/ComponentHost.spd.xml"
+            arguments[7] = componenthostid
+
+        process = cluster.executeCluster(command, arguments, image, environment, stdout, orchestrationType)
         return process
 
     def _processDependency(self, environment, filename):
@@ -242,7 +214,7 @@ class VirtualDevice(object):
     def _isSharedLibrary(self, filename):
         try:
             with open(filename, 'rb') as f:
-                return f.read(4) == '\x7fELF'
+                return f.read(4) == b'\x7fELF'
         except:
             return False
 

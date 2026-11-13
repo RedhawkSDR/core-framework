@@ -20,7 +20,7 @@
 
 import os, sys
 import xml.dom.minidom
-import base
+from . import base
 # from errorMsg import *
 
 availableTypes = ["boolean", "char", "double", "float", "short", "long",
@@ -35,7 +35,7 @@ def getResource(path,Rname,parent=None, idl_cache = None):
     scdPath = findFile(path,Rname,".scd.xml")                
     if scdPath == None:         
 #         errorMsg(parent,"No scd file found for: " + Rname)
-        print "No scd file found for: " + Rname
+        print("No scd file found for: " + Rname)
         return None
     
     spdPath = findFile(path,Rname,".spd.xml")
@@ -48,22 +48,22 @@ def getResource(path,Rname,parent=None, idl_cache = None):
     doc_scd.normalize()
     if len(doc_scd.getElementsByTagName('softwarecomponent')[0].getElementsByTagName('componenttype'))==0:
 #         errorMsg(parent,"Invalid file: " + scdPath)
-        print "Invalid file: " + scdPath
+        print("Invalid file: " + scdPath)
         return None
 
     component_type = doc_scd.getElementsByTagName('softwarecomponent')[0].getElementsByTagName('componenttype')[0].childNodes[0].data
     #Instantiate a new component of the appropriate type
-    if component_type == u'resource':
+    if component_type == 'resource':
         newComp = base.Component(name=Rname,type='resource', int_list = _idl_cache)
-    elif component_type == u'executabledevice':
+    elif component_type == 'executabledevice':
         newComp = base.Component(name=Rname,type='executabledevice', int_list = _idl_cache)
-    elif component_type == u'loadabledevice':
+    elif component_type == 'loadabledevice':
         newComp = base.Component(name=Rname,type='loadabledevice', int_list = _idl_cache)
-    elif component_type == u'device':
+    elif component_type == 'device':
         newComp = base.Component(name=Rname,type='device', int_list = _idl_cache)
     else:
 #         errorMsg(parent,"Can't identify resource type for: " + Rname)
-        print "Can't identify resource type for: " + Rname
+        print("Can't identify resource type for: " + Rname)
         return None
 
     # Get the Ports
@@ -114,7 +114,7 @@ def getResource(path,Rname,parent=None, idl_cache = None):
     properties_tag = doc_prf.getElementsByTagName('properties')
     if len(properties_tag)==0:
 #         errorMsg(parent,"Invalid file: " + prfPath)
-        print "Invalid file: " + prfPath
+        print("Invalid file: " + prfPath)
         return None
 
     simple_properties = properties_tag[0].getElementsByTagName('simple')
@@ -148,7 +148,7 @@ def getInterface(repid,name):
         
     except:
 #         errorMsg(parent,"Can't read the Interface information for port: " + name)
-        print "Can't read the Interface information for port: " + name
+        print("Can't read the Interface information for port: " + name)
         return None
     
     

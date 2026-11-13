@@ -24,7 +24,7 @@ from ossie.utils.idl import _omniidl
 import os
 import threading
 from omniORB import CORBA
-
+import traceback
 #import base
 
 _lock = threading.Lock()
@@ -252,8 +252,16 @@ class InterfaceVisitor(idlvisitor.AstVisitor):
             call.accept(self)
 
         # find and store any inheritances
-        self.interface.inherited_names = [(i.scopedName()[0],i.identifier()) for i in node.inherits()]
         self.interface.inherits = self._getInheritedRepoIDs(node)
+
+        # scopedName bug: only returns first level of namespacing, will miss omg.org/Cos.../
+        self.interface.inherited_names=[]
+        _ih_names = [(i.scopedName()[0],i.identifier()) for i in node.inherits()]
+        for name in _ih_names:
+            for repoid in self.interface.inherits:
+                fqn=repoid.split(':')[1].split('/')
+                if set(name).issubset(set(fqn)):
+                      self.interface.inherited_names.append(( '/'.join(fqn[:-1]),fqn[-1]))
 
     def visitAttribute(self, node):
         # create the Attribute object
@@ -297,11 +305,13 @@ class IdlStruct():
             self.members[member.declarators()[0].scopedName()[-1]] = baseTypes[member.memberType().kind()]
         
 class ExampleVisitor (idlvisitor.AstVisitor):
-    def __init__(self,*args):
+    def __init__(self,*args,**kwds):
         self.myInterfaces = []   #Used to store the interfaces that are found
         self.myStructs = []
-        if hasattr(idlvisitor.AstVisitor,'__init__'):
-            idlvisitor.AstVisitor.__init__(self,args)
+        try:
+            super(idlvisitor.AstVisitor,self).__init__(*args,**kwds)
+        except:
+            pass
 
     def visitAST(self, node):
         for n in node.declarations():
@@ -425,7 +435,7 @@ def importStandardIdl(std_idl_path='/usr/local/share/idl/ossie', std_idl_include
     std_idl_path = os.path.normpath(std_idl_path)
 
     if not os.path.exists(std_idl_path):
-        print "Cannot find OSSIE installation location:\n" + std_idl_path
+        print("Cannot find OSSIE installation location:\n" + std_idl_path)
         return
 
     # list to hold IDL files
@@ -438,7 +448,7 @@ def importStandardIdl(std_idl_path='/usr/local/share/idl/ossie', std_idl_include
     # don't want them asscociated with anything other than cf.idl
     cfdir = os.path.join(std_idl_path, "ossie/CF")
     if not os.path.isdir(cfdir):
-        print "Cannot find CF idl files in the OSSIE installation location:\n" + cfdir
+        print("Cannot find CF idl files in the OSSIE installation location:\n" + cfdir)
 
     for file in os.listdir(cfdir):
         if os.path.splitext(file)[1] == '.idl':
@@ -455,7 +465,7 @@ def importStandardIdl(std_idl_path='/usr/local/share/idl/ossie', std_idl_include
 
     if len(idlList) <= 0:
         tmpstr = "Can't find any files in: " + std_idl_path
-        print tmpstr
+        print(tmpstr)
         return
 
     # Add the CF interfaces first - in case another file includes them, we
@@ -521,4 +531,4 @@ if __name__ == '__main__':
         if options.include:
             includepaths = [x for x in options.include.split(",") if x]
 
-        print getInterfacesFromFileAsString(options.filepath, includepaths)
+        print(getInterfacesFromFileAsString(options.filepath, includepaths))

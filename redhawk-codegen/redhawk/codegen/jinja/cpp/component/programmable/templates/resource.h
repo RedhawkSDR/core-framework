@@ -58,7 +58,11 @@ class ${className} : public ${baseClass}_type
         ~${className}();
         int serviceFunction();
 //% if component is device
-        void initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException);
+        /**
+         * @throw CF::LifeCycle::InitializeError
+         * @throw CORBA::SystemException
+         */
+        void initialize();
 
     protected:
         ${executeClass}* generate${executeType.capitalize()}(int argc, char* argv[], ConstructorPtr fnptr, const char* libName);

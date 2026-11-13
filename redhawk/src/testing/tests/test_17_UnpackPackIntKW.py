@@ -71,7 +71,7 @@ class BlueFileExtKeyword(unittest.TestCase):
         sri.keywords=mykw
         bf.start()
         bf.pushSRI(sri)
-        tmpData = range(0, 1024)
+        tmpData = list(range(0, 1024))
         srid=ossie.properties.props_to_dict(sri.keywords)
         return filename
 
@@ -97,14 +97,7 @@ class BlueFileExtKeyword(unittest.TestCase):
                          msg="\nKeyword is not packed and unpacked consistently")
 
     def _typeInteger(self, dt):
-        # read in same file and check keyword
-        cver=platform.linux_distribution()[1]
-        datatype = str(type(dt))
-        if cver.startswith('7'):
-            self.assertIn('int',datatype, msg=("\nKeyword is not packed/unpacked as an integer (int, numpy.int32, or numpy.int16)"))
-        else:
-            self.assertTrue('int' in datatype, msg=("\nKeyword is not packed/unpacked as an integer (int, numpy.int32, or numpy.int16)"))
-
+        self.assertEqual(int, type(dt), msg=("\nKeyword is not packed/unpacked as an integer (int, numpy.int32, or numpy.int16)"))
 
     def test_typeInteger(self):
     #confirm value types are integers (int, numpy.int32, numpy.int16)

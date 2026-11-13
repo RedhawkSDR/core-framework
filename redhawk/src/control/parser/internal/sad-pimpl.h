@@ -73,11 +73,14 @@ namespace sad
     virtual void
     name (const ::std::string&);
 
-    virtual ::std::auto_ptr<ossie::SoftwareAssembly::SAD>
+    virtual void
+    version (const ::std::string&);
+
+    virtual ::std::unique_ptr<ossie::SoftwareAssembly::SAD>
     post_softwareassembly ();
 
     private:
-    std::auto_ptr<ossie::SoftwareAssembly::SAD> _sad;
+    std::unique_ptr<ossie::SoftwareAssembly::SAD> _sad;
   };
 
   class componentfiles_pimpl: public virtual componentfiles_pskel
@@ -115,7 +118,7 @@ namespace sad
     post_componentfile ();
     
     private:
-    std::auto_ptr<ossie::ComponentFile> componentFile;
+    std::unique_ptr<ossie::ComponentFile> componentFile;
   };
 
   class localfile_pimpl: public virtual localfile_pskel
@@ -150,7 +153,7 @@ namespace sad
     post_partitioning ();
     
     private:
-    std::auto_ptr<ossie::SoftwareAssembly::Partitioning> partitioning;
+    std::unique_ptr<ossie::SoftwareAssembly::Partitioning> partitioning;
   };
 
   class componentplacement_pimpl: public virtual componentplacement_pskel
@@ -589,7 +592,7 @@ namespace sad
     post_findby ();
 
     private:
-    std::auto_ptr<ossie::FindBy> findby;
+    std::unique_ptr<ossie::FindBy> findby;
   };
 
   class namingservice_pimpl: public virtual namingservice_pskel
@@ -653,7 +656,7 @@ namespace sad
     post_hostcollocation ();
 
     private:
-    std::auto_ptr<ossie::SoftwareAssembly::HostCollocation> hostcollocation; 
+    std::unique_ptr<ossie::SoftwareAssembly::HostCollocation> hostcollocation; 
   };
 
   class usesdeviceref_pimpl: public virtual usesdeviceref_pskel
@@ -750,7 +753,7 @@ namespace sad
     post_connectinterface ();
 
     private:
-    std::auto_ptr<ossie::Connection> connection;
+    std::unique_ptr<ossie::Connection> connection;
   };
 
   class usesport_pimpl: public virtual usesport_pskel
@@ -781,7 +784,7 @@ namespace sad
     post_usesport ();
 
     private:
-    std::auto_ptr<ossie::UsesPort> usesPort;
+    std::unique_ptr<ossie::UsesPort> usesPort;
   };
 
   class providesport_pimpl: public virtual providesport_pskel
@@ -812,7 +815,7 @@ namespace sad
     post_providesport ();
 
     private:
-    std::auto_ptr<ossie::ProvidesPort> provPort;
+    std::unique_ptr<ossie::ProvidesPort> provPort;
   };
 
   class componentsupportedinterface_pimpl: public virtual componentsupportedinterface_pskel
@@ -843,7 +846,7 @@ namespace sad
     post_componentsupportedinterface ();
 
     private:
-    std::auto_ptr<ossie::ComponentSupportedInterface> ciface;
+    std::unique_ptr<ossie::ComponentSupportedInterface> ciface;
   };
 
   class externalports_pimpl: public virtual externalports_pskel
@@ -890,7 +893,7 @@ namespace sad
     post_port ();
 
     private:
-    std::auto_ptr<ossie::SoftwareAssembly::Port> port;
+    std::unique_ptr<ossie::SoftwareAssembly::Port> port;
   };
 
   class externalproperties_pimpl: public virtual externalproperties_pskel
@@ -928,7 +931,7 @@ namespace sad
       post_property ();
 
   private:
-      std::auto_ptr<ossie::SoftwareAssembly::Property> property;
+      std::unique_ptr<ossie::SoftwareAssembly::Property> property;
   };
 
   class options_pimpl: public virtual options_pskel
@@ -963,7 +966,7 @@ namespace sad
     post_option ();
 
     private:
-    std::auto_ptr<ossie::SoftwareAssembly::Option> option;
+    std::unique_ptr<ossie::SoftwareAssembly::Option> option;
   };
 
   class usesdevicedependencies_pimpl: public virtual usesdevicedependencies_pskel
@@ -1013,7 +1016,7 @@ namespace sad
       post_usesdevice ();
 
   private:
-      std::auto_ptr<ossie::UsesDevice> uses;
+      std::unique_ptr<ossie::UsesDevice> uses;
   };
 
   class propertyref_pimpl: public virtual propertyref_pskel
@@ -1032,7 +1035,7 @@ namespace sad
       post_propertyref ();
 
   private:
-      std::auto_ptr<ossie::SimplePropertyRef> propRef;
+      std::unique_ptr<ossie::SimplePropertyRef> propRef;
   };
 }
 

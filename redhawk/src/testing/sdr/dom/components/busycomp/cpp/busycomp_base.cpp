@@ -27,13 +27,13 @@ busycomp_base::~busycomp_base()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void busycomp_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void busycomp_base::start()
 {
     Component::start();
     ThreadedComponent::startThread();
 }
 
-void busycomp_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void busycomp_base::stop()
 {
     Component::stop();
     if (!ThreadedComponent::stopThread()) {
@@ -41,7 +41,7 @@ void busycomp_base::stop() throw (CORBA::SystemException, CF::Resource::StopErro
     }
 }
 
-void busycomp_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void busycomp_base::releaseObject()
 {
     // This function clears the component running condition so main shuts down everything
     try {

@@ -42,6 +42,7 @@ class FrontendComponentMapper(PullComponentMapper):
         # and FrontendTuner)
         inherits = { 'DigitalScanningTuner': ('ScanningTuner', 'DigitalTuner', 'AnalogTuner', 'FrontendTuner'),
                      'AnalogScanningTuner': ('ScanningTuner', 'AnalogTuner', 'FrontendTuner'),
+                     'TransmitControl': ('DigitalTuner', 'AnalogTuner', 'FrontendTuner'),
                      'DigitalTuner': ('AnalogTuner', 'FrontendTuner'),
                      'AnalogTuner': ('FrontendTuner',) }
 
@@ -96,16 +97,29 @@ class FrontendPropertyMapper(CppPropertyMapper):
     FRONTEND_BUILTINS = (
         'FRONTEND::tuner_allocation',
         'FRONTEND::listener_allocation',
+        'FRONTEND::transmitter_allocation',
         'FRONTEND::scanner_allocation'
     )
+
+    FRONTEND_PARENTONLY = (
+        'FRONTEND::tuner_allocation',
+        'FRONTEND::listener_allocation',
+        'FRONTEND::transmitter_allocation',
+        'FRONTEND::scanner_allocation'
+    )
+
+    HW_PARENTONLY = ('device_characteristics', 'device_mode')
 
     def mapStructProperty(self, prop, fields):
         cppprop = super(FrontendPropertyMapper,self).mapStructProperty(prop, fields)
         if prop.identifier() == 'FRONTEND::tuner_status_struct':
             cppprop['baseclass'] = 'frontend::default_frontend_tuner_status_struct_struct'
+            cppprop['parentonly'] = True
             for field in fields:
                 if field['cppname'] in self.TUNER_STATUS_BASE_FIELDS:
                     field['inherited'] = True
+        if prop.identifier() in self.HW_PARENTONLY:
+            cppprop['parentonly'] = True
         elif prop.identifier() in self.FRONTEND_BUILTINS:
             cppprop['builtin'] = True
         return cppprop

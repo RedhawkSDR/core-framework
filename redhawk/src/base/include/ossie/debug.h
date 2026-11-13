@@ -27,6 +27,8 @@
 #include<string>
 #include<cstring>
 
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
+
 //
 //  Disable Redhawk Logger class
 //

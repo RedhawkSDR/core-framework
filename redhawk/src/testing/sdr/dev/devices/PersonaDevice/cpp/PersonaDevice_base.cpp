@@ -71,11 +71,11 @@ void PersonaDevice_base::construct()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void PersonaDevice_base::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException)
+void PersonaDevice_base::initialize()
 {
 }
 
-void PersonaDevice_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void PersonaDevice_base::start()
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
     if (serviceThread == 0) {
@@ -88,7 +88,7 @@ void PersonaDevice_base::start() throw (CORBA::SystemException, CF::Resource::St
     }
 }
 
-void PersonaDevice_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void PersonaDevice_base::stop()
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
     // release the child thread (if it exists)
@@ -104,7 +104,7 @@ void PersonaDevice_base::stop() throw (CORBA::SystemException, CF::Resource::Sto
     }
 }
 
-void PersonaDevice_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void PersonaDevice_base::releaseObject()
 {
     // This function clears the device running condition so main shuts down everything
     try {

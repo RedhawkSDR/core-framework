@@ -26,7 +26,7 @@ from ossie.utils import weakobj
 from ossie.utils.model.connect import ConnectionManager
 from ossie.utils.uuid import uuid4
 
-from model import SandboxComponent, SandboxDevice, SandboxService, SandboxEventChannel
+from .model import SandboxComponent, SandboxDevice, SandboxService, SandboxEventChannel
 
 log = logging.getLogger(__name__)
 
@@ -80,7 +80,7 @@ class SdrRoot(object):
         elif objType in (None, 'all'):
             return set(ALL_TYPES)
         else:
-            raise ValueError, "'%s' is not a valid object type" % objType
+            raise ValueError("'%s' is not a valid object type" % objType)
 
     def findProfile(self, descriptor, objType=None):
         # Try the descriptor as a path to an SPD first
@@ -100,13 +100,13 @@ class SdrRoot(object):
         if len(objMatches) == 1:
             return objMatches[0]
         elif len(objMatches) > 1:
-            print "There are multiple object types with the name '%s'" % descriptor
+            print("There are multiple object types with the name '%s'" % descriptor)
             for type in objMatches:
-                print " ", type
-            print 'Filter the object type as a "component", "device", or "service".'
-            print 'Try sb.launch("<descriptor>", objType="<objectType>")'
+                print(" ", type)
+            print('Filter the object type as a "component", "device", or "service".')
+            print('Try sb.launch("<descriptor>", objType="<objectType>")')
             return None
-        raise ValueError, "'%s' is not a valid softpkg name or SPD file" % descriptor
+        raise ValueError("'%s' is not a valid softpkg name or SPD file" % descriptor)
 
     def readProfiles(self, objType=None, searchPath=None):
         # Remap the object type string to a set of object type names
@@ -146,6 +146,12 @@ class Sandbox(object):
     def __init__(self):
         self._eventChannels = {}
         self._started = False
+        self._app = None
+        self._dom = None
+
+    def setReferences(self, application=None, domain_mgr=None):
+        self._app = application
+        self._dom = domain_mgr
 
     def createEventChannel(self, name, exclusive=False):
         """
@@ -179,7 +185,7 @@ class Sandbox(object):
             return weakobj.objectref(self._eventChannels[name])
 
     def getEventChannels(self):
-        return [weakobj.objectref(c) for c in self._eventChannels.itervalues()]
+        return [weakobj.objectref(c) for c in list(self._eventChannels.values())]
     
     def _removeEventChannel(self, name):
         del self._eventChannels[name]
@@ -206,7 +212,7 @@ class Sandbox(object):
             log.debug("Stopping component '%s'", component._instanceName)
             try:
                 component.stop()
-            except Exception, e:
+            except Exception as e:
                 pass
 
     def reset(self):
@@ -215,8 +221,8 @@ class Sandbox(object):
             component.reset()
 
     def launch(self, descriptor, instanceName=None, refid=None, impl=None,
-               debugger=None, window=None, properties={}, configure=True,
-               initialize=True, timeout=None, objType=None, shared=True, stdout=None):
+               debugger=None, window=None, env={}, properties={}, configure=True,
+               initialize=True, timeout=None, objType=None, shared=True, stdout=None, orchestrationType=None):
         sdrRoot = self.getSdrRoot()
 
         # Parse the component XML profile.
@@ -226,7 +232,7 @@ class Sandbox(object):
         spd, scd, prf = sdrRoot.readProfile(profile)
         name = spd.get_name()
         if not scd:
-            raise RuntimeError, 'Cannot launch softpkg with no SCD'
+            raise RuntimeError('Cannot launch softpkg with no SCD')
 
         # Check that we can launch the component.
         comptype = scd.get_componenttype()
@@ -243,13 +249,13 @@ class Sandbox(object):
         if not instanceName:
             instanceName = self._createInstanceName(name, comptype)
         elif not self._checkInstanceName(instanceName, comptype):
-            raise ValueError, "User-specified instance name '%s' already in use" % (instanceName,)
+            raise ValueError("User-specified instance name '%s' already in use" % (instanceName,))
 
         # Generate/check identifier.
         if not refid:
             refid = 'DCE:'+str(uuid4())
         elif not self._checkInstanceId(refid, comptype):
-            raise ValueError, "User-specified identifier '%s' already in use" % (refid,)
+            raise ValueError("User-specified identifier '%s' already in use" % (refid,))
 
         # If possible, determine the correct placement of properties
         execparams, initProps, configProps = self._sortOverrides(prf, properties)
@@ -258,10 +264,11 @@ class Sandbox(object):
 
         # Determine the class for the component type and create a new instance.
         comp = clazz(self, profile, spd, scd, prf, instanceName, refid, impl)
-        launcher = self._createLauncher(comptype, execparams, initProps, initialize, configProps, debugger, window, timeout, shared, stdout)
+        launcher = self._createLauncher(comptype, execparams, initProps, initialize, configProps, debugger, window, env, timeout, shared, stdout, orchestrationType)
         if not launcher:
             raise NotImplementedError("No support for component type '%s'" % comptype)
         comp._launcher = launcher
+        comp._descriptor = descriptor
 
         # Launch the component
         comp._kick()
@@ -270,7 +277,7 @@ class Sandbox(object):
 
     def shutdown(self):
         # Clean up any event channels created by this sandbox instance.
-        for channel in self._eventChannels.values():
+        for channel in list(self._eventChannels.values()):
             channel.destroy()
         self._eventChannels = {}
 
@@ -304,11 +311,14 @@ class Sandbox(object):
         execparams = {}
         initProps = {}
         configProps = {}
-        for key, value in properties.iteritems():
-            if not key in stages:
+        for key, value in properties.items():
+            if not key in stages and not key.startswith('ORB'):
                 log.warning("Unknown property '%s'" , key)
                 continue
-            stage = stages[key]
+            if key.startswith('ORB'):
+                stage='commandline'
+            else:
+                stage = stages[key]
             if stage == 'commandline':
                 execparams[key] = value
             elif stage == 'initialize':
@@ -356,13 +366,15 @@ class Sandbox(object):
     def _breakConnections(self, target):
         # Break any connections involving this object.
         manager = ConnectionManager.instance()
-        for _identifier, (identifier, uses, provides) in manager.getConnections().items():
+        for _identifier, (identifier, uses, provides) in list(manager.getConnections().items()):
             if uses.hasComponent(target) or provides.hasComponent(target):
                 manager.breakConnection(identifier, uses)
                 manager.unregisterConnection(identifier, uses)
 
 
 class SandboxLauncher(object):
+    def __init__(self):
+        self._registrar = None
     def launch(self, comp):
         raise NotImplementedError('launch')
 

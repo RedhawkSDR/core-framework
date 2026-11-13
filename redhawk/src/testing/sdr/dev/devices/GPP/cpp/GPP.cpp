@@ -604,7 +604,7 @@ void GPP_i::update_grp_child_pids() {
 
             } catch ( ... ) {
                 std::stringstream errstr;
-                errstr << "Unable to read "<<stat_filename<<". The process is no longer there";
+                errstr << "Unable to read "<<stat_filename.str()<<". The process is no longer there";
                 LOG_DEBUG(GPP_i, __FUNCTION__ << ": " << errstr.str() );
                 continue;
             }
@@ -886,7 +886,7 @@ GPP_i::setShadowThresholds( const thresholds_struct &nv ) {
 //  Device LifeCycle API
 // 
 
-void GPP_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException)
+void GPP_i::initialize()
 {
   RH_NL_INFO("GPP", "initialize()");
   //
@@ -1081,7 +1081,8 @@ void GPP_i::thresholds_changed(const thresholds_struct *ov, const thresholds_str
 
 }
 
-void GPP_i::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError) {
+void GPP_i::releaseObject()
+{
   _signalThread.stop();
   _signalThread.release();
   _handle_io_redirects = false;
@@ -1093,9 +1094,6 @@ void GPP_i::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::Releas
 
 
 CF::ExecutableDevice::ProcessID_Type GPP_i::execute (const char* name, const CF::Properties& options, const CF::Properties& parameters)
-    throw (CORBA::SystemException, CF::Device::InvalidState, CF::ExecutableDevice::InvalidFunction, 
-           CF::ExecutableDevice::InvalidParameters, CF::ExecutableDevice::InvalidOptions, 
-           CF::InvalidFileName, CF::ExecutableDevice::ExecuteFail)
 {
 
     boost::recursive_mutex::scoped_lock lock;
@@ -1216,19 +1214,22 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::execute (const char* name, const CF:
 /* execute *****************************************************************
     - executes a process on the device
 ************************************************************************* */
-CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const CF::Properties& options, const CF::Properties& parameters, const std::vector<std::string> prepend_args) throw (CORBA::SystemException, CF::Device::InvalidState, CF::ExecutableDevice::InvalidFunction, CF::ExecutableDevice::InvalidParameters, CF::ExecutableDevice::InvalidOptions, CF::InvalidFileName, CF::ExecutableDevice::ExecuteFail)
+CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const CF::Properties& options, const CF::Properties& parameters, const std::vector<std::string> prepend_args)
 {
     CF::Properties invalidOptions;
     std::string path;
     char* tmp;
 
     // throw and error if name does not begin with a /
-    if (strncmp(name, "/", 1) != 0)
+    if (strncmp(name, "/", 1) != 0) {
         throw CF::InvalidFileName(CF::CF_EINVAL, "Filename must be absolute");
-    if (isLocked())
+    }
+    if (isLocked()) {
         throw CF::Device::InvalidState("System is locked down");
-    if (isDisabled())
+    }
+    if (isDisabled()) {
         throw CF::Device::InvalidState("System is disabled");
+    }
 
     //process options and throw InvalidOptions errors if they are not ULong
     for (CORBA::ULong i = 0; i < options.length(); ++i) {
@@ -1485,7 +1486,7 @@ CF::ExecutableDevice::ProcessID_Type GPP_i::do_execute (const char* name, const 
 }
 
 
-void GPP_i::terminate (CF::ExecutableDevice::ProcessID_Type processId) throw (CORBA::SystemException, CF::ExecutableDevice::InvalidProcess, CF::Device::InvalidState)
+void GPP_i::terminate (CF::ExecutableDevice::ProcessID_Type processId)
 {
     LOG_TRACE(GPP_i, " Terminate request, processID: " << processId);
     try {
@@ -2300,11 +2301,11 @@ void GPP_i::deallocateCapacity_nic_allocation(const nic_allocation_struct &alloc
     }
 }
 
-void GPP_i::deallocateCapacity (const CF::Properties& capacities) throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CORBA::SystemException)
+void GPP_i::deallocateCapacity (const CF::Properties& capacities)
 {
     GPP_base::deallocateCapacity(capacities);
 }
-CORBA::Boolean GPP_i::allocateCapacity (const CF::Properties& capacities) throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::InsufficientCapacity, CORBA::SystemException)
+CORBA::Boolean GPP_i::allocateCapacity (const CF::Properties& capacities)
 {
     bool retval = GPP_base::allocateCapacity(capacities);
     return retval;

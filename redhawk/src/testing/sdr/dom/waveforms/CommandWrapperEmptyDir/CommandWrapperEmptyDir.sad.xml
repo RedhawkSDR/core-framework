@@ -20,7 +20,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 -->
 
 <!DOCTYPE softwareassembly PUBLIC '-//JTRS//DTD SCA V2.2.2 SAD//EN' 'softwareassembly.dtd'>
-<softwareassembly id="DCE:8ea0dcee-a953-11de-9d50-001cc4ed1234" name="CommandWrapperEmptyDir" version="1.0">
+<softwareassembly id="DCE:8ea0dcee-a953-11de-9d50-001cc4ed1234" name="CommandWrapperEmptyDir">
     <componentfiles>
         <componentfile id="CommandWrapper_592b8bd6-b011-4468-9417-705af45e907b" type="SPD">
             <localfile name="/components/CommandWrapperEmptyDir/CommandWrapper.spd.xml"/>

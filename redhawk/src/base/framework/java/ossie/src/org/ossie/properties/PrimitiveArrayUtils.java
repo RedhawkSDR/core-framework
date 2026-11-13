@@ -28,7 +28,7 @@ import java.lang.reflect.Array;
 import java.util.List;
 import java.util.ArrayList;
 
-import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang3.ArrayUtils;
 
 /**
  * @since 3.0

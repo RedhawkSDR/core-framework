@@ -69,11 +69,11 @@ class ApplicationFactoryTest(scatest.CorbaTestCase):
         # convert props to a dict
         allProps = dict([(x.id, x.value) for x in allProps])
         # This isn't all of them...but a fair amount
-        self.assertEqual(allProps.has_key("DCE:4a23ad60-0b25-4121-a630-68803a498f75"), False)  # os_name
-        self.assertEqual(allProps.has_key("DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b"), False) # processor_name
-        self.assertEqual(allProps.has_key("DCE:7f36cdfb-f828-4e4f-b84f-446e17f1a85b"), False) # DeviceKind
-        self.assertEqual(allProps.has_key("DCE:64303822-4c67-4c04-9a5c-bf670f27cf39"), False) # RunsAs
-        self.assertEqual(allProps.has_key("DCE:021f10cf-7a05-46ec-a507-04b513b84bd4"), False) # HasXMIDAS
+        self.assertEqual("DCE:4a23ad60-0b25-4121-a630-68803a498f75" in allProps, False)  # os_name
+        self.assertEqual("DCE:fefb9c66-d14a-438d-ad59-2cfd1adb272b" in allProps, False) # processor_name
+        self.assertEqual("DCE:7f36cdfb-f828-4e4f-b84f-446e17f1a85b" in allProps, False) # DeviceKind
+        self.assertEqual("DCE:64303822-4c67-4c04-9a5c-bf670f27cf39" in allProps, False) # RunsAs
+        self.assertEqual("DCE:021f10cf-7a05-46ec-a507-04b513b84bd4" in allProps, False) # HasXMIDAS
 
         appFact = domMgr._get_applicationFactories()[0]
         app = appFact.create(appFact._get_name(), [], ds)

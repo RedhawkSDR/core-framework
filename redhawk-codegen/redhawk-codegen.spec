@@ -19,11 +19,12 @@
 #
 %{!?python_sitelib: %define python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
 %{!?_ossiehome:  %define _ossiehome  /usr/local/redhawk/core}
+%global __python %{__python3}
 %define _prefix %{_ossiehome}
 Prefix:         %{_prefix}
 
 Name:           redhawk-codegen
-Version:        2.2.10
+Version:        4.0.4
 Release:        1%{?dist}
 Summary:        Redhawk Code Generators
 
@@ -37,18 +38,14 @@ BuildArch:      noarch
 # BuildRoot required for el5
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 
-Requires:       python
-Requires:       redhawk = %{version}
-%if 0%{?rhel} >= 7
-Requires:       python-jinja2
-BuildRequires:  python-jinja2
-%else
-Requires:       python-jinja2-26
-BuildRequires:  python-jinja2-26
-%endif
+Requires:       python3
+Requires:       redhawk >= 4.0.4
+#Requires:       python36-jinja2
+#BuildRequires:  python36-jinja2
+
 
 BuildRequires:  python-setuptools
-BuildRequires:  python-devel >= 2.4
+BuildRequires:  python3-devel >= 3.6
 
 # Turn off the brp-python-bytecompile script; our setup.py does byte compilation
 # (From https://fedoraproject.org/wiki/Packaging:Python#Bytecompiling_with_the_correct_python_version)
@@ -72,6 +69,7 @@ REDHAWK Code Generators
 rm -rf $RPM_BUILD_ROOT
 %{__python} setup.py install --skip-build -O1 --home=%{_prefix} --root=%{buildroot}
 rm $RPM_BUILD_ROOT%{_prefix}/lib/python/redhawk/__init__.py*
+rm -rf $RPM_BUILD_ROOT%{_prefix}/lib/python/redhawk/__pycache__
 
 
 %clean
@@ -101,4 +99,3 @@ rm -rf $RPM_BUILD_ROOT
 
 * Thu May 21 2015 - 2.0.0-2
 - Update python-jinja2 package for el7
-

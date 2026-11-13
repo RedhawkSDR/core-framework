@@ -39,19 +39,19 @@ class AllocationManager_impl: public virtual POA_CF::AllocationManager
         AllocationManager_impl (DomainManager_impl* domainManager);
         ~AllocationManager_impl ();
         
-        CF::AllocationManager::AllocationResponseSequence* allocate(const CF::AllocationManager::AllocationRequestSequence &requests) throw (CF::AllocationManager::AllocationError);
+        CF::AllocationManager::AllocationResponseSequence* allocate(const CF::AllocationManager::AllocationRequestSequence &requests);
         
         /* Allocates a set of dependencies only inside the local Domain */
-        CF::AllocationManager::AllocationResponseSequence* allocateLocal(const CF::AllocationManager::AllocationRequestSequence &requests, const char* domainName) throw (CF::AllocationManager::AllocationError);
+        CF::AllocationManager::AllocationResponseSequence* allocateLocal(const CF::AllocationManager::AllocationRequestSequence &requests, const char* domainName);
         
         /* Deallocates a set of allocations */
-        void deallocate(const CF::AllocationManager::allocationIDSequence &allocationIDs) throw (CF::AllocationManager::InvalidAllocationId);
+        void deallocate(const CF::AllocationManager::allocationIDSequence &allocationIDs);
         
         /* Returns all current allocations on all Domains */
-        CF::AllocationManager::AllocationStatusSequence* allocations(const CF::AllocationManager::allocationIDSequence &allocationIDs) throw (CF::AllocationManager::InvalidAllocationId);
+        CF::AllocationManager::AllocationStatusSequence* allocations(const CF::AllocationManager::allocationIDSequence &allocationIDs);
         
         /* Returns all current allocations that were made through the Allocation Manager that have not been deallocated */
-        CF::AllocationManager::AllocationStatusSequence* localAllocations(const CF::AllocationManager::allocationIDSequence &allocationIDs) throw (CF::AllocationManager::InvalidAllocationId);
+        CF::AllocationManager::AllocationStatusSequence* localAllocations(const CF::AllocationManager::allocationIDSequence &allocationIDs);
 
         /* Lists up to 'count' devices within the given scope (local or all Domains). If there are more remaining, the out iterator can be used to fetch additional allocations. */
         void listDevices(CF::AllocationManager::DeviceScopeType deviceScope, CORBA::ULong count, CF::AllocationManager::DeviceLocationSequence_out deviceLocations, CF::DeviceLocationIterator_out iterator);

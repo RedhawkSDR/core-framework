@@ -238,11 +238,11 @@ ossie__v_pysetup__0 = $(ossie__v_pysetup_0)
 all-python: $(PY_SRC_OUT_DIR)/__init__.py
 
 install-python: $(PY_SRC_OUT_DIR)/__init__.py setup.py
-	python setup.py install -f --$(PYTHON_INSTALL_SCHEME)=$(DESTDIR)$(prefix)
+	python3 setup.py install -f --$(PYTHON_INSTALL_SCHEME)=$(DESTDIR)$(prefix)
 
 clean-python:
 	rm -rf src/python
-	python setup.py clean
+	python3 setup.py clean
 
 ###############################################################################
 # Java
@@ -286,7 +286,7 @@ build/java/META-INF/MANIFEST.MF: Makefile.am BULKIOInterfaces.filelist
 
 java_JARFILES = BULKIOInterfaces.jar
 
-IDLJFLAGS = -i idl -i $(OSSIE_IDLDIR) -I $(OMNICOS_IDLDIR) -I $(OMNIORB_IDLDIR)
+IDLJFLAGS = -Iidl -I$(OSSIE_IDLDIR) -I$(OMNICOS_IDLDIR) -I$(OMNIORB_IDLDIR)
 IDLJNIFLAGS = -I idl -I $(OSSIE_IDLDIR) -I $(OMNICOS_IDLDIR) -I $(OMNIORB_IDLDIR) -Wblibname=bulkiojni
 IDLJ_BUILDDIR = $(IDLJ_SRC_DEST)
 IDLJNI_BUILDDIR = $(IDLJ_BUILDDIR)

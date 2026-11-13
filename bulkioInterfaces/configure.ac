@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-AC_INIT(bulkioInterfaces, 2.2.10)
+AC_INIT(bulkioInterfaces, 4.0.4)
 AC_CONFIG_MACRO_DIR([m4])
 AC_SUBST([LIBBULKIOINTERFACES_VERSION_INFO], [3:0:1])
 
@@ -28,7 +28,7 @@ AC_PROG_CXX
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
 
-AM_PATH_PYTHON([2.3])
+AM_PATH_PYTHON([3.9])
 
 OSSIE_CHECK_OSSIE
 OSSIE_OSSIEHOME_AS_PREFIX
@@ -44,18 +44,18 @@ fi
 PKG_CHECK_MODULES([OMNIORB], [omniORB4 >= 4.1.0])
 RH_PKG_IDLDIR([OMNIORB], [omniORB4])
 
-PKG_CHECK_MODULES([OSSIE], [ossie >= 2.2.10])
+PKG_CHECK_MODULES([OSSIE], [ossie >= 4.0.4])
 RH_PKG_IDLDIR([OSSIE], [ossie])
 PKG_CHECK_MODULES([OMNICOS], [omniCOS4 >= 4.0.0])
 RH_PKG_IDLDIR([OMNICOS], [omniCOS4])
 
 AC_SUBST([BULKIO_SO_VERSION], [0:0:0])
-AC_SUBST([BULKIO_API_VERSION], [2.2])
+AC_SUBST([BULKIO_API_VERSION], [4.0])
 
 AX_BOOST_BASE([1.41])
 AX_BOOST_THREAD
 AX_BOOST_SYSTEM
-OSSIE_ENABLE_LOG4CXX
+#OSSIE_ENABLE_LOG4CXX
 CHECK_VECTOR_IMPL
 
 AC_SUBST(BULKIOINTERFACES_CFLAGS, "-I \$(top_srcdir)/src/cpp -I \$(top_srcdir)/src/cpp/ossie")
@@ -68,9 +68,10 @@ HAVE_JAVASUPPORT=no
 if test "x$enable_java" != "xno"; then
   # configure was run with java enabled
 
-  java_source_version=1.8
+  java_source_version=${JAVA_VERSION:-11}
 
   RH_JAVA_HOME
+  RH_JACORB_HOME
   RH_PROG_JAVAC([$java_source_version])
   RH_PROG_JAR
   RH_PROG_IDLJ
@@ -115,7 +116,7 @@ if test "x$enable_java" != "xno"; then
       AC_SUBST([JNI_LIBS])
 
       # Set the -source flag to the minimum Java version
-      AC_SUBST(AM_JAVACFLAGS, "-source $java_source_version")
+      AC_SUBST(AM_JAVACFLAGS, "--release $java_source_version")
       AC_SUBST(JAVA_SOURCE_VERSION, "$java_source_version")
 
       HAVE_JAVASUPPORT="yes"
@@ -130,7 +131,8 @@ AM_CONDITIONAL(HAVE_JAVASUPPORT, test $HAVE_JAVASUPPORT = yes)
 # End optional java support
 
 # C++ unit testing support. May want to conditionally enable/disable this.
-AM_PATH_CPPUNIT(1.12.1)
+# AM_PATH_CPPUNIT(1.12.1)
+PKG_CHECK_MODULES([CPPUNIT],[cppunit >= 1.15.1])
 AS_IF([test "x$HAVE_JAVASUPPORT" == "xyes"], [
   dnl Use RPM location hard-coded for now
   AC_SUBST([JUNIT_CLASSPATH], "/usr/share/java/junit4.jar")

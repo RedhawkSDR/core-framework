@@ -32,7 +32,7 @@ class cpp_dev_i : public cpp_dev_base
         cpp_dev_i(char *devMgr_ior, char *id, char *lbl, char *sftwrPrfl, CF::Properties capacities, char *compDev);
         ~cpp_dev_i();
         int serviceFunction();
-        void initialize () throw (CF::LifeCycle::InitializeError, CORBA::SystemException);
+        void initialize ();
 
     protected:
         void updateUsageState();

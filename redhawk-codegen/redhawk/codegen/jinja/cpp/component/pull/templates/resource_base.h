@@ -36,19 +36,38 @@
 /*{% block includeExtentions %}*/
 /*# Allow for child template extensions #*/
 /*{% endblock %}*/
+/*{% if component.isChild %}*/
+#include <ossie/DynamicComponent.h>
+/*{% elif component.isParent %}*/
+#include <ossie/DynamicComponent.h>
+/*{% endif %}*/
 
 /*{% filter lines|unique|join('\n') %}*/
 /*{%   for portgen in component.portgenerators if portgen.header() %}*/
 #include ${portgen.header()}
 /*{%   endfor %}*/
 /*{% endfilter %}*/
-/*{% if "struct_props.h" in generator.sourceFiles(component) %}*/
+/*{% if component.structdefs|length != 0 %}*/
+/*{%   if component.isChild %}*/
+#include "${component.name}_struct_props.h"
+/*{%   else %}*/
 #include "struct_props.h"
+/*{%   endif %}*/
+/*{% endif %}*/
+/*{% if component.children %}*/
+/*{%    for childname, childcomponent in component.children.items() %}*/
+#include "${childname}/${childname}.h"
+/*{%    endfor %}*/
 /*{% endif %}*/
 /*{% endblock %}*/
 /*{% block defines %}*/
 /*# Allow child templates to add #define statements #*/
 /*{% endblock %}*/
+/*{% if component.isChild or component.isParent %}*/
+/*{%    set baseClassComponent = ", protected ThreadedComponent, public virtual DynamicComponent" %}*/
+/*{% else %}*/
+/*{%    set baseClassComponent = ", protected ThreadedComponent" %}*/
+/*{% endif %}*/
 
 /*{% from "properties/properties.cpp" import enumvalues %}*/
 /*{% for prop in component.properties if prop.enums %}*/
@@ -62,7 +81,10 @@ namespace enums {
 /*{%   endif %}*/
 /*{% endfor %}*/
 /*{% block classPrototype %}*/
-class ${className} : public ${component.superclasses|join(', public ', attribute='name')}, protected ThreadedComponent
+/*{%   if component.isChild %}*/
+namespace ${component.name}_ns {
+/*{%   endif %}*/
+class ${className} : public ${component.superclasses|join(', public ', attribute='name')}${baseClassComponent}
 /*{% endblock %}*/
 {
 /*{% for portgen in component.portgenerators if portgen.hasDeclaration() %}*/
@@ -85,11 +107,23 @@ class ${className} : public ${component.superclasses|join(', public ', attribute
         ~${className}();
 
 /*{% block cfResource %}*/
-        void start() throw (CF::Resource::StartError, CORBA::SystemException);
+        /**
+         * @throw CF::Resource::StartError
+         * @throw CORBA::SystemException
+         */
+        void start();
 
-        void stop() throw (CF::Resource::StopError, CORBA::SystemException);
+        /**
+         * @throw CF::Resource::StopError
+         * @throw CORBA::SystemException
+         */
+        void stop();
 
-        void releaseObject() throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
+        /**
+         * @throw CF::LifeCycle::ReleaseError
+         * @throw CORBA::SystemException
+         */
+        void releaseObject();
 /*{% endblock %}*/
 
 /*{% block basePublicFunctions %}*/
@@ -144,4 +178,7 @@ class ${className} : public ${component.superclasses|join(', public ', attribute
 /*# Allow for child template extensions #*/
 /*{% endblock %}*/
 };
+/*{%   if component.isChild %}*/
+};
+/*{%   endif %}*/
 #endif // ${includeGuard}

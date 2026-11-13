@@ -25,6 +25,7 @@
 package org.ossie.component;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -1140,8 +1141,8 @@ public abstract class Resource extends Logging implements ResourceOperations, Ru
      * @throws WrongPolicy 
      * @throws ServantNotActive 
      */
-    public static void start_component(final Class<? extends Resource> clazz, final String[] args, final boolean builtInORB, final int fragSize, final int bufSize) 
-	throws InstantiationException, IllegalAccessException, InvalidObjectReference, NotFound, CannotProceed, org.omg.CosNaming.NamingContextPackage.InvalidName, ServantNotActive, WrongPolicy 
+    public static void start_component(final Class<? extends Resource> clazz, final String[] args, final boolean builtInORB, final int fragSize, final int bufSize)
+	throws InstantiationException, IllegalAccessException, InvalidObjectReference, NotFound, CannotProceed, org.omg.CosNaming.NamingContextPackage.InvalidName, ServantNotActive, WrongPolicy, NoSuchMethodException, InvocationTargetException
     {
         final Properties props = new Properties();
         if (!builtInORB) {
@@ -1174,8 +1175,8 @@ public abstract class Resource extends Logging implements ResourceOperations, Ru
      * @throws WrongPolicy 
      * @throws ServantNotActive 
      */
-    public static void start_component(final Class<? extends Resource> clazz,  final String[] args, final Properties props) 
-	throws InstantiationException, IllegalAccessException, InvalidObjectReference, NotFound, CannotProceed, org.omg.CosNaming.NamingContextPackage.InvalidName, ServantNotActive, WrongPolicy 
+    public static void start_component(final Class<? extends Resource> clazz,  final String[] args, final Properties props)
+	throws InstantiationException, IllegalAccessException, InvalidObjectReference, NotFound, CannotProceed, org.omg.CosNaming.NamingContextPackage.InvalidName, ServantNotActive, WrongPolicy, NoSuchMethodException, InvocationTargetException
     {
         if (args.length == 1) {
             if (args[0].equals("-i")) {
@@ -1276,7 +1277,7 @@ public abstract class Resource extends Logging implements ResourceOperations, Ru
 	logging.ComponentCtx ctx = new	logging.ComponentCtx( nameBinding, identifier, dom_path );
 	logging.Configure( logcfg_uri, debugLevel, ctx );
 
-        final Resource resource_i = clazz.newInstance();
+        final Resource resource_i = clazz.getDeclaredConstructor().newInstance();
         final CF.Resource resource = resource_i.setup(identifier, nameBinding, profile, orb, rootpoa);
         String nic = "";
         if (execparams.containsKey("NIC")) {

@@ -83,8 +83,6 @@ FileManager_impl::~FileManager_impl()
 }
 
 void FileManager_impl::mount (const char* mountPoint, CF::FileSystem_ptr fileSystem)
-    throw (CORBA::SystemException, CF::InvalidFileName,
-           CF::FileManager::InvalidFileSystem, CF::FileManager::MountPointAlreadyExists)
 {
     if (CORBA::is_nil(fileSystem)) {
         throw CF::FileManager::InvalidFileSystem();
@@ -114,7 +112,6 @@ void FileManager_impl::mount (const char* mountPoint, CF::FileSystem_ptr fileSys
 
 
 void FileManager_impl::unmount (const char* mountPoint)
-    throw (CORBA::SystemException, CF::FileManager::NonExistentMount)
 {
     std::string mountPath = normalizeMountPath(mountPoint);
 
@@ -136,7 +133,6 @@ void FileManager_impl::unmount (const char* mountPoint)
 
 
 void FileManager_impl::remove (const char* fileName)
-    throw (CORBA::SystemException, CF::FileException, CF::InvalidFileName)
 {
     if (!ossie::isValidFileName(fileName)) {
         throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid file name");
@@ -162,7 +158,6 @@ void FileManager_impl::remove (const char* fileName)
 
 
 void FileManager_impl::copy (const char* sourceFileName, const char* destinationFileName)
-    throw (CORBA::SystemException, CF::InvalidFileName, CF::FileException)
 {
     // Validate absolute file names
     if (sourceFileName[0] != '/' || !ossie::isValidFileName(sourceFileName)) {
@@ -337,7 +332,6 @@ void FileManager_impl::copy (const char* sourceFileName, const char* destination
 
 
 void FileManager_impl::move (const char* sourceFileName, const char* destinationFileName)
-    throw (CORBA::SystemException, CF::InvalidFileName, CF::FileException)
 {
     // Validate absolute file names
     if (sourceFileName[0] != '/' || !ossie::isValidFileName(sourceFileName)) {
@@ -386,7 +380,6 @@ void FileManager_impl::move (const char* sourceFileName, const char* destination
 
 
 CORBA::Boolean FileManager_impl::exists (const char* fileName)
-    throw (CORBA::SystemException, CF::InvalidFileName)
 {
     if (!ossie::isValidFileName(fileName)) {
         throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid file name");
@@ -415,7 +408,6 @@ CORBA::Boolean FileManager_impl::exists (const char* fileName)
 
 
 CF::FileSystem::FileInformationSequence* FileManager_impl::list (const char* pattern)
-    throw (CORBA::SystemException, CF::FileException, CF::InvalidFileName)
 {
     RH_TRACE(_fileSysLog, "List files with pattern " << pattern);
 
@@ -469,7 +461,6 @@ CF::FileSystem::FileInformationSequence* FileManager_impl::list (const char* pat
 
 
 CF::File_ptr FileManager_impl::create (const char* fileName)
-    throw (CORBA::SystemException, CF::InvalidFileName, CF::FileException)
 {
     if (!ossie::isValidFileName(fileName)) {
         throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid file name");
@@ -497,7 +488,6 @@ CF::File_ptr FileManager_impl::create (const char* fileName)
 
 
 CF::File_ptr FileManager_impl::open (const char* fileName, CORBA::Boolean read_Only)
-    throw (CORBA::SystemException, CF::InvalidFileName, CF::FileException)
 {
     if (!ossie::isValidFileName(fileName)) {
         throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid file name");
@@ -525,7 +515,6 @@ CF::File_ptr FileManager_impl::open (const char* fileName, CORBA::Boolean read_O
 
 
 void FileManager_impl::mkdir (const char* directoryName)
-    throw (CORBA::SystemException, CF::FileException, CF::InvalidFileName)
 {
     if (!ossie::isValidFileName(directoryName)) {
         throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid directory name");
@@ -550,7 +539,6 @@ void FileManager_impl::mkdir (const char* directoryName)
 
 
 void FileManager_impl::rmdir (const char* directoryName)
-    throw (CORBA::SystemException, CF::FileException, CF::InvalidFileName)
 {
     if (!ossie::isValidFileName(directoryName)) {
         throw CF::InvalidFileName(CF::CF_EINVAL, "Invalid directory name");
@@ -575,7 +563,6 @@ void FileManager_impl::rmdir (const char* directoryName)
 
 
 void FileManager_impl::query (CF::Properties& fileSysProperties)
-    throw (CORBA::SystemException, CF::FileSystem::UnknownFileSystemProperties)
 {
     CF::Properties unknownProps;
 
@@ -634,7 +621,6 @@ CORBA::ULongLong FileManager_impl::getCombinedProperty (const char* propId)
 
 
 CF::FileManager::MountSequence* FileManager_impl::getMounts ()
-    throw (CORBA::SystemException)
 {
     // Lock the mount table shared to allow others to access the file system,
     // but prevent changes to the mount table itself.

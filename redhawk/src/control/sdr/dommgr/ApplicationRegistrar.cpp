@@ -43,7 +43,7 @@ CF::DomainManager_ptr ApplicationRegistrar_impl::domMgr()
     return _application->getComponentDomainManager();
 }
 
-void ApplicationRegistrar_impl::registerComponent(const char * Name, CF::Resource_ptr obj) throw (CF::InvalidObjectReference, CF::DuplicateName, CORBA::SystemException) {
+void ApplicationRegistrar_impl::registerComponent(const char * Name, CF::Resource_ptr obj) {
 
   if ( !CORBA::is_nil(_context) ) {
       CosNaming::Name_var cosName;
@@ -94,22 +94,19 @@ void ApplicationRegistrar_impl::registerComponent(const char * Name, CF::Resourc
     
    
 // CosNaming::NamingContext interface (supported)
-void ApplicationRegistrar_impl::bind(const CosNaming::Name &Name, CORBA::Object_ptr obj) throw (CosNaming::NamingContext::NotFound, 
-        CosNaming::NamingContext::CannotProceed, CosNaming::NamingContext::InvalidName, CosNaming::NamingContext::AlreadyBound, CORBA::SystemException) {
+void ApplicationRegistrar_impl::bind(const CosNaming::Name &Name, CORBA::Object_ptr obj) {
     this->_context->bind(Name, obj);
     CF::Resource_var resource = ossie::corba::_narrowSafe<CF::Resource>(obj);
     if (!CORBA::is_nil(resource)) {
         _application->registerComponent(resource);
     }
 }
-void ApplicationRegistrar_impl::unbind(const CosNaming::Name &Name) throw (CosNaming::NamingContext::NotFound, 
-        CosNaming::NamingContext::CannotProceed, CosNaming::NamingContext::InvalidName, CORBA::SystemException) {
+void ApplicationRegistrar_impl::unbind(const CosNaming::Name &Name) {
     this->_context->unbind(Name);
 }
     
 // CosNaming::NamingContext interface (unsupported)
-void ApplicationRegistrar_impl::rebind(const CosNaming::Name &Name, CORBA::Object_ptr obj) throw (CosNaming::NamingContext::NotFound, 
-        CosNaming::NamingContext::CannotProceed, CosNaming::NamingContext::InvalidName, CosNaming::NamingContext::AlreadyBound, CORBA::SystemException) {
+void ApplicationRegistrar_impl::rebind(const CosNaming::Name &Name, CORBA::Object_ptr obj) {
     this->_context->rebind(Name, obj);
     CF::Resource_var resource = ossie::corba::_narrowSafe<CF::Resource>(obj);
     if (!CORBA::is_nil(resource)) {

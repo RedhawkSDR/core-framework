@@ -18,15 +18,15 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-AC_INIT(frontendInterfaces, 2.4.10)
+AC_INIT(frontendInterfaces, 4.0.4)
 
-AM_INIT_AUTOMAKE(nostdinc)
+AM_INIT_AUTOMAKE([nostdinc subdir-objects])
 AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
 
-AM_PATH_PYTHON([2.3])
+AM_PATH_PYTHON([3.9])
 
 OSSIE_CHECK_OSSIE
 OSSIE_OSSIEHOME_AS_PREFIX
@@ -41,20 +41,19 @@ if test "$IDL" = no; then
 fi
 AC_LANG_PUSH([C++])
 PKG_CHECK_MODULES([OMNIORB], [omniORB4 >= 4.1.0])
-PKG_CHECK_MODULES([OSSIE], [ossie >= 2.2.10])
+PKG_CHECK_MODULES([OSSIE], [ossie >= 4.0.4])
 RH_PKG_IDLDIR([OSSIE], [ossie])
 
 # If you depend on other IDL modules, such as CF or BULKIO add them here
-PKG_CHECK_MODULES([BULKIO], [bulkioInterfaces >= 2.2])
+PKG_CHECK_MODULES([BULKIO], [bulkioInterfaces >= 4.0])
 AC_CHECK_PYMODULE(bulkio.bulkioInterfaces, [], [AC_MSG_ERROR([the python bulkio.bulkioInterfaces module is required])])
 RH_PKG_IDLDIR([BULKIO], [bulkioInterfaces])
 
 AC_SUBST([FRONTEND_SO_VERSION],[0:0:0])
-AC_SUBST([FRONTEND_API_VERSION],[2.4])
+AC_SUBST([FRONTEND_API_VERSION],[4.0])
 
 AX_BOOST_BASE([1.41])
 AX_BOOST_THREAD
-OSSIE_ENABLE_LOG4CXX
 CHECK_VECTOR_IMPL
 
 AC_SUBST(FRONTEND_INF_INCLUDES, "-I../src/cpp -I../src/cpp/redhawk")
@@ -66,9 +65,12 @@ AC_ARG_ENABLE([java], AS_HELP_STRING([--disable-java], [Disable framework java s
 
 HAVE_JAVASUPPORT=no
 if test "x$enable_java" != "xno"; then
+  java_source_version=${JAVA_VERSION:-11}
+
   # Ensure JAVA_HOME is set
   RH_JAVA_HOME
-  RH_PROG_JAVAC([1.8])
+  RH_JACORB_HOME
+  RH_PROG_JAVAC([$java_source_version])
   RH_PROG_JAR
   RH_PROG_IDLJ
 
@@ -82,12 +84,14 @@ if test "x$enable_java" != "xno"; then
 
   # Set Java installation directory
   AC_SUBST([javadir], '${prefix}/lib')
+  AC_SUBST(AM_JAVACFLAGS, "--release $java_source_version")
 
   HAVE_JAVASUPPORT=yes
 fi
 AM_CONDITIONAL(HAVE_JAVASUPPORT, test $HAVE_JAVASUPPORT = yes)
 
-AM_PATH_CPPUNIT(1.12.1)
+#AM_PATH_CPPUNIT(1.12.1)
+PKG_CHECK_MODULES([CPPUNIT],[cppunit >= 1.15.1])
 AS_IF([test "x$HAVE_JAVASUPPORT" == "xyes"], [
   dnl Use RPM location hard-coded for now
   AC_SUBST([JUNIT_CLASSPATH], "/usr/share/java/junit4.jar")

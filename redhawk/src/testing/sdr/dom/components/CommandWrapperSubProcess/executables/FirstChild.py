@@ -20,7 +20,7 @@
 
 import subprocess, os, time
 
-command = "python"
+command = "python3"
 args = [command, "components/CommandWrapperSubProcess/executables/SecondChild.py"]
 sp = subprocess.Popen(args, executable=command, cwd=os.getcwd())
 

@@ -193,7 +193,6 @@ int PersonaDevice_i::serviceFunction()
 }
 
 CORBA::Boolean PersonaDevice_i::allocateCapacity(const CF::Properties& capacities)
-        throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CF::Device::InsufficientCapacity, CORBA::SystemException) 
 {
     bool allocationSuccess = true;
 
@@ -216,7 +215,6 @@ CORBA::Boolean PersonaDevice_i::allocateCapacity(const CF::Properties& capacitie
 }
 
 void PersonaDevice_i::deallocateCapacity(const CF::Properties& capacities)
-        throw (CF::Device::InvalidState, CF::Device::InvalidCapacity, CORBA::SystemException) 
 {
 
     /*

@@ -44,13 +44,13 @@ prop_trigger_timing_base::~prop_trigger_timing_base()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void prop_trigger_timing_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void prop_trigger_timing_base::start()
 {
     Component::start();
     ThreadedComponent::startThread();
 }
 
-void prop_trigger_timing_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void prop_trigger_timing_base::stop()
 {
     Component::stop();
     if (!ThreadedComponent::stopThread()) {
@@ -58,7 +58,7 @@ void prop_trigger_timing_base::stop() throw (CORBA::SystemException, CF::Resourc
     }
 }
 
-void prop_trigger_timing_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void prop_trigger_timing_base::releaseObject()
 {
     // This function clears the component running condition so main shuts down everything
     try {

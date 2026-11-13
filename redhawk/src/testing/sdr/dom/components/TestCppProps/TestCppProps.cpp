@@ -126,7 +126,6 @@ void TestCppProps::resetUTCtime(bool oldValue, bool newValue)
 }
 
 void TestCppProps::runTest (CORBA::ULong testId, CF::Properties& testValues)
-    throw (CF::UnknownProperties, CF::TestableObject::UnknownTest, CORBA::SystemException)
 {
     switch (testId) {
     case TEST_MEMBER_CALLBACKS:

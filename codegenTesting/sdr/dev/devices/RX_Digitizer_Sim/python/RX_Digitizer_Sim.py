@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 #
 # AUTO-GENERATED
@@ -70,17 +70,17 @@ class RX_Digitizer_Sim_i(RX_Digitizer_Sim_base):
         modify fts, which corresponds to self.frontend_tuner_status[tuner_id]
         Make sure to set the 'enabled' member of fts to indicate that tuner as enabled
         ************************************************************'''
-        print "deviceEnable(): Enable the given tuner  *********"
+        print("deviceEnable(): Enable the given tuner  *********")
         try:
             self.datagenerators[tuner_id].enableDataFlow()
             fts.enabled = True
 
-        except Exception, e:
+        except Exception as e:
             self._log.exception("Got exception % s" %str(e))
             return False
 
         if fts.center_frequency == 112e6:
-            print self.getTunerStatus(fts.allocation_id_csv)
+            print(self.getTunerStatus(fts.allocation_id_csv))
 
         return True
 
@@ -122,7 +122,7 @@ class RX_Digitizer_Sim_i(RX_Digitizer_Sim_base):
         if self.rfinfo.rf_flow_id !="":
             try:
                 validateRequestVsRFInfo(request,self.rfinfo,1)
-            except FRONTEND.BadParameterException , e:
+            except FRONTEND.BadParameterException as e:
                 self._log.info("ValidateRequestVsRFInfo Failed: %s" %(str(e)))
                 return False
                 
@@ -148,7 +148,7 @@ class RX_Digitizer_Sim_i(RX_Digitizer_Sim_base):
         fts.center_frequency = request.center_frequency
         fts.sample_rate = sr
         fts.decimation = decimation
-        print "deviceSetTuning(): 5"
+        print("deviceSetTuning(): 5")
         #Update output multiPort to add this allocation. Make Allocation ID the same as StreamID
         self.matchAllocationIdToStreamId(request.allocation_id, request.allocation_id,"dataShort_out")
                 
@@ -161,7 +161,7 @@ class RX_Digitizer_Sim_i(RX_Digitizer_Sim_base):
         self.datagenerators[tuner_id].keyword_dict['CHAN_RF'] = request.center_frequency
         self.datagenerators[tuner_id].start()
         
-        print "Done with deviceSetTuning():"
+        print("Done with deviceSetTuning():")
         return True
         
 

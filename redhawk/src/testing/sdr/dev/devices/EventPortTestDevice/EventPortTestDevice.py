@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -23,7 +23,7 @@ from ossie.cf import CF, CF__POA
 from omniORB import URI, any, PortableServer, CORBA
 from ossie.cf import CF, CF__POA
 from ossie.device import ExecutableDevice, start_device
-import commands, os, sys
+import subprocess, os, sys
 import logging
 try:
     import CosEventComm,CosEventComm__POA
@@ -64,7 +64,7 @@ class supplierOut_i(CF__POA.Port):
         self._connectSupplierToEventChannel(port)
     
     def disconnectPort(self, connectionId):
-        if self.outPorts.has_key(str(connectionId)):
+        if str(connectionId) in self.outPorts:
             self.outPorts.pop(str(connectionId), None)
     
     def sendEvent(self, eventData):
@@ -87,7 +87,7 @@ class supplierOut_i(CF__POA.Port):
             self._supplier = Supplier_i()
             self._proxy_consumer.connect_push_supplier(self._supplier._this())
         except:
-            print "Failed to connect to channel"
+            print("Failed to connect to channel")
 
 
 class consumerOut_i(CF__POA.Port):
@@ -102,7 +102,7 @@ class consumerOut_i(CF__POA.Port):
         self._connectConsumerToEventChannel(port)
     
     def disconnectPort(self, connectionId):
-        if self.outPorts.has_key(str(connectionId)):
+        if str(connectionId) in self.outPorts:
             self.outPorts.pop(str(connectionId), None)
     
     def getIdentifiers(self):
@@ -122,7 +122,7 @@ class consumerOut_i(CF__POA.Port):
             self._consumer = Consumer_i(self)
             self._proxy_supplier.connect_push_consumer(self._consumer._this())
         except:
-            print "Failed to connect to channel"
+            print("Failed to connect to channel")
 
 
 class PortDevice_impl(CF__POA.ExecutableDevice, ExecutableDevice):
@@ -140,7 +140,7 @@ class PortDevice_impl(CF__POA.ExecutableDevice, ExecutableDevice):
         self._props["BogoMipsCapacity"] = 100000000
 
     def getPort(self, name):
-        if self.ports.has_key(name):
+        if name in self.ports:
             return self.ports[str(name)]._this()
         else:
             raise CF.PortSupplier.UnknownPort()

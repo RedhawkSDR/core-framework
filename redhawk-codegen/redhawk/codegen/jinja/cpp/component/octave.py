@@ -18,7 +18,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import commands
+import subprocess
 import os
 
 from redhawk.codegen.jinja.cpp.component.mFunction.generator import OctaveComponentGenerator, loader
@@ -32,7 +32,7 @@ def _version_tuple(ver):
 
 def _check_octave():
     # Attempt to determine if octave-devel v3.4 or greater is installed.
-    (status, output) = commands.getstatusoutput('octave-config -v')
+    (status, output) = subprocess.getstatusoutput('octave-config -v')
     if status:
         return False
 
@@ -41,12 +41,12 @@ def _check_octave():
     if version < _version_tuple(versions.octave):
         return False
 
-    incdir = commands.getoutput('octave-config -p OCTINCLUDEDIR')
+    incdir = subprocess.getoutput('octave-config -p OCTINCLUDEDIR')
     return os.path.exists(incdir)
 
 def check():
     if _check_octave():
         return True
     else:
-        print "Could not find suitable Octave installation.  Octave-devel v%s or greater is required." % versions.octave
+        print("Could not find suitable Octave installation.  Octave-devel v%s or greater is required." % versions.octave)
         return False

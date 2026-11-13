@@ -22,13 +22,14 @@
 # You can override this at install time using --prefix /usr/local/redhawk/core when invoking rpm (preferred)
 %{!?_ossiehome: %global _ossiehome /usr/local/redhawk/core}
 %define _prefix %{_ossiehome}
+%define __python /usr/bin/python3
 Prefix:         %{_prefix}
 
 # Assume Java support by default. Use "rpmbuild --without java" to disable
 %bcond_without java
 
 Name:           burstioInterfaces
-Version:        2.2.10
+Version:        4.0.4
 Release:        1%{?dist}
 Summary:        BURSTIO interfaces for REDHAWK
 
@@ -57,7 +58,7 @@ BURSTIO interfaces for REDHAWK
 
 %build
 ./reconf
-%configure %{?_without_java: --disable-java}
+%configure
 make %{?_smp_mflags}
 
 
@@ -81,23 +82,14 @@ rm -rf --preserve-root $RPM_BUILD_ROOT
 %{_prefix}/lib/python/burstio-%{version}-py%{python_version}.egg-info
 %{_prefix}/lib/python/burstioInterfaces-%{version}-py%{python_version}.egg-info
 %endif
-%if %{with java}
-%{_prefix}/lib/BURSTIOInterfaces.jar
-%{_prefix}/lib/burstio.jar
 %{_libdir}/pkgconfig/burstio.pc
 %{_libdir}/pkgconfig/burstioInterfaces.pc
 %{_libdir}/libburstioInterfaces.so.*
 %{_libdir}/libburstio.so.*
-%{_libdir}/libburstiojni.so.*
 %{_libdir}/libburstioInterfaces.so
 %{_libdir}/libburstio.so
-%{_libdir}/libburstiojni.so
 %{_libdir}/libburstioInterfaces.*a
 %{_libdir}/libburstio.*a
-%{_libdir}/libburstiojni.*a
-%endif
-
-
 
 %post
 /sbin/ldconfig

@@ -21,21 +21,21 @@
 import unittest
 from _unitTestHelpers import scatest
 from ossie import parsers
-import commands
+import subprocess
 
 
 class AppsTest(scatest.CorbaTestCase):
 
     def test_DeviceConnections(self):
-        status,output = commands.getstatusoutput('../base/framework/python/ossie/apps/py2prf app_input/py_prf_check_base.py')
-        self.assertEquals(status, 0)
+        status,output = subprocess.getstatusoutput('../base/framework/python/ossie/apps/py2prf app_input/py_prf_check_base.py')
+        self.assertEqual(status, 0)
         prf = parsers.PRFParser.parseString(output)
-        self.assertNotEquals(prf,None)
-        self.assertEquals(len(prf.get_simple()),1)
-        self.assertEquals(prf.get_simple()[0].get_id(),'some_simple')
-        self.assertEquals(len(prf.get_simplesequence()),1)
-        self.assertEquals(prf.get_simplesequence()[0].get_id(),'some_sequence')
-        self.assertEquals(len(prf.get_struct()),1)
-        self.assertEquals(prf.get_struct()[0].get_id(),'some_struct')
-        self.assertEquals(len(prf.get_structsequence()),1)
-        self.assertEquals(prf.get_structsequence()[0].get_id(),'some_struct_seq')
+        self.assertNotEqual(prf,None)
+        self.assertEqual(len(prf.get_simple()),1)
+        self.assertEqual(prf.get_simple()[0].get_id(),'some_simple')
+        self.assertEqual(len(prf.get_simplesequence()),1)
+        self.assertEqual(prf.get_simplesequence()[0].get_id(),'some_sequence')
+        self.assertEqual(len(prf.get_struct()),1)
+        self.assertEqual(prf.get_struct()[0].get_id(),'some_struct')
+        self.assertEqual(len(prf.get_structsequence()),1)
+        self.assertEqual(prf.get_structsequence()[0].get_id(),'some_struct_seq')

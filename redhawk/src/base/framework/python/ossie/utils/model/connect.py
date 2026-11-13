@@ -134,7 +134,7 @@ class ConnectionManager(object):
     def getConnectionsBetween(self, usesComponent, providesComponent):
         connections = {}
         with self.__lock:
-            for _identifier, (identifier, uses, provides) in self.__connections.iteritems():
+            for _identifier, (identifier, uses, provides) in self.__connections.items():
                 if uses.hasComponent(usesComponent) and provides.hasComponent(providesComponent):
                     connections[_identifier] = (identifier, uses, provides)
         return connections
@@ -142,7 +142,7 @@ class ConnectionManager(object):
     def getConnectionsFor(self, usesComponent):
         connections = {}
         with self.__lock:
-            for _identifier, (identifier, uses, provides) in self.__connections.iteritems():
+            for _identifier, (identifier, uses, provides) in self.__connections.items():
                 if uses.hasComponent(usesComponent):
                     connections[_identifier] = (identifier, uses, provides)
         return connections
@@ -151,7 +151,7 @@ class ConnectionManager(object):
         _name = uses.getName()
         with self.__lock:
             if _name+identifier in self.__connections:
-                log.warn("Skipping registration of duplicate connection id '%s'", identifier)
+                log.warning("Skipping registration of duplicate connection id '%s'", identifier)
                 return
             log.debug("Registering connection '%s' from %s to %s", identifier, uses, provides)
             self.__connections[_name+identifier] = (identifier, uses, provides)
@@ -160,7 +160,7 @@ class ConnectionManager(object):
         _name = _uses.getName()
         with self.__lock:
             if not _name+identifier in self.__connections:
-                log.warn("Skipping unregistration of unknown connection id '%s'", identifier)
+                log.warning("Skipping unregistration of unknown connection id '%s'", identifier)
                 return
             log.debug("Unregistering connection '%s'", identifier)
             del self.__connections[_name+identifier]
@@ -210,7 +210,7 @@ class ConnectionManager(object):
             usesPort = uses.getReference()
             usesPort.disconnectPort(identifier)
         except:
-            log.warn("Ignoring exception breaking connection '%s'", identifier)
+            log.warning("Ignoring exception breaking connection '%s'", identifier)
         omniORB.setClientCallTimeout(0)
         uses.disconnected(identifier)
         provides.disconnected(identifier)
@@ -226,5 +226,5 @@ class ConnectionManager(object):
             connections = self.__connections
             self.__connections = {}
 
-        for (identifier, uses, provides) in connections.itervalues():
+        for (identifier, uses, provides) in connections.values():
             self._breakConnection(identifier, uses, provides)

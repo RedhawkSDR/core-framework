@@ -140,10 +140,10 @@ SUBDIRS += java
 endif
 
 all-local:
-	python setup.py $(OSSIE_V_pysetup) build
+	python3 setup.py $(OSSIE_V_pysetup) build
 
 clean-local:
-	python setup.py clean
+	python3 setup.py clean
 	rm -rf build
 	-@rm cpp/libossie*.xml 
 	-@rm java/libossie*.xml
@@ -154,7 +154,7 @@ EXTRA_DIST = setup.py
 PYTHON_INSTALL_FILES=".pythonInstallFiles"
 
 install-exec-hook:
-	python setup.py install -f --$(PYTHON_INSTALL_SCHEME)=$(DESTDIR)$(prefix) --record $(PYTHON_INSTALL_FILES)
+	python3 setup.py install -f --$(PYTHON_INSTALL_SCHEME)=$(DESTDIR)$(prefix) --record $(PYTHON_INSTALL_FILES)
 
 uninstall:
 	rm `cat $(PYTHON_INSTALL_FILES)`

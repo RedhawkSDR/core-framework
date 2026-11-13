@@ -133,5 +133,5 @@ class PullComponentMapper(BaseComponentMapper):
             # NOTE: If java gets support for Executable Devices, this needs to change
             name = 'ThreadedDevice'
         else:
-            raise ValueError, 'Unsupported software component type', softpkg.type()
+            raise ValueError('Unsupported software component type').with_traceback(softpkg.type())
         return {'name': name}

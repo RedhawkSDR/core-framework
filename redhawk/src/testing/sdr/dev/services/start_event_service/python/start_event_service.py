@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -46,10 +46,10 @@ class start_event_service(CF__POA.Resource):
     
         def __init__(self, **kw):
             """Construct an initialized instance of this struct definition"""
-            for classattr in type(self).__dict__.itervalues():
+            for classattr in type(self).__dict__.values():
                 if isinstance(classattr, (simple_property, simpleseq_property)):
                     classattr.initialize(self)
-            for k,v in kw.items():
+            for k,v in list(kw.items()):
                 setattr(self,k,v)
     
         def __str__(self):

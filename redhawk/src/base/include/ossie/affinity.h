@@ -105,8 +105,7 @@ namespace redhawk
         @param pol  socket or cpu
         @param context  numalib parsable string to specify socket or cpu lists (all=returns all cpus)
       */
-      CpuList get_cpu_list( const std::string &pol, const std::string &context ) 
-        throw (AffinityFailed);
+      CpuList get_cpu_list( const std::string &pol, const std::string &context );
       
       /*
          check if affinity processing is disabled (controlled via environment REDHAWK_AFFINITY_DISABLED variable or api call)
@@ -155,8 +154,7 @@ namespace redhawk
          convert a properties set that contains affinity namespaced properties to a dictionary format
          acceptable for the set_affinity method
        */
-      AffinityDirectives convert_properties(const CF::Properties& options ) 
-        throw (AffinityFailed);
+      AffinityDirectives convert_properties(const CF::Properties& options );
 
       /*
          set_affinity 
@@ -186,11 +184,9 @@ namespace redhawk
             cpu     Assign task to a list of CPU Ids
 
       */
-      int set_affinity( const CF::Properties &options, const pid_t pid, const CpuList &blacklist = CpuList(0) )
-        throw (AffinityFailed);
+      int set_affinity( const CF::Properties &options, const pid_t pid, const CpuList &blacklist = CpuList(0) );
 
-      int set_affinity( const AffinityDirectives &spec, const pid_t pid, const CpuList &blacklist = CpuList(0))
-        throw (AffinityFailed);
+      int set_affinity( const AffinityDirectives &spec, const pid_t pid, const CpuList &blacklist = CpuList(0));
 
     };  // affinity namespace
     

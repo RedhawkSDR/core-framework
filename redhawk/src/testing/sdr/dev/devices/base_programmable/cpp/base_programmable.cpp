@@ -35,7 +35,7 @@ base_programmable_i::~base_programmable_i()
 {
 }
 
-void base_programmable_i::initialize() throw (CF::LifeCycle::InitializeError, CORBA::SystemException) 
+void base_programmable_i::initialize()
 {
     //setHwLoadRequestsPtr(&hw_load_requests);
     //setHwLoadStatusesPtr(&hw_load_statuses);

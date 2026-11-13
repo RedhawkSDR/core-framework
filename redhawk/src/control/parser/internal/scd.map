@@ -21,5 +21,5 @@
 namespace urn:mil:jpeojtrs:sca:scd {
     include "memory";
     include "../../include/ossie/ComponentDescriptor.h";
-    softwarecomponent "std::auto_ptr<ossie::ComponentDescriptor::SCD>";
+    softwarecomponent "std::unique_ptr<ossie::ComponentDescriptor::SCD>";
 }

@@ -54,7 +54,7 @@ cpp_dev_i::~cpp_dev_i()
 {
 }
 
-void cpp_dev_i::initialize () throw (CF::LifeCycle::InitializeError, CORBA::SystemException)
+void cpp_dev_i::initialize ()
 {
     redhawk::DeviceManagerContainer* tmp_devMgr = this->getDeviceManager();
 	this->devmgr_id = ossie::corba::returnString(tmp_devMgr->getRef()->identifier());

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -24,6 +24,7 @@ from ossie.cf import CF, CF__POA
 from ossie.device import ExecutableDevice, start_device
 from ossie.properties import simple_property
 import logging
+import collections
 
 
 class ExceptionFunc(object):
@@ -86,7 +87,7 @@ class BasicTestDevice(CF__POA.ExecutableDevice, ExecutableDevice):
     # Use the base class __getattribute__ to avoid recursion.
     getattribute = lambda x: ExecutableDevice.__getattribute__(self, x)
     attribute = getattribute(attrname)
-    if callable(attribute) and attrname == getattribute('exceptionPoint'):
+    if isinstance(attribute, collections.Callable) and attrname == getattribute('exceptionPoint'):
       if getattribute('exceptionType') == 'CF.InvalidFileName':
         exception = CF.InvalidFileName(CF.CF_EINVAL, "Test exception")
       elif self.exceptionType == 'CF.Device.InvalidCapacity':

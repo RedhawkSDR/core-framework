@@ -64,78 +64,58 @@ public:
 
     static PortableServer::ObjectId* Activate(Application_impl* application);
 
-    char* identifier () throw (CORBA::SystemException);
-    CORBA::Boolean started ()
-        throw (CORBA::SystemException);
-    void start ()
-        throw (CF::Resource::StartError, CORBA::SystemException);
-    void stop ()
-        throw (CF::Resource::StopError, CORBA::SystemException);
+    char* identifier ();
+    CORBA::Boolean started ();
+    void start ();
+    void stop ();
 
-    void local_stop (float timeout)
-        throw (CF::Resource::StopError, CORBA::SystemException);
+    void local_stop (float timeout);
 
     // The core framework provides an implementation for this method.
-    void initializeProperties (const CF::Properties& configProperties)
-        throw (CF::PropertySet::PartialConfiguration,
-           CF::PropertySet::InvalidConfiguration, CORBA::SystemException);
+    void initializeProperties (const CF::Properties& configProperties);
 
     // The core framework provides an implementation for this method.
-    void configure (const CF::Properties& configProperties)
-        throw (CF::PropertySet::PartialConfiguration,
-           CF::PropertySet::InvalidConfiguration, CORBA::SystemException);
+    void configure (const CF::Properties& configProperties);
 
     // The core framework provides an implementation for this method.
-    void query (CF::Properties& configProperties)
-        throw (CF::UnknownProperties, CORBA::SystemException);
+    void query (CF::Properties& configProperties);
 
     // The core framework provides an implementation for this method.
-    CF::Properties* metrics (const CF::StringSequence& components, const CF::StringSequence& attributes)
-        throw (CF::Application::InvalidMetric, CORBA::SystemException);
+    CF::Properties* metrics (const CF::StringSequence& components, const CF::StringSequence& attributes);
 
-    char *registerPropertyListener( CORBA::Object_ptr listener, const CF::StringSequence &prop_ids, const CORBA::Float interval)
-      throw(CF::UnknownProperties, CF::InvalidObjectReference);
+    char *registerPropertyListener( CORBA::Object_ptr listener, const CF::StringSequence &prop_ids, const CORBA::Float interval);
 
-    void unregisterPropertyListener( const char *reg_id )  
-      throw(CF::InvalidIdentifier);
+    void unregisterPropertyListener( const char *reg_id );
 
-    void initialize ()
-        throw (CF::LifeCycle::InitializeError, CORBA::SystemException);
+    void initialize ();
         
-    void releaseObject ()
-        throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
+    void releaseObject ();
         
-    CORBA::Object_ptr getPort (const char*)
-        throw (CORBA::SystemException, CF::PortSupplier::UnknownPort);
+    CORBA::Object_ptr getPort (const char*);
 
     CF::PortSet::PortInfoSequence* getPortSet ();
         
-    void runTest (CORBA::ULong, CF::Properties&)
-        throw (CORBA::SystemException, CF::UnknownProperties, CF::TestableObject::UnknownTest);
+    void runTest (CORBA::ULong, CF::Properties&);
     
-    char* profile () throw (CORBA::SystemException);
+    char* profile ();
     
-    char* softwareProfile () throw (CORBA::SystemException);
+    char* softwareProfile ();
     
-    char* name () throw (CORBA::SystemException);
+    char* name ();
     
-    bool aware () throw (CORBA::SystemException);
+    bool aware ();
     
-    CORBA::Float stopTimeout () throw (CORBA::SystemException);
+    CORBA::Float stopTimeout ();
 
-    void stopTimeout (CORBA::Float timeout) throw (CORBA::SystemException);
+    void stopTimeout (CORBA::Float timeout);
     
-    CF::DeviceAssignmentSequence * componentDevices ()
-        throw (CORBA::SystemException);
+    CF::DeviceAssignmentSequence * componentDevices ();
         
-    CF::Application::ComponentElementSequence * componentImplementations ()
-        throw (CORBA::SystemException);
+    CF::Application::ComponentElementSequence * componentImplementations ();
         
-    CF::Application::ComponentElementSequence * componentNamingContexts ()
-        throw (CORBA::SystemException);
+    CF::Application::ComponentElementSequence * componentNamingContexts ();
         
-    CF::Application::ComponentProcessIdSequence * componentProcessIds ()
-        throw (CORBA::SystemException);
+    CF::Application::ComponentProcessIdSequence * componentProcessIds ();
     
     CF::Components * registeredComponents ();
     
@@ -175,10 +155,10 @@ public:
     redhawk::ApplicationComponent* getComponent(const std::string& identifier);
 
     // set the log level for one of the loggers on a component on the waveform
-    void setLogLevel( const char *logger_id, const CF::LogLevel newLevel ) throw (CF::UnknownIdentifier);
+    void setLogLevel( const char *logger_id, const CF::LogLevel newLevel );
 
     // get the log level from one of the loggers on a component on the waveform
-    CF::LogLevel getLogLevel( const char *logger_id ) throw (CF::UnknownIdentifier);
+    CF::LogLevel getLogLevel( const char *logger_id );
 
     // retrieves the list of named loggers from all the components associated with the waveform
     CF::StringSequence* getNamedLoggers();

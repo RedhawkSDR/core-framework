@@ -24,7 +24,7 @@ Private module to provide equivalents to commonly used functions from Python
 imported directly.
 """
 
-import commands as _commands
+import subprocess as _commands
 
 def uuid1(node=None, clock_seq=None):
     """

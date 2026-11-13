@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -21,7 +21,10 @@
 
 import unittest
 import weakref
-
+import gc
+import os
+import tempfile
+import shutil
 from ossie.utils.notify import notification
 from ossie.utils import weakobj
 
@@ -141,8 +144,8 @@ class TestPythonUtils(unittest.TestCase):
         objref = weakobj.objectref(obj)
         objref2 = weakobj.objectref(obj)
 
-        self.assertEquals(objref, objref2)
-        self.assertEquals(objref.foo(), obj.foo())
+        self.assertEqual(objref, objref2)
+        self.assertEqual(objref.foo(), obj.foo())
 
         # Delete what should be the only reference to the original object.
         del obj
@@ -150,7 +153,7 @@ class TestPythonUtils(unittest.TestCase):
 
         try:
             objref.foo()
-        except weakref.ReferenceError:
+        except ReferenceError:
             pass
         else:
             self.fail('Weak object should be invalidated')
@@ -180,9 +183,10 @@ class TestPythonUtils(unittest.TestCase):
         # original object to be deleted.
         del reffoo
 
+        gc.collect()
         try:
             objfoo()
-        except weakref.ReferenceError:
+        except ReferenceError:
             pass
         else:
             self.fail('Weak object should be invalidated')
@@ -221,7 +225,7 @@ class TestPythonUtils(unittest.TestCase):
         del obj
         try:
             foo()
-        except weakref.ReferenceError:
+        except ReferenceError:
             pass
         else:
             self.fail('Weak bound method should be invalidated')
@@ -263,3 +267,93 @@ class TestPythonUtils(unittest.TestCase):
 
         del obj3
         self.assertEqual(len(children), 0)
+
+
+class TestBulkioDataHelpers(unittest.TestCase):
+    """Regression tests for ossie.utils.bulkio.bulkio_data_helpers.
+
+    Guards against the Python 3 regression where octet/char (structFormat
+    "B"/"b") data could not be written because array.array lost fromstring()
+    in Python 3.9 (replaced by frombytes()). See FileSink.pushPacket.
+    """
+    def setUp(self):
+        try:
+            from bulkio.bulkioInterfaces import BULKIO__POA
+            from ossie.utils.bulkio import bulkio_data_helpers
+        except ImportError as e:
+            self.skipTest("bulkio python support not available: %s" % e)
+        self.BULKIO__POA = BULKIO__POA
+        self.helpers = bulkio_data_helpers
+        self.tmpdir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def _roundtrip(self, porttype, payload):
+        path = os.path.join(self.tmpdir, "sink_out")
+        sink = self.helpers.FileSink(path, porttype)
+        # ts is unused for the octet/char write path; EOS=True flushes+closes.
+        sink.pushPacket(payload, None, True, "regr")
+        with open(path, "rb") as fp:
+            return fp.read()
+
+    def test_FileSink_octet_bytes(self):
+        # Full 0..255 range exercises the unsigned octet path.
+        payload = bytes(range(256))
+        self.assertEqual(self._roundtrip(self.BULKIO__POA.dataOctet, payload),
+                         payload)
+
+    def test_FileSink_char_bytes(self):
+        payload = bytes(range(256))
+        self.assertEqual(self._roundtrip(self.BULKIO__POA.dataChar, payload),
+                         payload)
+
+    def test_FileSink_octet_str(self):
+        # A str payload must still serialize (latin-1 -> raw bytes).
+        text = "".join(chr(i) for i in range(256))
+        self.assertEqual(self._roundtrip(self.BULKIO__POA.dataOctet, text),
+                         text.encode("latin-1"))
+
+
+class TestNumpyStringCompat(unittest.TestCase):
+    """Regression tests for the numpy string->bytes API migration.
+
+    numpy.ndarray.tostring()/numpy.fromstring() are deprecated (removed in
+    numpy 2.0); the code now uses tobytes()/frombuffer(). frombuffer() returns
+    a read-only view, so the callers add .copy() to keep the writable-copy
+    semantics fromstring() used to provide. These tests guard both.
+    """
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_bluefile_byte_roundtrip(self):
+        # Exercises the write (tobytes) and read (frombuffer) byte paths.
+        import numpy
+        from ossie.utils.bluefile import bluefile
+        indata = numpy.arange(-128, 128, dtype=numpy.int8)
+        path = os.path.join(self.tmpdir, "test.tmp")
+        hdr = bluefile.header(1000, 'SB')
+        bluefile.write(path, hdr, indata)
+        outhdr, outdata = bluefile.read(path)
+        self.assertEqual(outhdr['format'], 'SB')
+        self.assertEqual(list(numpy.asarray(outdata, dtype=numpy.int8)),
+                         list(indata))
+
+    def test_burstio_chartraits_writable(self):
+        # CharTraits.toArray must return a writable copy (frombuffer + .copy).
+        import numpy
+        try:
+            from redhawk.burstio import traits
+        except ImportError as e:
+            self.skipTest("burstio python support not available: %s" % e)
+        payload = bytes([250, 0, 1, 2, 255])
+        # ByteTraits is CharTraits(..., numpy.int8); toArray uses frombuffer+copy
+        arr = traits.ByteTraits.toArray(payload)
+        self.assertEqual(list(arr),
+                         list(numpy.frombuffer(payload, dtype=numpy.int8)))
+        self.assertTrue(arr.flags.writeable)
+        arr[0] = 7  # must not raise (read-only frombuffer view would)
+        self.assertEqual(arr[0], 7)

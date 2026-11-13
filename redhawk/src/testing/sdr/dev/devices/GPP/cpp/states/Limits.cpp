@@ -79,7 +79,9 @@ void SysLimits::update_state()
   try{
     fname = "/proc/sys/fs/file-nr";
     std::ifstream file_nr(fname.c_str(), std::ifstream::in);
-    if ( !file_nr.good()) throw std::ifstream::failure("unable to open " + fname );
+    if ( !file_nr.good()) {
+        throw std::ifstream::failure("unable to open " + fname );
+    }
     std::string line;
     while ( std::getline( file_nr, line ) ) {
       std::vector<std::string> values;
@@ -91,7 +93,7 @@ void SysLimits::update_state()
           tmp.files = boost::lexical_cast<int64_t>( values[0] );
           tmp.files_limit = boost::lexical_cast<int64_t>( values[2] );
         }
-        catch( boost::bad_lexical_cast ){
+        catch( boost::bad_lexical_cast &){
         }
       }
     }
@@ -102,7 +104,9 @@ void SysLimits::update_state()
   try{
     fname = "/proc/sys/kernel/threads-max";
     std::ifstream sys_threads_max(fname.c_str(), std::ifstream::in);
-    if ( !sys_threads_max.good()) throw std::ifstream::failure("unable to open " + fname );
+    if ( !sys_threads_max.good()) {
+        throw std::ifstream::failure("unable to open " + fname );
+    }
     std::string line;
     while ( std::getline( sys_threads_max, line ) ) {
       std::vector<std::string> values;
@@ -113,7 +117,7 @@ void SysLimits::update_state()
         try {
           tmp.threads_limit = boost::lexical_cast<int64_t>( values[0] );
         }
-        catch( boost::bad_lexical_cast ){
+        catch( boost::bad_lexical_cast &){
         }
       }
     }
@@ -131,7 +135,7 @@ void SysLimits::update_state()
         try {
           tmp.threads = boost::lexical_cast<int>( values[0] );
         }
-        catch( boost::bad_lexical_cast ){
+        catch( boost::bad_lexical_cast &){
         }
       }
     }
@@ -190,7 +194,7 @@ void ProcessLimits::update_state()
           try {
             tmp.threads = boost::lexical_cast<int>( values[1] );
           }
-          catch( boost::bad_lexical_cast ){
+          catch( boost::bad_lexical_cast &){
           }
         }
       }

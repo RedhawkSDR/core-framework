@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file
 # distributed with this source distribution.
@@ -24,9 +24,10 @@ from ossie.utils.log4py import config
 from ossie.utils.log4py import *
 import time
 import os
+import tempfile
 import sys
 import contextlib
-import cStringIO
+import io
 import re
 
 logcfg="""
@@ -70,26 +71,29 @@ def stdout_redirect(where):
 class Test_Log4py_DateFormat(unittest.TestCase):
 
     def setUp(self):
-        self.tfile = os.tmpfile()
+        self.tfile = tempfile.TemporaryFile(mode="w+t")
 
     def _run_test(self, fmt_key):
         conv=conversions[fmt_key]
         config.strConfig(logcfg+conv[0])
+        #import pdb
+        #pdb.set_trace()
         self.logger=logging.getLogger('')
         self.console=self.logger.handlers[0]
         self.console.stream=self.tfile
         
         pval=time.strftime(conv[1])
-        
+        print("pval",pval)
         # 
         self.logger.info('test1')
         self.tfile.seek(0)
         logline=self.tfile.read()
         logline=logline.strip()
+        print("logline",logline)        
         if len(conv) > 2:
             logline = logline.split(conv[2])[0]
             pval = pval.split(conv[2])[0]
-        self.assertEquals( pval, logline)
+        self.assertEqual( pval, logline)
 
 
     def test_date1(self):
@@ -171,7 +175,7 @@ class Log4PyAppenders(unittest.TestCase):
 
         fp = None
         fp = open(fname,'r')
-        self.assertNotEquals(fp,None)
+        self.assertNotEqual(fp,None)
         try:
             os.remove(fname)
         except:
@@ -204,16 +208,16 @@ class Log4PyAppenders(unittest.TestCase):
         floc = os.getcwd()
         fp = None
         fp = open(fname,'r')
-        self.assertNotEquals(fp,None)
+        self.assertNotEqual(fp,None)
         try:
             os.remove(fname)
-        except Exception, e:
+        except Exception as e:
             pass
 
         try:
             os
             os.rmdir('tmp/foo/bar')
-        except Exception, e:
+        except Exception as e:
             pass
         try:
             os.rmdir('tmp/foo')
@@ -323,7 +327,7 @@ class Log4PyConfigFile(unittest.TestCase):
     def _try_config_test(self, logcfg, epattern, foundTest=None ):
         import ossie.utils.log4py.config
 
-        with stdout_redirect(cStringIO.StringIO()) as new_stdout:
+        with stdout_redirect(io.StringIO()) as new_stdout:
             ossie.utils.log4py.config.strConfig(logcfg,None)
 
         new_stdout.seek(0)

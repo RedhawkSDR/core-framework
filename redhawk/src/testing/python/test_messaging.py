@@ -80,10 +80,10 @@ class BasicMessage(object):
 
     def __init__(self, **kw):
         """Construct an initialized instance of this struct definition"""
-        for classattr in type(self).__dict__.itervalues():
+        for classattr in type(self).__dict__.values():
             if isinstance(classattr, (simple_property, simpleseq_property)):
                 classattr.initialize(self)
-        for k,v in kw.items():
+        for k,v in list(kw.items()):
             setattr(self,k,v)
 
     def __str__(self):
@@ -116,10 +116,10 @@ class TestMessage(object):
 
     def __init__(self, **kw):
         """Construct an initialized instance of this struct definition"""
-        for classattr in type(self).__dict__.itervalues():
+        for classattr in type(self).__dict__.values():
             if isinstance(classattr, (simple_property, simpleseq_property)):
                 classattr.initialize(self)
-        for k,v in kw.items():
+        for k,v in list(kw.items()):
             setattr(self,k,v)
 
     def __str__(self):
@@ -309,7 +309,7 @@ class MessagingTest(unittest.TestCase):
         consumer_2.registerMessage("basic_message", BasicMessage, receiver_2.messageReceived)
 
         # Target first connection
-        messages_1 = [BasicMessage(value=x) for x in xrange(2)]
+        messages_1 = [BasicMessage(value=x) for x in range(2)]
         self.assertEqual(0, len(receiver_1.messages))
         self.assertEqual(0, len(receiver_2.messages))
         self._supplier.sendMessages(messages_1, "connection_1")
@@ -322,7 +322,7 @@ class MessagingTest(unittest.TestCase):
 
         # Target the second connection this time with a different set of
         # messages
-        messages_2 = [BasicMessage(value=x) for x in xrange(2,5)]
+        messages_2 = [BasicMessage(value=x) for x in range(2,5)]
         self._supplier.sendMessages(messages_2, "connection_2")
 
         # Wait for the second receiver to get all the messages (and check at

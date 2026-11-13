@@ -1,0 +1,44 @@
+#!/usr/bin/env python3
+
+import sys
+from optparse import OptionParser
+
+try:
+    from cassandra.cluster import Cluster
+    from cassandra.query import SimpleStatement
+    import cassandra.cluster
+    import cassandra.protocol
+except:
+    sys.exit(-1)
+
+USAGE="""\
+usage: %prog <domainname>
+"""
+parser = OptionParser(usage=USAGE)
+options, args = parser.parse_args()
+
+if __name__ == '__main__':
+    try:
+        domainname = args[0]
+    except IndexError:
+        parser.error("no domain name provided")
+
+    cluster = None
+    try:
+        cluster = Cluster(['rook-cassandra-client.rook-cassandra.svc.cluster.local'], load_balancing_policy=cassandra.cluster.DCAwareRoundRobinPolicy(), protocol_version=cassandra.protocol.ProtocolVersion.V4)
+    except:
+        pass
+    if not cluster:
+        print("Cassandra not found")
+        sys.exit(-1)
+    cass_session=cluster.connect()
+    KEYSPACE="".join(_a for _a in str(domainname).lower() if _a.isalnum())
+
+    try:
+        cass_session.set_keyspace(KEYSPACE)
+    except:
+        sys.exit(-1)
+    
+    res=cass_session.execute("""SELECT * FROM domaintable""")
+    for row in res:
+        print(str(row.thekey), str(row.ior))

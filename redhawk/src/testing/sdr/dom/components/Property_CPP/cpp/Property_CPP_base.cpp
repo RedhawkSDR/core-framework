@@ -44,13 +44,13 @@ Property_CPP_base::~Property_CPP_base()
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
 *******************************************************************************************/
-void Property_CPP_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
+void Property_CPP_base::start()
 {
     Component::start();
     ThreadedComponent::startThread();
 }
 
-void Property_CPP_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
+void Property_CPP_base::stop()
 {
     Component::stop();
     if (!ThreadedComponent::stopThread()) {
@@ -58,7 +58,7 @@ void Property_CPP_base::stop() throw (CORBA::SystemException, CF::Resource::Stop
     }
 }
 
-void Property_CPP_base::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void Property_CPP_base::releaseObject()
 {
     // This function clears the component running condition so main shuts down everything
     try {

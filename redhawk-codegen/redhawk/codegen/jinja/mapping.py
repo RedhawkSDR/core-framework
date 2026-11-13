@@ -190,6 +190,10 @@ class SoftpkgMapper(object):
             component['profile']['scd'] = softpkg.scdFile()
         if softpkg.prfFile():
             component['profile']['prf'] = softpkg.prfFile()
+        for child in softpkg.children():
+            component['profile'][child['name']+'spd'] = child['spd']
+            component['profile'][child['name']+'prf'] = child['prf']
+            component['profile'][child['name']+'scd'] = child['scd']
 
         return component
 
@@ -256,7 +260,7 @@ class SoftpkgMapper(object):
         elif softpkg.type() == ComponentTypes.SHAREDPACKAGE:
             return 'sharedpackage'
         else:
-            raise ValueError, 'Unsupported software component type', softpkg.type()
+            raise ValueError('Unsupported software component type').with_traceback(softpkg.type())
 
 
 class ProjectMapper(SoftpkgMapper):
@@ -300,6 +304,12 @@ class ComponentMapper(SoftpkgMapper):
 
         component.update(self._mapComponent(softpkg))
         return component
+
+    def listChildren(self, softpkg):
+        children = []
+        for child in softpkg.children():
+            children.append(child)
+        return children
 
     def _mapComponent(self, softpkg):
         return {}

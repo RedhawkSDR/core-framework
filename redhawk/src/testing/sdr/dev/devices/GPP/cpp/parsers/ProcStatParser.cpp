@@ -38,7 +38,9 @@ ProcStatParser::ProcStatParser() :
   fname("/proc/stat" )
 {
   std::ifstream input( fname.c_str() );
-  if ( !input.good()) throw std::ifstream::failure("unable to open " + fname );
+  if ( !input.good()) {
+      throw std::ifstream::failure("unable to open " + fname );
+  }
 }
 
 
@@ -46,7 +48,9 @@ ProcStatParser::ProcStatParser( const std::string &fname ) :
   fname(fname)
 {
   std::ifstream input( fname.c_str() );
-  if ( !input.good()) throw std::ifstream::failure("unable to open " + fname );
+  if ( !input.good()) {
+      throw std::ifstream::failure("unable to open " + fname );
+  }
 }
 
 
@@ -61,7 +65,9 @@ void   ProcStatParser::parse( ProcStat::Contents & data )
 
   try {
     std::ifstream procstat_file( fname.c_str() );
-    if ( !procstat_file.good()) throw std::ifstream::failure("unable to open " + fname );
+    if ( !procstat_file.good()) {
+        throw std::ifstream::failure("unable to open " + fname );
+    }
     DEBUG(std::cout << " opened up the file..."<< std::endl);
 
     std::string line;
@@ -85,7 +91,7 @@ void   ProcStatParser::parse( ProcStat::Contents & data )
                 cstat.idx= boost::lexical_cast<int>( ids );
               }
             }
-            catch( boost::bad_lexical_cast ){
+            catch( boost::bad_lexical_cast &){
             }
             // save off stat line for this cpu
             cstat.jiffies.resize( values.size()-1 );
@@ -94,7 +100,7 @@ void   ProcStatParser::parse( ProcStat::Contents & data )
               try {
                 cstat.jiffies[i-1] = boost::lexical_cast<ProcStat::Counter>( values[i] );
               }
-              catch( boost::bad_lexical_cast ){
+              catch( boost::bad_lexical_cast &){
               }
             }
 
@@ -121,7 +127,7 @@ void   ProcStatParser::parse( ProcStat::Contents & data )
               try {
                 stat_list.push_back( boost::lexical_cast<ProcStat::Counter>( values[i] ) );
               }
-              catch( boost::bad_lexical_cast ){
+              catch( boost::bad_lexical_cast &){
               }
             }
             data.interrupts.swap( stat_list );
@@ -134,7 +140,7 @@ void   ProcStatParser::parse( ProcStat::Contents & data )
               try {
                 stat_list.push_back( boost::lexical_cast<ProcStat::Counter>( values[i] ) );
               }
-              catch( boost::bad_lexical_cast ){
+              catch( boost::bad_lexical_cast &){
               }
             }
             data.soft_irqs.swap( stat_list );

@@ -90,8 +90,7 @@ void PersonaDevice_persona_base::construct()
 }
 
 // TODO: This was overriden since setting admin state is not accessible via the current IDL
-void PersonaDevice_persona_base::adminState(CF::Device::AdminType adminState) 
-    throw (CORBA::SystemException)
+void PersonaDevice_persona_base::adminState(CF::Device::AdminType adminState)
 {
     // Force admin state to change usage state since usage state is currently protected
     switch (adminState) {
@@ -109,10 +108,7 @@ void PersonaDevice_persona_base::adminState(CF::Device::AdminType adminState)
     PersonaDevice_base::adminState(adminState);
 }
 
-void PersonaDevice_persona_base::releaseObject() 
-    throw (
-        CF::LifeCycle::ReleaseError, 
-        CORBA::SystemException ) 
+void PersonaDevice_persona_base::releaseObject()
 {
 
     // This function clears the component running condition so main shuts down everything

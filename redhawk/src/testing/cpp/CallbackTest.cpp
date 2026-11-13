@@ -18,6 +18,7 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include "CallbackTest.h"
 
 #include <complex>
@@ -281,12 +282,16 @@ void CallbackTest::testFunction()
 
     // One-argument function: complex conjugate
     typedef std::complex<float> complex_float;
-    redhawk::callback<complex_float (complex_float)> func1 = &std::conj<float>;
+    complex_float(*CallbackComplex)(const complex_float&);
+    CallbackComplex = std::conj;
+    redhawk::callback<complex_float (const complex_float &)> func1 = CallbackComplex;
     complex_float conj_result = func1(complex_float(1.0, 1.0));
     CPPUNIT_ASSERT_EQUAL(complex_float(1.0, -1.0), conj_result);
 
     // Two-argument function: power (with integer exponent)
-    redhawk::callback<double (double, int)> func2 = &std::pow<double,int>;
+    double(*CallbackDouble)(double,int);
+    CallbackDouble = std::pow;
+    redhawk::callback<double (double,int)> func2 = CallbackDouble;
     double pow_result = func2(7.0, 3);
     CPPUNIT_ASSERT_EQUAL(343.0, pow_result);
 }

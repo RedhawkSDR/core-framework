@@ -333,7 +333,7 @@ namespace ossie
     //
     // @param  sca_url : format as follows sca://?fs=<file system IOR>/path/to/file
     //
-    std::string  GetSCAFileContents( const std::string &sca_url) throw ( std::exception );
+    std::string  GetSCAFileContents( const std::string &sca_url);
 
     //
     // Resolve the location of the URL and return its contents as a string.
@@ -349,7 +349,7 @@ namespace ossie
     //
     // @url   url formatted location to the file
     //
-    std::string  GetConfigFileContents( const std::string &url ) throw ( std::exception );
+    std::string  GetConfigFileContents( const std::string &url );
 
     // 
     //

@@ -19,7 +19,7 @@
 #
 
 import warnings
-import cStringIO, pydoc
+import io, pydoc
 
 from ossie.utils.model import CorbaObject
 from ossie.utils.model import PortSupplier, PropertySet, ComponentBase
@@ -140,9 +140,9 @@ class SandboxResource(ComponentBase, SandboxMixin):
         localdef_dest = False
         if destfile == None:
             localdef_dest = True
-            destfile = cStringIO.StringIO()
+            destfile = io.StringIO()
 
-        print >>destfile, "Component [" + str(self._componentName) + "]:\n"
+        print("Component [" + str(self._componentName) + "]:\n", file=destfile)
         PortSupplier.api(self, destfile=destfile)
         PropertySet.api(self, destfile=destfile)
 
@@ -191,10 +191,10 @@ class SandboxDevice(SandboxResource, Device):
         localdef_dest = False
         if destfile == None:
             localdef_dest = True
-            destfile = cStringIO.StringIO()
+            destfile = io.StringIO()
 
         SandboxResource.api(self, destfile=destfile)
-        print >>destfile, '\n'
+        print('\n', file=destfile)
         Device.api(self, destfile=destfile)
 
         if localdef_dest:

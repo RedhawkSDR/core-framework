@@ -17,16 +17,16 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
-codegen = '2.2.10'
-redhawk = '2.2'
-jinja2 = '2.6'
-boost = '1.41'
-omniORB4 = '4.1.0'
-python = '2.4'
-java = '1.8'
+codegen = '4.0.4'
+redhawk = '4.0'
+jinja2 = '2.11'
+boost = '1.75'
+omniORB4 = '4.2.3'
+python = '3.9'
+java = '11'
 reload4j = '1.2.19'
 octave = '3.4.3'
 
 bulkio = redhawk
 burstio = redhawk
-frontend = '2.4'
+frontend = redhawk

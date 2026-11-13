@@ -42,6 +42,8 @@ namespace ossie {
                     std::string id;
                     std::string name;
                     std::string softpkg;
+
+                    ~DMD() = default;
             };
 
         ///////////////////////////
@@ -53,9 +55,11 @@ namespace ossie {
              * is a programming error the class uses assert statements (rather than exceptions)
              * to check that this requirement is held.
              */
-            DomainManagerConfiguration() : _dmd(0) {};
+            DomainManagerConfiguration() {
+                _dmd = 0;
+            };
 
-            DomainManagerConfiguration(std::istream& input) throw (ossie::parser_error);
+            DomainManagerConfiguration(std::istream& input);
 
             ~DomainManagerConfiguration();
 
@@ -64,7 +68,7 @@ namespace ossie {
         //////////
         // Methods
         public:
-            void load(std::istream& input) throw (ossie::parser_error);
+            void load(std::istream& input);
 
             const char* getID() const;
 
@@ -80,7 +84,7 @@ namespace ossie {
         //////////
         // Members
         protected:
-            std::auto_ptr<DMD> _dmd;
+            std::unique_ptr<DMD> _dmd;
     };
 }
 #endif

@@ -20,7 +20,7 @@ with this program.  If not, see http://www.gnu.org/licenses/.
 -->
 
 <!DOCTYPE softwareassembly PUBLIC '-//JTRS//DTD SCA V2.2.2 SAD//EN' 'softwareassembly.dtd'>
-<softwareassembly id="testcpp-props-wave" name="testcpp-props-wave" version="1.0">
+<softwareassembly id="testcpp-props-wave" name="testcpp-props-wave">
     <componentfiles>
         <componentfile id="testcpp_file_1" type="SPD">
             <localfile name="/components/C2/C2.spd.xml"/>

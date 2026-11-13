@@ -78,14 +78,14 @@ SUBDIRS = . testing/tests/cpp
 all-python: build-python
 
 build-python:
-	python setup.py build
+	python3 setup.py build
 
 install-python:
 	test -n "$(DESTDIR)" && buildroot="--root=$(DESTDIR)"; \
-	  python setup.py install $$buildroot --prefix=$(prefix) --install-purelib=$(prefix)/lib/python --force
+	  python3 setup.py install $$buildroot --prefix=$(prefix) --install-purelib=$(prefix)/lib/python --force
 
 clean-python:
-	python setup.py clean --all
+	python3 setup.py clean --all
 
 ###############################################################################
 # Java

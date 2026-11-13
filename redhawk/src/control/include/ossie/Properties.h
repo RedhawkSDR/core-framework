@@ -403,7 +403,7 @@ namespace ossie {
         _properties.clear();
         }
 
-        void addProperty(const Property* p) throw (ossie::parser_error);
+        void addProperty(const Property* p);
 
     protected:
         PRF(const PRF&) // Hide copy constructor
@@ -421,7 +421,7 @@ namespace ossie {
     public:
         Properties();
         
-        Properties(std::istream& input) throw(ossie::parser_error);
+        Properties(std::istream& input);
 
         virtual ~Properties();
 
@@ -444,14 +444,14 @@ namespace ossie {
         /*
          * Load the contents of a PRF from an input stream
          */
-        void load(std::istream& input) throw (ossie::parser_error);
+        void load(std::istream& input);
 
         /*
          * Join the contents of another PRF along with this one.
          * This will override values for any properties with the same id
          */
-        void join(std::istream& input) throw (ossie::parser_error);
-        void join(ossie::Properties& props) throw (ossie::parser_error);
+        void join(std::istream& input);
+        void join(ossie::Properties& props);
 
         /*
          * Overrides properties with values from another source

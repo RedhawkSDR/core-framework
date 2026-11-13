@@ -43,6 +43,8 @@ namespace rh_logger {
 
   log4cxx::LevelPtr ConvertRHLevelToLog4 ( rh_logger::LevelPtr rh_level );
   rh_logger::LevelPtr ConvertLog4ToRHLevel ( log4cxx::LevelPtr l4_level );
+  
+  //typedef log4cxx::Hierarchy L4Hierarchy;
 
   class L4Hierarchy : public log4cxx::Hierarchy {
   public:
@@ -60,6 +62,7 @@ namespace rh_logger {
     //typedef boost::shared_ptr< L4Hierarchy > L4HierarchyPtr;
     //typedef boost::shared_ptr< log4cxx::Hierarchy > L4HierarchyPtr;
     typedef log4cxx::helpers::ObjectPtrT<L4Hierarchy> L4HierarchyPtr;
+    //typedef std::shared_ptr< log4cxx::Hierarchy > L4HierarchyPtr;
 
   public:
 

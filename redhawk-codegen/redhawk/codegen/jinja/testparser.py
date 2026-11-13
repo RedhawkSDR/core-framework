@@ -48,7 +48,7 @@ class TestParser(object):
     def parse(self):
         try:
             test = self.parse_or()
-        except Exception, exc:
+        except Exception as exc:
             # Flatten the stack trace
             raise exc
         if not self.stream.eos:
@@ -86,7 +86,7 @@ class TestParser(object):
     def parse_test(self):
         if not self.stream.current.test('name'):
             raise TestSyntaxError('name', self.stream.current, self.test)
-        token = self.stream.next()
+        token = next(self.stream)
         name = token.value
         try:
             return self.environment.tests[name]

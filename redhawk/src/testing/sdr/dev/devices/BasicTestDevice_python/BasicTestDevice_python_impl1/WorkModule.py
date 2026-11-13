@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # This file is protected by Copyright. Please refer to the COPYRIGHT file 
 # distributed with this source distribution.
@@ -19,7 +19,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import Queue
+import queue
 import threading
 import os, time
 
@@ -33,7 +33,7 @@ class WorkClass:
         self.parent = parent
         
         # Initialize variables for input data processing
-        self.data_queue = Queue.Queue()
+        self.data_queue = queue.Queue()
         self.empty_queue = False
         
         # variables for thread management
@@ -82,7 +82,7 @@ class WorkClass:
                 try:
                     while self.data_queue.get_nowait():
                         pass
-                except Queue.Empty:
+                except queue.Empty:
                     pass
             
         #
@@ -124,7 +124,7 @@ class WorkClass:
             try:
                 new_data = self.data_queue.get(timeout=self.timeout_check_period)
                 new_data_flag = True
-            except Queue.Empty:
+            except queue.Empty:
                 new_data_flag = False
 
             if new_data_flag:

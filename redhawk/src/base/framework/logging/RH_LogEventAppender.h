@@ -59,7 +59,7 @@ class RH_LogEventAppender : public AppenderSkeleton
 
   void close();
  
-  bool isClosed() const { return closed; }
+  bool isClosed() const { return true; }
 	 
   bool requiresLayout() const { return true; }
 

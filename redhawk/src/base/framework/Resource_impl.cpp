@@ -122,26 +122,25 @@ void Resource_impl::constructor ()
 }
 
 
-void Resource_impl::start () throw (CORBA::SystemException, CF::Resource::StartError)
+void Resource_impl::start ()
 {
     startPorts();
     _started = true;
 }
 
 
-void Resource_impl::stop () throw (CORBA::SystemException, CF::Resource::StopError)
+void Resource_impl::stop ()
 {
     stopPorts();
     _started = false;
 }
 
-char* Resource_impl::identifier () throw (CORBA::SystemException)
+char* Resource_impl::identifier ()
 {
     return CORBA::string_dup(_identifier.c_str());
 }
 
 char* Resource_impl::softwareProfile ()
-throw (CORBA::SystemException)
 {
     return CORBA::string_dup(_softwareProfile.c_str());
 }
@@ -156,14 +155,14 @@ CF::StringSequence* Resource_impl::getNamedLoggers() {
     return retval._retn();
 }
 
-CORBA::Boolean Resource_impl::started () throw (CORBA::SystemException)
+CORBA::Boolean Resource_impl::started ()
 {
     return _started;
 }
 
 
 
-void Resource_impl::initialize () throw (CF::LifeCycle::InitializeError, CORBA::SystemException)
+void Resource_impl::initialize ()
 {
   startPropertyChangeMonitor(_identifier);
   if (!_initialized) {
@@ -179,7 +178,7 @@ void Resource_impl::initialize () throw (CF::LifeCycle::InitializeError, CORBA::
   }
 }
 
-void Resource_impl::releaseObject() throw (CORBA::SystemException, CF::LifeCycle::ReleaseError)
+void Resource_impl::releaseObject()
 {
     releasePorts();
     stopPropertyChangeMonitor();

@@ -18,4 +18,4 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-__version__='2.2.10'
+__version__='4.0.0'
